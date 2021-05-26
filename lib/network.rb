@@ -6,6 +6,8 @@ require 'dynamic_config'
 class Network
   include Concurrent::Async
 
+  # TODO: JSON Exception Catching
+
   def initialize(server_secret, api)
     super()
     if !api.end_with?('/')
@@ -35,6 +37,7 @@ class Network
 
   def download_config_specs
     response =  @http.post(@api + 'download_config_specs', body: JSON.generate({}))
+    # TODO: polling
     puts response
     return JSON.parse(response.body)
   end
@@ -42,5 +45,6 @@ class Network
   def post_logs(events, statsigMetadata)
     json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsigMetadata})
     @http.post(@api + 'log_event', body: json_body)
+    ## TODO: retries
   end
 end
