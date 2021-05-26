@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
     'https://rubygems.org/gems/statsig'
     s.license       = 'ISC'
 
-    s.files       = ['lib/statsig.rb', 'lib/network.rb']
+    s.files       = Dir['lib/**/*']
     s.add_development_dependency 'concurrent-ruby'
     s.add_development_dependency 'http'
     s.add_runtime_dependency 'concurrent-ruby'
