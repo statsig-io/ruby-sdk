@@ -1,5 +1,7 @@
 require 'concurrent'
 require 'network'
+require 'statsig_event'
+require 'statsig_logger'
 
 class Statsig
     include Concurrent::Async
@@ -10,7 +12,13 @@ class Statsig
           raise 'Invalid secret key provided.  Provide your project secret key from the Statsig console'
         end
         @secret_key = secret_key
-        @net = Network.new(secret_key, 'http://localhost:3006/v1')
+        # 'http://localhost:3006/v1'
+        @net = Network.new(secret_key, 'https://api.statsig.com/v1/')
+        @statsig_metadata = {
+          'sdkType' => 'ruby-server',
+          'sdkVersion' => Gem::Specification::load('statsig.gemspec'),
+        }
+        @logger = StatsigLogger.new(@net, @statsig_metadata)
     end
   
     def check_gate(gate_name)
@@ -31,5 +39,14 @@ class Statsig
 
     def download_config_specs
       return @net.download_config_specs()
+    end
+
+    def log_event(user, event_name, value = nil, metadata = nil)
+      event = StatsigEvent.new(event_name)
+      event.user = user
+      event.value = value
+      event.metadata = metadata
+      event.statsig_metadata = @statsig_metadata
+      @logger.log_event(event)
     end
   end
