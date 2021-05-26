@@ -38,4 +38,9 @@ class Network
     puts response
     return JSON.parse(response.body)
   end
+
+  def post_logs(events, statsigMetadata)
+    json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsigMetadata})
+    @http.post(@api + 'log_event', body: json_body)
+  end
 end
