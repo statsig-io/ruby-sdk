@@ -36,14 +36,10 @@ class Evaluator
         return $fetch_from_server if result == $fetch_from_server
         if result
           pass = self.eval_pass_percent(user, rule, config['salt'])
-          value = if type == $type_dynamic_config
-                    pass ? rule['returnValue'] : config['defaultValue']
-                  else
-                    pass
-                  end
           return {
             :name => config['name'],
-            :value => value,
+            :gate_value => pass,
+            :config_value => pass ? rule['returnValue'] : config['defaultValue'],
             :rule_id => rule['id']
           }
         end
@@ -54,7 +50,8 @@ class Evaluator
 
     {
       :name => config['name'],
-      :value => type == $type_dynamic_config ? config['defaultValue'] : false,
+      :gate_value => false,
+      :config_value => config['defaultValue'],
       :rule_id => 'default'
     }
   end
