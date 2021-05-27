@@ -20,12 +20,16 @@ class Network
   end
 
   def check_gate(user, gate_name)
-    request_body = JSON.generate({'user' => user&.serialize(), 'gateName' => gate_name})
-    response = @http.post(@api + 'check_gate', body: request_body)
-    gate = JSON.parse(response.body)
-    puts gate
-    return false if gate.nil? || gate['value'].nil?
-    gate['value']
+    begin
+      request_body = JSON.generate({'user' => user&.serialize(), 'gateName' => gate_name})
+      response = @http.post(@api + 'check_gate', body: request_body)
+      gate = JSON.parse(response.body)
+      puts gate
+      return false if gate.nil? || gate['value'].nil?
+      gate['value']
+    rescue JSON::JSONError
+      return false
+    end
   end
 
   def get_config(user, dynamic_config_name)
