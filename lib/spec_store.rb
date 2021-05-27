@@ -2,31 +2,14 @@ require 'net/http'
 require 'uri'
 
 class SpecStore
-  attr_reader :store
-  def initialize(api_url_base, server_secret)
-    @initialized = false
-    @api_url_base = api_url_base || 'https://api.statsig.com/v1'
-    @server_secret = server_secret
+  def initialize(specs_json)
     @last_sync_time = 0
-    @store = { :gates => {}, :configs => {} }
-    @sync_interval = 10
-
-    # TODO - network request
-    specs_json_string = '' # TODO - fix
-    specs_json = JSON.parse(specs_json_string, object_class: OpenStruct)
-    self.process(specs_json)
+    @store = {
+      :gates => {},
+      :configs => {},
+    }
+    process(specs_json)
   end
-
-  def sync_values
-    # TODO: fetch values and sync every 10 sec
-  end
-
-  def shutdown
-    # TODO
-    print(@api_url_base)
-  end
-
-  private
 
   def process(specs_json)
     @last_sync_time = specs_json['time'] || @last_sync_time
@@ -34,7 +17,31 @@ class SpecStore
       !specs_json['feature_gates'].nil? &&
       !specs_json['dynamic_configs'].nil?
 
-    @store[:gates] = specs_json['feature_gates']
-    @store[:configs] = specs_json['dynamic_configs']
+    @store = {
+      :gates => {},
+      :configs => {},
+    }
+
+    specs_json['feature_gates'].map{|gate|  @store[:gates][gate['name']] = gate }
+    specs_json['dynamic_configs'].map{|config|  @store[:configs][config['name']] = config }
   end
+
+  def has_gate?(gate_name)
+    return @store[:gates].key?(gate_name)
+  end
+
+  def has_config?(config_name)
+    return @store[:configs].key?(config_name)
+  end
+
+  def get_gate(gate_name)
+    return nil unless has_gate?(gate_name)
+    @store[:gates][gate_name]
+  end
+
+  def get_config(config_name)
+    return nil unless has_config?(config_name)
+    @store[:configs][config_name]
+  end
+
 end

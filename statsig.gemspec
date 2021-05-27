@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
     s.files       = Dir['lib/**/*']
     s.add_development_dependency 'concurrent-ruby'
     s.add_development_dependency 'http'
+    s.add_runtime_dependency 'browser'
     s.add_runtime_dependency 'concurrent-ruby'
     s.add_runtime_dependency 'http'
   end
