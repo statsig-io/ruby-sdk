@@ -37,12 +37,13 @@ class Statsig
       if !gate_name.is_a?(String) || gate_name.empty?
         raise 'Invalid gate_name provided'
       end
-      res = @evaluator.check_gate(user, gate_name)
 
-      if res.nil?
-        return false
+      res = @evaluator.check_gate(user, gate_name)
+      if res.nil? || res == $fetch_from_server
+        check_gate_fallback(user, gate_name)
       end
 
+      @logger.logGateExposure(user, gate_name, res[:gate_value], res[:rule_id])
       return res[:gate_value]
     end
 
@@ -55,12 +56,16 @@ class Statsig
       end
 
       res = @evaluator.get_config(user, dynamic_config_name)
-
-      if res.nil?
-        return @net.get_config(user, dynamic_config_name)
+      if res.nil? || res == $fetch_from_server
+        return get_config_fallback(user, dynamic_config_name)
       end
 
-      return res[:config_value]
+      result_config = DynamicConfig.new()
+      result_config.name = dynamic_config_name
+      result_config.value = res[:config_value]
+      result_config.rule_id = res[:rule_id]
+      @logger.logConfigExposure(user, dynamic_config_name, res[:rule_id])
+      return result_config
     end
 
     def log_event(user, event_name, value = nil, metadata = nil)
@@ -78,5 +83,32 @@ class Statsig
     def shutdown
       @logger.flush
       @polling_thread&.exit
+    end
+
+    private
+
+    def check_gate_fallback(user, gate_name)
+      network_result = @net.check_gate(user, gate_name)
+      if network_result.nil?
+        @logger.logGateExposure(user, gate_name, false, nil)
+        return false
+      end
+      @logger.logGateExposure(user, network_result['name'], network_result['value'], network_result['rule_id'])
+      return network_result['value']
+    end
+
+    def get_config_fallback(user, dynamic_config_name)
+      network_result = @net.get_config(user, dynamic_config_name)
+      if network_result.nil?
+        @logger.logConfigExposure(user, dynamic_config_name, nil)
+        return DynamicConfig.new()
+      end
+      
+      result_config = DynamicConfig.new()
+      result_config.name = dynamic_config_name
+      result_config.value = network_result['value']
+      result_config.rule_id = network_result['rule_id']
+      @logger.logConfigExposure(user, dynamic_config_name, network_result['rule_id'])
+      return result_config
     end
   end

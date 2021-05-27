@@ -6,8 +6,6 @@ require 'dynamic_config'
 class Network
   include Concurrent::Async
 
-  # TODO: JSON Exception Catching
-
   def initialize(server_secret, api)
     super()
     if !api.end_with?('/')
@@ -24,29 +22,31 @@ class Network
     begin
       request_body = JSON.generate({'user' => user&.serialize(), 'gateName' => gate_name})
       response = @http.post(@api + 'check_gate', body: request_body)
-      gate = JSON.parse(response.body)
-      puts gate
-      return false if gate.nil? || gate['value'].nil?
-      gate['value']
-    rescue JSON::JSONError
+      return JSON.parse(response.body)
+    rescue
       return false
     end
   end
 
   def get_config(user, dynamic_config_name)
-    request_body = JSON.generate({'user' => user&.serialize(), 'configName' => dynamic_config_name})
-    response = @http.post(@api + 'get_config', body: request_body)
-    config = JSON.parse(response.body)
-    puts config
-    return DynamicConfig.new({}) if config.nil? || config['value'].nil?
-    DynamicConfig.new(config)
+    begin
+      request_body = JSON.generate({'user' => user&.serialize(), 'configName' => dynamic_config_name})
+      response = @http.post(@api + 'get_config', body: request_body)
+      return JSON.parse(response.body)
+    rescue
+      return nil
+    end
   end
 
   def download_config_specs
-    response = @http.post(@api + 'download_config_specs', body: JSON.generate({'sinceTime' => @last_sync_time}))
-    json_body = JSON.parse(response.body)
-    @last_sync_time = json_body['time']
-    json_body
+    begin
+      response = @http.post(@api + 'download_config_specs', body: JSON.generate({'sinceTime' => @last_sync_time}))
+      json_body = JSON.parse(response.body)
+      @last_sync_time = json_body['time']
+      return json_body
+    rescue
+      return nil
+    end
   end
 
   def poll_for_changes(callback)
@@ -54,14 +54,19 @@ class Network
       loop do
         sleep 10
         specs = download_config_specs()
-        callback.call(specs)
+        if (!specs.nil?)
+          callback.call(specs)
+        end
       end
     end
   end
 
   def post_logs(events, statsigMetadata)
-    json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsigMetadata})
-    @http.post(@api + 'log_event', body: json_body)
-    ## TODO: retries
+    begin
+      json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsigMetadata})
+      @http.post(@api + 'log_event', body: json_body)
+    rescue
+      # TODO: retries
+    end
   end
 end
