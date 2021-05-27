@@ -46,7 +46,7 @@ class Network
     response = @http.post(@api + 'download_config_specs', body: JSON.generate({'sinceTime' => @last_sync_time}))
     json_body = JSON.parse(response.body)
     @last_sync_time = json_body['time']
-    return json_body
+    json_body
   end
 
   def poll_for_changes(callback)
