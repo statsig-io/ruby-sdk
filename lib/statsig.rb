@@ -1,8 +1,10 @@
 require 'concurrent'
+require 'evaluator'
 require 'network'
 require 'statsig_event'
 require 'statsig_logger'
 require 'statsig_user'
+require 'spec_store'
 
 class Statsig
     include Concurrent::Async
@@ -20,6 +22,12 @@ class Statsig
           'sdkVersion' => Gem::Specification::load('statsig.gemspec'),
         }
         @logger = StatsigLogger.new(@net, @statsig_metadata)
+
+        downloaded_specs = @net.download_config_specs()
+        @store = SpecStore.new(downloaded_specs)
+        @evaluator = Evaluator.new(@store)
+
+        @polling_thread = @net.poll_for_changes(-> (config_specs) { @store.process(config_specs) })
     end
   
     def check_gate(user, gate_name)
@@ -29,23 +37,30 @@ class Statsig
       if !gate_name.is_a?(String) || gate_name.empty?
         raise 'Invalid gate_name provided'
       end
-  
-      return @net.check_gate(user, gate_name)
+      res = @evaluator.check_gate(user, gate_name)
+
+      if res.nil?
+        return false
+      end
+
+      return res[:gate_value]
     end
 
     def get_config(user, dynamic_config_name)
       if !user.nil? && !user.instance_of?(StatsigUser)
         raise 'Must provide a valid StatsigUser or nil'
       end
-      if !dyanmic_config_name.is_a?(String) || dyanmic_config_name.empty?
+      if !dynamic_config_name.is_a?(String) || dynamic_config_name.empty?
         raise "Invalid dynamic_config_name provided"
       end
 
-      return @net.get_config(user, dynamic_config_name)
-    end
+      res = @evaluator.get_config(user, dynamic_config_name)
 
-    def download_config_specs
-      return @net.download_config_specs()
+      if res.nil?
+        return @net.get_config(user, dynamic_config_name)
+      end
+
+      return res[:config_value]
     end
 
     def log_event(user, event_name, value = nil, metadata = nil)
@@ -61,6 +76,7 @@ class Statsig
     end
 
     def shutdown
-      @logger.flush()
+      @logger.flush
+      @polling_thread&.exit
     end
   end

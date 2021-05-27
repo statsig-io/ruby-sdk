@@ -8,21 +8,19 @@ $type_dynamic_config = 'dynamic_config'
 class Evaluator
   include EvaluationHelpers
 
-  def initialize(api_url_base, server_secret)
-    @spec_store = SpecStore.new(api_url_base, server_secret)
-    # await @store.init()
-
+  def initialize(store)
+    @spec_store = store
     @initialized = true
   end
 
   def check_gate(user, gate_name)
-    return nil unless @initialized && gate_name.is_a?(String) && !@spec_store.store[:gates].key?(gate_name).nil?
-    self.eval_spec(user, @spec_store.store[:gates][gate_name])
+    return nil unless @initialized && gate_name.is_a?(String) && @spec_store.has_gate?(gate_name)
+    self.eval_spec(user, @spec_store.get_gate(gate_name))
   end
 
   def get_config(user, config_name)
-    return nil unless @initialized && config_name.is_a?(String) && !@spec_store.store[:configs].key?(config_name).nil?
-    self.eval_spec(user, @spec_store.store[:configs][config_name])
+    return nil unless @initialized && config_name.is_a?(String) && @spec_store.has_config?(config_name)
+    self.eval_spec(user, @spec_store.get_config(config_name))
   end
 
   private

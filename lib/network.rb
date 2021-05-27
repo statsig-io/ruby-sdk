@@ -17,6 +17,7 @@ class Network
         .headers({"STATSIG-API-KEY" => server_secret, "Content-Type" => "application/json; charset=UTF-8"})
         .accept(:json)
     @api = api
+    @last_sync_time = 0
   end
 
   def check_gate(user, gate_name)
@@ -42,10 +43,20 @@ class Network
   end
 
   def download_config_specs
-    # TODO: polling
-    response = @http.post(@api + 'download_config_specs', body: JSON.generate({}))
-    puts response
-    return JSON.parse(response.body)
+    response = @http.post(@api + 'download_config_specs', body: JSON.generate({'sinceTime' => @last_sync_time}))
+    json_body = JSON.parse(response.body)
+    @last_sync_time = json_body['time']
+    return json_body
+  end
+
+  def poll_for_changes(callback)
+    return Thread.new do
+      loop do
+        sleep 10
+        specs = download_config_specs()
+        callback.call(specs)
+      end
+    end
   end
 
   def post_logs(events, statsigMetadata)
