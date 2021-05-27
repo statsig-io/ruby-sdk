@@ -59,4 +59,8 @@ class Statsig
       event.statsig_metadata = @statsig_metadata
       @logger.log_event(event)
     end
+
+    def shutdown
+      @logger.flush()
+    end
   end
