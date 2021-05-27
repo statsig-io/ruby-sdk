@@ -2,6 +2,7 @@ require 'concurrent'
 require 'network'
 require 'statsig_event'
 require 'statsig_logger'
+require 'statsig_user'
 
 class Statsig
     include Concurrent::Async
@@ -21,20 +22,26 @@ class Statsig
         @logger = StatsigLogger.new(@net, @statsig_metadata)
     end
   
-    def check_gate(gate_name)
+    def check_gate(user, gate_name)
+      if !user.nil? && !user.instance_of?(StatsigUser)
+        raise 'Must provide a valid StatsigUser'
+      end
       if !gate_name.is_a?(String) || gate_name.empty?
-        raise "Invalid gate_name provided"
+        raise 'Invalid gate_name provided'
       end
   
-      return @net.check_gate(gate_name)
+      return @net.check_gate(user, gate_name)
     end
 
-    def get_config(dyanmic_config_name)
+    def get_config(user, dynamic_config_name)
+      if !user.nil? && !user.instance_of?(StatsigUser)
+        raise 'Must provide a valid StatsigUser or nil'
+      end
       if !dyanmic_config_name.is_a?(String) || dyanmic_config_name.empty?
-        raise "Invalid dyanmic_config_name provided"
+        raise "Invalid dynamic_config_name provided"
       end
 
-      return @net.get_config(dyanmic_config_name)
+      return @net.get_config(user, dynamic_config_name)
     end
 
     def download_config_specs
@@ -42,11 +49,18 @@ class Statsig
     end
 
     def log_event(user, event_name, value = nil, metadata = nil)
+      if !user.nil? && !user.instance_of?(StatsigUser)
+        raise 'Must provide a valid StatsigUser or nil'
+      end
       event = StatsigEvent.new(event_name)
-      event.user = user
+      event.user = user&.serialize()
       event.value = value
       event.metadata = metadata
       event.statsig_metadata = @statsig_metadata
       @logger.log_event(event)
+    end
+
+    def shutdown
+      @logger.flush()
     end
   end

@@ -19,16 +19,22 @@ class Network
     @api = api
   end
 
-  def check_gate(gate_name)
-    response =  @http.post(@api + 'check_gate', body: JSON.generate({'gateName' => gate_name}))
-    gate = JSON.parse(response.body)
-    puts gate
-    return false if gate.nil? || gate['value'].nil?
-    gate['value']
+  def check_gate(user, gate_name)
+    begin
+      request_body = JSON.generate({'user' => user&.serialize(), 'gateName' => gate_name})
+      response = @http.post(@api + 'check_gate', body: request_body)
+      gate = JSON.parse(response.body)
+      puts gate
+      return false if gate.nil? || gate['value'].nil?
+      gate['value']
+    rescue JSON::JSONError
+      return false
+    end
   end
 
-  def get_config(dyanmic_config_name)
-    response =  @http.post(@api + 'get_config', body: JSON.generate({'configName' => dyanmic_config_name}))
+  def get_config(user, dynamic_config_name)
+    request_body = JSON.generate({'user' => user&.serialize(), 'configName' => dynamic_config_name})
+    response = @http.post(@api + 'get_config', body: request_body)
     config = JSON.parse(response.body)
     puts config
     return DynamicConfig.new({}) if config.nil? || config['value'].nil?
@@ -36,8 +42,8 @@ class Network
   end
 
   def download_config_specs
-    response =  @http.post(@api + 'download_config_specs', body: JSON.generate({}))
     # TODO: polling
+    response = @http.post(@api + 'download_config_specs', body: JSON.generate({}))
     puts response
     return JSON.parse(response.body)
   end
