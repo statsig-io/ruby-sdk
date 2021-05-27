@@ -1,9 +1,12 @@
+require 'browser'
+require 'evaluation_helpers'
 require 'spec_store'
 
 $fetch_from_server = :fetch_from_server
 $type_dynamic_config = 'dynamic_config'
 
 class Evaluator
+  include EvaluationHelpers
 
   def initialize(api_url_base, server_secret)
     @spec_store = SpecStore.new(api_url_base, server_secret)
@@ -102,49 +105,93 @@ class Evaluator
     operator = operator.downcase
 
     case operator
+      # numerical comparison
     when 'gt'
+      return compare_numbers(value, target, ->(a, b) { a > b })
     when 'gte'
+      return compare_numbers(value, target, ->(a, b) { a >= b })
     when 'lt'
+      return compare_numbers(value, target, ->(a, b) { a < b })
     when 'lte'
+      return compare_numbers(value, target, ->(a, b) { a <= b })
 
-      # version
+      # version comparison
     when 'version_gt'
+      return (Gem::Version.new(value) > Gem::Version.new(target) rescue false)
     when 'version_gte'
+      return (Gem::Version.new(value) >= Gem::Version.new(target) rescue false)
     when 'version_lt'
+      return (Gem::Version.new(value) < Gem::Version.new(target) rescue false)
     when 'version_lte'
+      return (Gem::Version.new(value) <= Gem::Version.new(target) rescue false)
     when 'version_eq'
+      return (Gem::Version.new(value) == Gem::Version.new(target) rescue false)
     when 'version_neq'
+      return (Gem::Version.new(value) != Gem::Version.new(target) rescue false)
 
-      # array
+      # array operations
     when 'any'
+      return array_contains(target, value)
     when 'none'
+      return !array_contains(target, value)
 
       #string
     when 'str_starts_with_any'
+      return match_string_in_array(target, value, ->(a, b) { a.start_with?(b) })
     when 'str_ends_with_any'
+      return match_string_in_array(target, value, ->(a, b) { a.end_with?(b) })
     when 'str_contains_any'
+      return match_string_in_array(target, value, ->(a, b) { a.include?(b) })
     when 'str_matches'
+      return (value.is_a?(String) && !(value =~ Regexp.new(target)).nil? rescue false)
     when 'eq'
+      return value == target
     when 'neq'
+      return value != target
+
       # dates
     when 'before'
+      # TODO
     when 'after'
+      # TODO
     when 'on'
+      # TODO
     else
       return $fetch_from_server
     end
   end
 
   def get_value_from_user(user, field)
-    nil
+    # TODO - finish
+    user[field] || user['custom'][field]
   end
 
   def get_value_from_ip(ip, field)
-    nil
+    return nil unless ip.is_a?(String) && field.is_a?(String)
+    $fetch_from_server
   end
 
   def get_value_from_ua(ua, field)
-    nil
+    return nil unless ua.is_a?(String) && field.is_a?(String)
+    b = Browser.new(ua)
+    case field.downcase
+    when 'os_name'
+      os_name = b.platform.name
+      # special case for iOS because value is 'iOS (iPhone)'
+      if os_name.include?('iOS') || os_name.include?('ios')
+        return 'iOS'
+      else
+        return os_name
+      end
+    when 'os_version'
+      return b.platform.version
+    when 'browser_name'
+      return b.name
+    when 'browser_version'
+      return b.full_version
+    else
+      nil
+    end
   end
 
   def eval_pass_percent(user, rule, salt)
