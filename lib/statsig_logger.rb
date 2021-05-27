@@ -18,11 +18,11 @@ class StatsigLogger
   end
 
   def logGateExposure(user, gate_name, value, rule_id)
-    event = StatsigEvent($gate_exposure_event)
+    event = StatsigEvent.new($gate_exposure_event)
     event.user = user
     event.metadata = {
       'gate' => gate_name,
-      'gateValue' => '' + value,
+      'gateValue' => value.to_s,
       'ruleID' => rule_id
     }
     event.statsig_metadata = @statsig_metadata
@@ -30,7 +30,7 @@ class StatsigLogger
   end
 
   def logConfigExposure(user, config_name, rule_id)
-    event = StatsigEvent($config_exposure_event)
+    event = StatsigEvent.new($config_exposure_event)
     event.user = user
     event.metadata = {
       'config' => config_name,
