@@ -9,6 +9,12 @@ class DynamicConfig
     @rule_id = config_json['rule_id']
   end
 
+  def from_evaluator(evaluator_result)
+    @name = dynamic_config_name
+    @value = evaluator_result[:config_value]
+    @rule_id = evaluator_result[:rule_id]
+  end
+
   def get(index)
     return nil if @value.nil?
     value[index]

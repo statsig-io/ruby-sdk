@@ -61,10 +61,8 @@ class Statsig
       end
 
       result_config = DynamicConfig.new()
-      result_config.name = dynamic_config_name
-      result_config.value = res[:config_value]
-      result_config.rule_id = res[:rule_id]
-      @logger.logConfigExposure(user, dynamic_config_name, res[:rule_id])
+      result_config.from_evaluator(res)
+      @logger.logConfigExposure(user, dynamic_config_name, result_config.rule_id)
       return result_config
     end
 
@@ -103,12 +101,10 @@ class Statsig
         @logger.logConfigExposure(user, dynamic_config_name, nil)
         return DynamicConfig.new()
       end
-      
+
       result_config = DynamicConfig.new()
-      result_config.name = dynamic_config_name
-      result_config.value = network_result['value']
-      result_config.rule_id = network_result['rule_id']
-      @logger.logConfigExposure(user, dynamic_config_name, network_result['rule_id'])
+      result_config.from_json(network_result)
+      @logger.logConfigExposure(user, dynamic_config_name, result_config.rule_id)
       return result_config
     end
   end
