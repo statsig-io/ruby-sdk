@@ -25,7 +25,6 @@ class Network
       request_body = JSON.generate({'user' => user&.serialize(), 'gateName' => gate_name})
       response = @http.post(@api + 'check_gate', body: request_body)
       gate = JSON.parse(response.body)
-      puts gate
       return false if gate.nil? || gate['value'].nil?
       gate['value']
     rescue JSON::JSONError
@@ -37,7 +36,6 @@ class Network
     request_body = JSON.generate({'user' => user&.serialize(), 'configName' => dynamic_config_name})
     response = @http.post(@api + 'get_config', body: request_body)
     config = JSON.parse(response.body)
-    puts config
     return DynamicConfig.new({}) if config.nil? || config['value'].nil?
     DynamicConfig.new(config)
   end

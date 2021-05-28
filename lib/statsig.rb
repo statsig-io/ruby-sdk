@@ -23,7 +23,7 @@ class Statsig
         }
         @logger = StatsigLogger.new(@net, @statsig_metadata)
 
-        downloaded_specs = @net.download_config_specs()
+        downloaded_specs = @net.download_config_specs
         @store = SpecStore.new(downloaded_specs)
         @evaluator = Evaluator.new(@store)
 
@@ -60,7 +60,7 @@ class Statsig
         return @net.get_config(user, dynamic_config_name)
       end
 
-      return res[:config_value]
+      res[:config_value]
     end
 
     def log_event(user, event_name, value = nil, metadata = nil)
@@ -68,7 +68,7 @@ class Statsig
         raise 'Must provide a valid StatsigUser or nil'
       end
       event = StatsigEvent.new(event_name)
-      event.user = user&.serialize()
+      event.user = user&.serialize
       event.value = value
       event.metadata = metadata
       event.statsig_metadata = @statsig_metadata

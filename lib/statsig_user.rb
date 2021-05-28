@@ -9,7 +9,7 @@ class StatsigUser
   attr_accessor :custom
 
   def serialize
-    return {
+    {
       'userID' => @user_id,
       'email' => @email,
       'ip' => @ip,
@@ -17,6 +17,25 @@ class StatsigUser
       'country' => @country,
       'locale' => @locale,
       'clientVersion' => @client_version,
+      'custom' => @custom,
+    }
+  end
+
+  def value_lookup
+    {
+      'userID' => @user_id,
+      'userid' => @user_id,
+      'user_id' => @user_id,
+      'email' => @email,
+      'ip' => @ip,
+      'userAgent' => @user_agent,
+      'useragent' => @user_agent,
+      'user_agent' => @user_agent,
+      'country' => @country,
+      'locale' => @locale,
+      'clientVersion' => @client_version,
+      'clientversion' => @client_version,
+      'client_version' => @client_version,
       'custom' => @custom,
     }
   end
