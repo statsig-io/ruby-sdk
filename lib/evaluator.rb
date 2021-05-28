@@ -213,11 +213,12 @@ class Evaluator
 
   def eval_pass_percent(user, rule, salt)
     return false unless salt.is_a?(String) && !rule['passPercentage'].nil?
-    user_id = user.user_id || ''
-    hash = Digest::SHA256.digest("#{salt}.#{rule['name']}.#{user_id}").unpack('Q')[0]
-    puts "#{salt}.#{rule['name']}.#{user_id}"
-    puts hash
-    puts hash % 10000
-    hash % 10000 < rule['passPercentage'].to_f * 100
+    begin
+      user_id = user.user_id || ''
+      hash = Digest::SHA256.digest("#{salt}.#{rule['name']}.#{user_id}").unpack('Q>')[0]
+      return hash % 10000 < rule['passPercentage'].to_f * 100
+    rescue
+      return false
+    end
   end
 end
