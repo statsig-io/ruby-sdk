@@ -12,6 +12,10 @@ class SpecStore
   end
 
   def process(specs_json)
+    if specs_json.nil?
+      return
+    end
+
     @last_sync_time = specs_json['time'] || @last_sync_time
     return unless specs_json['has_updates'] == true &&
       !specs_json['feature_gates'].nil? &&

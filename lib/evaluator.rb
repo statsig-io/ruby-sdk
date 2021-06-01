@@ -1,4 +1,5 @@
 require 'browser'
+require 'config_result'
 require 'digest'
 require 'evaluation_helpers'
 require 'spec_store'
@@ -35,24 +36,19 @@ class Evaluator
         return $fetch_from_server if result == $fetch_from_server
         if result
           pass = self.eval_pass_percent(user, rule, config['salt'])
-          return {
-            :name => config['name'],
-            :gate_value => pass,
-            :config_value => pass ? rule['returnValue'] : config['defaultValue'],
-            :rule_id => rule['id']
-          }
+          return ConfigResult.new(
+            config['name'],
+            pass,
+            pass ? rule['returnValue'] : config['defaultValue'],
+            rule['id'],
+          )
         end
 
         i += 1
       end
     end
 
-    {
-      :name => config['name'],
-      :gate_value => false,
-      :config_value => config['defaultValue'],
-      :rule_id => 'default'
-    }
+    ConfigResult.new(config['name'], false, config['defaultValue'], 'default')
   end
 
   def eval_rule(user, rule)
