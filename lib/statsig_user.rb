@@ -6,7 +6,14 @@ class StatsigUser
   attr_accessor :country
   attr_accessor :locale
   attr_accessor :client_version
-  attr_accessor :custom
+
+  def custom
+    @custom
+  end
+
+  def custom=(value)
+    @custom = value.is_a?(Hash) ? value : Hash.new
+  end
 
   def serialize
     {

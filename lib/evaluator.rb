@@ -15,20 +15,12 @@ class Evaluator
   end
 
   def check_gate(user, gate_name)
-    return nil unless @initialized &&
-    gate_name.is_a?(String) &&
-    @spec_store.has_gate?(gate_name) &&
-    user.instance_of?(StatsigUser)
-
+    return nil unless @initialized && @spec_store.has_gate?(gate_name)
     self.eval_spec(user, @spec_store.get_gate(gate_name))
   end
 
   def get_config(user, config_name)
-    return nil unless @initialized &&
-    config_name.is_a?(String) &&
-    @spec_store.has_config?(config_name) &&
-    user.instance_of?(StatsigUser)
-
+    return nil unless @initialized && @spec_store.has_config?(config_name)
     self.eval_spec(user, @spec_store.get_config(config_name))
   end
 
@@ -158,11 +150,11 @@ class Evaluator
 
       # dates
     when 'before'
-      # TODO
+      # TODO - planned future conditions
     when 'after'
-      # TODO
+      # TODO - planned future conditions
     when 'on'
-      # TODO
+      # TODO - planned future conditions
     else
       return $fetch_from_server
     end
