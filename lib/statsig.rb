@@ -1,4 +1,5 @@
 require 'concurrent'
+require 'config_result'
 require 'evaluator'
 require 'network'
 require 'statsig_event'
@@ -48,11 +49,11 @@ class Statsig
 
       res = @evaluator.check_gate(user, gate_name)
       if res.nil? || res == $fetch_from_server
-        return check_gate_fallback(user, gate_name)
+        res = check_gate_fallback(user, gate_name)
       end
 
-      @logger.logGateExposure(user, gate_name, res[:gate_value], res[:rule_id])
-      return res[:gate_value]
+      @logger.logGateExposure(user, res.name, res.gate_value, res.rule_id)
+      return res.gate_value
     end
 
     def get_config(user, dynamic_config_name)
@@ -69,11 +70,12 @@ class Statsig
 
       res = @evaluator.get_config(user, dynamic_config_name)
       if res.nil? || res == $fetch_from_server
-        return get_config_fallback(user, dynamic_config_name)
+        res = get_config_fallback(user, dynamic_config_name)
       end
 
-      result_config = DynamicConfig.new(dynamic_config_name)
-      result_config.from_evaluator(res, dynamic_config_name)
+      result_config = DynamicConfig.new(res.name)
+      result_config.value = res.json_value
+      result_config.rule_id = res.rule_id
       @logger.logConfigExposure(user, dynamic_config_name, result_config.rule_id)
       return result_config
     end
@@ -109,24 +111,34 @@ class Statsig
     def check_gate_fallback(user, gate_name)
       network_result = @net.check_gate(user, gate_name)
       if network_result.nil?
-        @logger.logGateExposure(user, gate_name, false, nil)
-        return false
+        config_result = ConfigResult.new()
+        config_result.name = gate_name
+        config_result.gate_value = false
+        config_result.rule_id = nil
+        return config_result
       end
-      puts network_result
-      @logger.logGateExposure(user, network_result['name'], network_result['value'], network_result['rule_id'])
-      return network_result['value']
+
+      config_result = ConfigResult.new()
+      config_result.name = network_result['name']
+      config_result.gate_value = network_result['value']
+      config_result.rule_id = network_result['rule_id']
+      return config_result
     end
 
     def get_config_fallback(user, dynamic_config_name)
       network_result = @net.get_config(user, dynamic_config_name)
       if network_result.nil?
-        @logger.logConfigExposure(user, dynamic_config_name, nil)
-        return DynamicConfig.new(dynamic_config_name)
+        config_result = ConfigResult.new()
+        config_result.name = dynamic_config_name
+        config_result.json_value = {}
+        config_result.rule_id = nil
+        return config_result
       end
 
-      result_config = DynamicConfig.new(dynamic_config_name)
-      result_config.from_json(network_result)
-      @logger.logConfigExposure(user, dynamic_config_name, result_config.rule_id)
-      return result_config
+      config_result = ConfigResult.new()
+      config_result.name = network_result['name']
+      config_result.json_value = network_result['value']
+      config_result.rule_id = network_result['rule_id']
+      return config_result
     end
   end
