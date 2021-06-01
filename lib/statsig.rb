@@ -48,7 +48,12 @@ class Statsig
       end
 
       res = @evaluator.check_gate(user, gate_name)
-      if res.nil? || res == $fetch_from_server
+      if res.nil?
+        @logger.logConfigExposure(user, gate_name, nil)
+        return false
+      end
+
+      if res == $fetch_from_server
         res = check_gate_fallback(user, gate_name)
       end
 
@@ -69,7 +74,12 @@ class Statsig
       end
 
       res = @evaluator.get_config(user, dynamic_config_name)
-      if res.nil? || res == $fetch_from_server
+      if res.nil?
+        @logger.logConfigExposure(user, dynamic_config_name, nil)
+        return DynamicConfig.new()
+      end
+
+      if res == $fetch_from_server
         res = get_config_fallback(user, dynamic_config_name)
       end
 
