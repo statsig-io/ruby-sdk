@@ -1,11 +1,8 @@
-require 'concurrent'
 require 'http'
 require 'json'
 require 'dynamic_config'
 
 class Network
-  include Concurrent::Async
-
   def initialize(server_secret, api)
     super()
     unless api.end_with?('/')
