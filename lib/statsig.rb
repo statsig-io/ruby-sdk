@@ -20,7 +20,7 @@ class Statsig
         @net = Network.new(secret_key, 'https://api.statsig.com/v1/')
         @statsig_metadata = {
           'sdkType' => 'ruby-server',
-          'sdkVersion' => Gem::Specification::load('statsig.gemspec'),
+          'sdkVersion' => Gem::Specification::load('statsig.gemspec')&.version,
         }
         @logger = StatsigLogger.new(@net, @statsig_metadata)
 
@@ -49,8 +49,7 @@ class Statsig
 
       res = @evaluator.check_gate(user, gate_name)
       if res.nil?
-        @logger.logConfigExposure(user, gate_name, nil)
-        return false
+        res = ConfigResult.new(gate_name)
       end
 
       if res == $fetch_from_server
@@ -75,18 +74,15 @@ class Statsig
 
       res = @evaluator.get_config(user, dynamic_config_name)
       if res.nil?
-        @logger.logConfigExposure(user, dynamic_config_name, nil)
-        return DynamicConfig.new()
+        res = ConfigResult.new(dynamic_config_name)
       end
 
       if res == $fetch_from_server
         res = get_config_fallback(user, dynamic_config_name)
       end
 
-      result_config = DynamicConfig.new(res.name)
-      result_config.value = res.json_value
-      result_config.rule_id = res.rule_id
-      @logger.logConfigExposure(user, dynamic_config_name, result_config.rule_id)
+      result_config = DynamicConfig.new(res.name, res.json_value, res.rule_id)
+      @logger.logConfigExposure(user, result_config.name, result_config.rule_id)
       return result_config
     end
 
@@ -114,41 +110,39 @@ class Statsig
 
     def check_shutdown
       if @shutdown
-        raise 'Cannot call additional methods after shutting down the SDK'
+        puts 'SDK has been shutdown.  Updates in the Statsig Console will no longer reflect.'
       end
     end
 
     def check_gate_fallback(user, gate_name)
       network_result = @net.check_gate(user, gate_name)
       if network_result.nil?
-        config_result = ConfigResult.new()
-        config_result.name = gate_name
-        config_result.gate_value = false
-        config_result.rule_id = nil
+        config_result = ConfigResult.new(gate_name)
         return config_result
       end
 
-      config_result = ConfigResult.new()
-      config_result.name = network_result['name']
-      config_result.gate_value = network_result['value']
-      config_result.rule_id = network_result['rule_id']
+      config_result = ConfigResult.new(
+        network_result['name'],
+        network_result['value'],
+        {},
+        network_result['rule_id'],
+      )
       return config_result
     end
 
     def get_config_fallback(user, dynamic_config_name)
       network_result = @net.get_config(user, dynamic_config_name)
       if network_result.nil?
-        config_result = ConfigResult.new()
-        config_result.name = dynamic_config_name
-        config_result.json_value = {}
-        config_result.rule_id = nil
+        config_result = ConfigResult.new(dynamic_config_name)
         return config_result
       end
 
-      config_result = ConfigResult.new()
-      config_result.name = network_result['name']
-      config_result.json_value = network_result['value']
-      config_result.rule_id = network_result['rule_id']
+      config_result = ConfigResult.new(
+        network_result['name'],
+        false,
+        network_result['value'],
+        network_result['rule_id'],
+      )
       return config_result
     end
   end

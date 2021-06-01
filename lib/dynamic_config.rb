@@ -3,10 +3,10 @@ class DynamicConfig
   attr_accessor :value
   attr_accessor :rule_id
 
-  def initialize(name)
+  def initialize(name, value = {}, rule_id = '')
     @name = name
-    @value = {}
-    @rule_id = nil
+    @value = value
+    @rule_id = rule_id
   end
 
   def get(index)

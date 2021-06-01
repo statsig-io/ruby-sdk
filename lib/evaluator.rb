@@ -35,11 +35,12 @@ class Evaluator
         return $fetch_from_server if result == $fetch_from_server
         if result
           pass = self.eval_pass_percent(user, rule, config['salt'])
-          config_result = ConfigResult.new()
-          config_result.name = config['name']
-          config_result.gate_value = pass
-          config_result.json_value = pass ? rule['returnValue'] : config['defaultValue']
-          config_result.rule_id = rule['id']
+          config_result = ConfigResult.new(
+            config['name'],
+            pass,
+            pass ? rule['returnValue'] : config['defaultValue'],
+            rule['id'],
+          )
           return config_result
         end
 
@@ -47,11 +48,12 @@ class Evaluator
       end
     end
 
-    config_result = ConfigResult.new()
-    config_result.name = config['name']
-    config_result.gate_value = false
-    config_result.json_value = config['defaultValue']
-    config_result.rule_id = rule['default']
+    config_result = ConfigResult.new(
+      config['name'],
+      false,
+      config['defaultValue'],
+      'default',
+    )
     return config_result
   end
 
