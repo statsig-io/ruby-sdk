@@ -24,8 +24,8 @@ class Statsig
         }
         @logger = StatsigLogger.new(@net, @statsig_metadata)
 
-        downloaded_specs = @net.download_config_specs()
-        if !downloaded_specs.nil?
+        downloaded_specs = @net.download_config_specs
+        unless downloaded_specs.nil?
           @initialized = true
         end
 
@@ -42,8 +42,8 @@ class Statsig
       if !gate_name.is_a?(String) || gate_name.empty?
         raise 'Invalid gate_name provided'
       end
-      check_shutdown()
-      if !@initialized
+      check_shutdown
+      unless @initialized
         return false
       end
 
@@ -57,7 +57,7 @@ class Statsig
       end
 
       @logger.logGateExposure(user, res.name, res.gate_value, res.rule_id)
-      return res.gate_value
+      res.gate_value
     end
 
     def get_config(user, dynamic_config_name)
@@ -67,8 +67,8 @@ class Statsig
       if !dynamic_config_name.is_a?(String) || dynamic_config_name.empty?
         raise "Invalid dynamic_config_name provided"
       end
-      check_shutdown()
-      if !@initialized
+      check_shutdown
+      unless @initialized
         return DynamicConfig.new(dynamic_config_name)
       end
 
@@ -83,17 +83,17 @@ class Statsig
 
       result_config = DynamicConfig.new(res.name, res.json_value, res.rule_id)
       @logger.logConfigExposure(user, result_config.name, result_config.rule_id)
-      return result_config
+      result_config
     end
 
     def log_event(user, event_name, value = nil, metadata = nil)
       if !user.nil? && !user.instance_of?(StatsigUser)
         raise 'Must provide a valid StatsigUser or nil'
       end
-      check_shutdown()
+      check_shutdown
 
       event = StatsigEvent.new(event_name)
-      event.user = user&.serialize()
+      event.user = user&.serialize
       event.value = value
       event.metadata = metadata
       event.statsig_metadata = @statsig_metadata
@@ -121,13 +121,12 @@ class Statsig
         return config_result
       end
 
-      config_result = ConfigResult.new(
+      ConfigResult.new(
         network_result['name'],
         network_result['value'],
         {},
         network_result['rule_id'],
       )
-      return config_result
     end
 
     def get_config_fallback(user, dynamic_config_name)
@@ -137,12 +136,11 @@ class Statsig
         return config_result
       end
 
-      config_result = ConfigResult.new(
+      ConfigResult.new(
         network_result['name'],
         false,
         network_result['value'],
         network_result['rule_id'],
       )
-      return config_result
     end
   end

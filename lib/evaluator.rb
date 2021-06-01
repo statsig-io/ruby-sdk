@@ -1,5 +1,6 @@
 require 'browser'
 require 'config_result'
+require 'digest'
 require 'evaluation_helpers'
 require 'spec_store'
 
@@ -15,12 +16,12 @@ class Evaluator
   end
 
   def check_gate(user, gate_name)
-    return nil unless @initialized && gate_name.is_a?(String) && @spec_store.has_gate?(gate_name)
+    return nil unless @initialized && @spec_store.has_gate?(gate_name)
     self.eval_spec(user, @spec_store.get_gate(gate_name))
   end
 
   def get_config(user, config_name)
-    return nil unless @initialized && config_name.is_a?(String) && @spec_store.has_config?(config_name)
+    return nil unless @initialized && @spec_store.has_config?(config_name)
     self.eval_spec(user, @spec_store.get_config(config_name))
   end
 
@@ -35,26 +36,19 @@ class Evaluator
         return $fetch_from_server if result == $fetch_from_server
         if result
           pass = self.eval_pass_percent(user, rule, config['salt'])
-          config_result = ConfigResult.new(
+          return ConfigResult.new(
             config['name'],
             pass,
             pass ? rule['returnValue'] : config['defaultValue'],
             rule['id'],
           )
-          return config_result
         end
 
         i += 1
       end
     end
 
-    config_result = ConfigResult.new(
-      config['name'],
-      false,
-      config['defaultValue'],
-      'default',
-    )
-    return config_result
+    ConfigResult.new(config['name'], false, config['defaultValue'], 'default')
   end
 
   def eval_rule(user, rule)
@@ -152,23 +146,33 @@ class Evaluator
 
       # dates
     when 'before'
-      # TODO
+      # TODO - planned future conditions
     when 'after'
-      # TODO
+      # TODO - planned future conditions
     when 'on'
-      # TODO
+      # TODO - planned future conditions
     else
       return $fetch_from_server
     end
   end
 
   def get_value_from_user(user, field)
-    # TODO - finish
-    user[field] || user['custom'][field]
+    return nil unless user.instance_of?(StatsigUser) && field.is_a?(String)
+
+    user_lookup_table = user&.value_lookup
+    return nil unless user_lookup_table.is_a?(Hash)
+    return user_lookup_table[field.downcase] if user_lookup_table.has_key?(field.downcase)
+
+    user_custom = user_lookup_table['custom']
+    return nil unless user_custom.is_a?(Hash)
+    user_custom.each do |key, value|
+      return value if key.downcase.casecmp(field.downcase)
+    end
   end
 
   def get_value_from_ip(ip, field)
     return nil unless ip.is_a?(String) && field.is_a?(String)
+    # TODO
     $fetch_from_server
   end
 
@@ -196,7 +200,13 @@ class Evaluator
   end
 
   def eval_pass_percent(user, rule, salt)
-    # TODO
-    true
+    return false unless salt.is_a?(String) && !rule['passPercentage'].nil?
+    begin
+      user_id = user.user_id || ''
+      hash = Digest::SHA256.digest("#{salt}.#{rule['name']}.#{user_id}").unpack('Q>')[0]
+      return hash % 10000 < rule['passPercentage'].to_f * 100
+    rescue
+      return false
+    end
   end
 end

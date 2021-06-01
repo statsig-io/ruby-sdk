@@ -8,7 +8,7 @@ class Network
 
   def initialize(server_secret, api)
     super()
-    if !api.end_with?('/')
+    unless api.end_with?('/')
       api += '/'
     end
     @http = HTTP
@@ -50,20 +50,20 @@ class Network
   end
 
   def poll_for_changes(callback)
-    return Thread.new do
+    Thread.new do
       loop do
         sleep 10
-        specs = download_config_specs()
-        if (!specs.nil?)
+        specs = download_config_specs
+        unless specs.nil?
           callback.call(specs)
         end
       end
     end
   end
 
-  def post_logs(events, statsigMetadata)
+  def post_logs(events, statsig_metadata)
     begin
-      json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsigMetadata})
+      json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsig_metadata})
       @http.post(@api + 'log_event', body: json_body)
     rescue
       # TODO: retries
