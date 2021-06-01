@@ -5,14 +5,13 @@ Gem::Specification.new do |s|
     s.description = 'Statsig server SDK for feature gates and experimentation in Ruby'
     s.authors     = ['Statsig, Inc']
     s.email       = 'support@statsig.com'
-    s.homepage    =
-    'https://rubygems.org/gems/statsig'
+    s.homepage    = 'https://rubygems.org/gems/statsig'
     s.license       = 'ISC'
-
     s.files       = Dir['lib/**/*']
-    s.add_development_dependency 'concurrent-ruby'
-    s.add_development_dependency 'http'
-    s.add_runtime_dependency 'browser'
-    s.add_runtime_dependency 'concurrent-ruby'
-    s.add_runtime_dependency 'http'
+    s.add_development_dependency 'concurrent-ruby', '~>1.1', '>= 1.1.0'
+    s.add_development_dependency 'http', '~>4.4', '>= 4.4.1'
+    s.add_development_dependency 'browser', '~>5.3', '>= 5.3.1'
+    s.add_runtime_dependency 'browser', '~>5.3', '>= 5.3.1'
+    s.add_runtime_dependency 'concurrent-ruby', '~>1.1', '>= 1.1.0'
+    s.add_runtime_dependency 'http', '~>4.4', '>= 4.4.1'
   end
