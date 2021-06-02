@@ -11,4 +11,4 @@ Gem::Specification.new do |s|
     s.add_development_dependency "bundler", "~> 2.1"
     s.add_runtime_dependency 'browser', '~>5.3', '>= 5.3.1'
     s.add_runtime_dependency 'http', '~>4.4', '>= 4.4.1'
-  end
+end
