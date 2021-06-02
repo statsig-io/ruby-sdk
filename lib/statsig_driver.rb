@@ -1,4 +1,3 @@
-require 'concurrent'
 require 'config_result'
 require 'evaluator'
 require 'network'
@@ -8,8 +7,6 @@ require 'statsig_user'
 require 'spec_store'
 
 class StatsigDriver
-    include Concurrent::Async
-
     def initialize(secret_key)
         super()
         if !secret_key.is_a?(String) || !secret_key.start_with?('secret-')
