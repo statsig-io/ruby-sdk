@@ -13,11 +13,11 @@ class StatsigLogger
   def log_event(event)
     @events.push(event)
     if @events.length >= 500
-      flush()
+      flush
     end
   end
 
-  def logGateExposure(user, gate_name, value, rule_id)
+  def log_gate_exposure(user, gate_name, value, rule_id)
     event = StatsigEvent.new($gate_exposure_event)
     event.user = user
     event.metadata = {
@@ -29,7 +29,7 @@ class StatsigLogger
     log_event(event)
   end
 
-  def logConfigExposure(user, config_name, rule_id)
+  def log_config_exposure(user, config_name, rule_id)
     event = StatsigEvent.new($config_exposure_event)
     event.user = user
     event.metadata = {
