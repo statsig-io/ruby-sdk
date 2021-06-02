@@ -1,11 +1,15 @@
 # Statsig Ruby SDK
 
-```
-gem build && gem install ./statsig-0.0.0.gem && irb
-
+```ruby
 require 'statsig'
 
-s = Statsig.new('<secret>')
+Statsig.initialize('<secret>')
 
-s.check_gate('always_on_gate')
+user = StatsigUser.new
+user.user_id = '12345'
+user.email = 'tore@statsig.com'
+
+if Statsig.check_gate(user, 'my_feature_gate')
+  # show your feature
+end
 ```
