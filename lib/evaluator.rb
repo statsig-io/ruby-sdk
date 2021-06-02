@@ -8,8 +8,6 @@ $fetch_from_server = :fetch_from_server
 $type_dynamic_config = 'dynamic_config'
 
 class Evaluator
-  include EvaluationHelpers
-
   def initialize(store)
     @spec_store = store
     @initialized = true
@@ -102,13 +100,13 @@ class Evaluator
     case operator
       # numerical comparison
     when 'gt'
-      return compare_numbers(value, target, ->(a, b) { a > b })
+      return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a > b })
     when 'gte'
-      return compare_numbers(value, target, ->(a, b) { a >= b })
+      return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a >= b })
     when 'lt'
-      return compare_numbers(value, target, ->(a, b) { a < b })
+      return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a < b })
     when 'lte'
-      return compare_numbers(value, target, ->(a, b) { a <= b })
+      return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a <= b })
 
       # version comparison
     when 'version_gt'
@@ -126,17 +124,17 @@ class Evaluator
 
       # array operations
     when 'any'
-      return array_contains(target, value)
+      return EvaluationHelpers::array_contains(target, value)
     when 'none'
-      return !array_contains(target, value)
+      return !EvaluationHelpers::array_contains(target, value)
 
       #string
     when 'str_starts_with_any'
-      return match_string_in_array(target, value, ->(a, b) { a.start_with?(b) })
+      return EvaluationHelpers::match_string_in_array(target, value, ->(a, b) { a.start_with?(b) })
     when 'str_ends_with_any'
-      return match_string_in_array(target, value, ->(a, b) { a.end_with?(b) })
+      return EvaluationHelpers::match_string_in_array(target, value, ->(a, b) { a.end_with?(b) })
     when 'str_contains_any'
-      return match_string_in_array(target, value, ->(a, b) { a.include?(b) })
+      return EvaluationHelpers::match_string_in_array(target, value, ->(a, b) { a.include?(b) })
     when 'str_matches'
       return (value.is_a?(String) && !(value =~ Regexp.new(target)).nil? rescue false)
     when 'eq'
