@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name        = 'statsig'
-    s.version     = '0.1.3'
+    s.version     = '0.1.4'
     s.summary     = 'Statsig server SDK for Ruby'
     s.description = 'Statsig server SDK for feature gates and experimentation in Ruby'
     s.authors     = ['Statsig, Inc']

@@ -17,13 +17,13 @@ class StatsigUser
 
   def initialize(user_hash = nil)
     if user_hash.is_a?(Hash)
-      @user_id = user_hash['user_id']
+      @user_id = user_hash['userID']
       @email = user_hash['email']
       @ip = user_hash['ip']
-      @user_agent = user_hash['user_agent']
+      @user_agent = user_hash['userAgent']
       @country = user_hash['country']
       @locale = user_hash['locale']
-      @client_version = user_hash['client_version']
+      @client_version = user_hash['clientVersion']
       @custom = user_hash['custom']
     end
   end
