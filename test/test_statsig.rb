@@ -22,20 +22,16 @@ class TestStatsig < Minitest::Test
 
   def test_check_gate_works
     Statsig.initialize('secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW')
-    gate = Statsig.check_gate(StatsigUser.new, 'test_public')
+    gate = Statsig.check_gate(StatsigUser.new({'user_id' => '123'}), 'test_public')
     assert(gate == true)
   end
 
   def test_email_gate_works
     Statsig.initialize('secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW')
-    statsig_user = StatsigUser.new
-    statsig_user.email = "jkw@statsig.com"
-    pass_gate = Statsig.check_gate(statsig_user, 'test_email')
+    pass_gate = Statsig.check_gate(StatsigUser.new({'email' => 'jkw@statsig.com'}), 'test_email')
     assert(pass_gate == true)
 
-    non_statsig_user = StatsigUser.new
-    non_statsig_user.email = "jkw@gmail.com"
-    fail_gate = Statsig.check_gate(non_statsig_user, 'test_email')
+    fail_gate = Statsig.check_gate(StatsigUser.new({'email' => 'jkw@gmail.com'}), 'test_email')
     assert(fail_gate == false)
   end
 end

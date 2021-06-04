@@ -15,6 +15,19 @@ class StatsigUser
     @custom = value.is_a?(Hash) ? value : Hash.new
   end
 
+  def initialize(user_hash = nil)
+    if user_hash.is_a?(Hash)
+      @user_id = user_hash['user_id']
+      @email = user_hash['email']
+      @ip = user_hash['ip']
+      @user_agent = user_hash['user_agent']
+      @country = user_hash['country']
+      @locale = user_hash['locale']
+      @client_version = user_hash['client_version']
+      @custom = user_hash['custom']
+    end
+  end
+
   def serialize
     {
       'userID' => @user_id,
