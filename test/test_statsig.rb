@@ -3,7 +3,7 @@ require 'minitest/autorun'
 require 'statsig'
 
 class TestStatsig < Minitest::Test
-  def after_teardown
+  def before_setup
     super
     Statsig.shutdown
   end

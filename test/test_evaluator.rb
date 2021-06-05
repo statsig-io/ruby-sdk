@@ -23,11 +23,14 @@ class TestEvaluator < Minitest::Test
 
   def test_ip_gate_works
     pass_gate = Statsig.check_gate(StatsigUser.new({'country' => 'US'}), 'test_country')
-    pass_gate = Statsig.check_gate(StatsigUser.new({'ip' => '72.229.28.185'}), 'test_country')
     assert(pass_gate == true)
 
     fail_gate = Statsig.check_gate(StatsigUser.new({'country' => 'UK'}), 'test_country')
-    fail_gate = Statsig.check_gate(StatsigUser.new({'ip' => '192.168.0.1'}), 'test_country')
     assert(fail_gate == false)
+
+    pass_gate_ip = Statsig.check_gate(StatsigUser.new({'ip' => '72.229.28.185'}), 'test_country')
+    fail_gate_ip = Statsig.check_gate(StatsigUser.new({'ip' => '192.168.0.1'}), 'test_country')
+    assert(pass_gate_ip == true)
+    assert(fail_gate_ip == false)
   end
 end
