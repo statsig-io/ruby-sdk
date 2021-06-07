@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
     s.authors     = ['Statsig, Inc']
     s.email       = 'support@statsig.com'
     s.homepage    = 'https://rubygems.org/gems/statsig'
-    s.license       = 'ISC'
+    s.license     = 'ISC'
     s.files       = Dir['lib/**/*']
     s.add_development_dependency "bundler", "~> 2.1"
     s.add_runtime_dependency 'browser', '~>5.3', '>= 5.3.1'
