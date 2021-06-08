@@ -50,8 +50,3 @@ end
 # 3. log the conversion event - 'purchase_made' - once they make the purchase
 Statsig.log_event(user, 'purchase_made', 1, {'price' => @sub_price})
 ```
-
-
-## More Information {#more-information}
-
-For more information, see our [SDK documentation on github](https://github.com/statsig-io/ruby-sdk).
