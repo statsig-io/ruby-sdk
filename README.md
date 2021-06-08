@@ -1,6 +1,6 @@
 # Statsig Ruby SDK
 
-## The Basics {#the-basics}
+## The Basics
 
 Get started in a few quick steps.
 
@@ -10,13 +10,13 @@ Get started in a few quick steps.
 
 <a name="step1"></a>
 
-#### Step 1 - Create a free account on [www.statsig.com](https://console.statsig.com/sign_up) {#step-1---create-a-free-account-on-wwwstatsigcom}
+#### Step 1 - Create a free account on [www.statsig.com](https://console.statsig.com/sign_up)
 
 You could skip this for now, but you will need an SDK Key and some Feature Gates or Dynamic Configs to use with the SDK in just a minute.
 
 <a name="step2"></a>
 
-#### Step 2 - Install the SDK {#step-2---install-the-sdk}
+#### Step 2 - Install the SDK
 
 If you are using Bundler, add the [gem](https://rubygems.org/gems/statsig) to your Gemfile from command line:
 ```Ruby
@@ -27,7 +27,7 @@ or directly include it in your Gemfile and run `bundle install`:
 gem "statsig", ">= 0.1.5"
 ```
 
-#### Step 3 - Initialize and use the SDK {#step-3---initialize-the-sdk}
+#### Step 3 - Initialize and use the SDK
 
 Initialize the SDK using a [Server Secret Key from the statsig console](https://console.statsig.com/api_keys):
 
