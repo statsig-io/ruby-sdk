@@ -33,9 +33,7 @@ class StatsigDriver
   end
 
   def check_gate(user, gate_name)
-    if !user.nil? && !user.instance_of?(StatsigUser)
-      raise 'Must provide a valid StatsigUser'
-    end
+    validate_user(user)
     if !gate_name.is_a?(String) || gate_name.empty?
       raise 'Invalid gate_name provided'
     end
@@ -58,9 +56,7 @@ class StatsigDriver
   end
 
   def get_config(user, dynamic_config_name)
-    if !user.nil? && !user.instance_of?(StatsigUser)
-      raise 'Must provide a valid StatsigUser or nil'
-    end
+    validate_user(user)
     if !dynamic_config_name.is_a?(String) || dynamic_config_name.empty?
       raise "Invalid dynamic_config_name provided"
     end
@@ -104,6 +100,12 @@ class StatsigDriver
   end
 
   private
+
+  def validate_user(user)
+    if user.nil? || !user.instance_of?(StatsigUser) || !user.user_id.is_a?(String)
+      raise 'Must provide a valid StatsigUser with a user_id to use the server SDK. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.'
+    end
+  end
 
   def check_shutdown
     if @shutdown

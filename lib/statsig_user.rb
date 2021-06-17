@@ -15,15 +15,15 @@ class StatsigUser
     @custom = value.is_a?(Hash) ? value : Hash.new
   end
 
-  def initialize(user_hash = nil)
+  def initialize(user_hash)
     if user_hash.is_a?(Hash)
-      @user_id = user_hash['userID']
+      @user_id = user_hash['userID'] || user_hash['user_id']
       @email = user_hash['email']
       @ip = user_hash['ip']
-      @user_agent = user_hash['userAgent']
+      @user_agent = user_hash['userAgent'] || user_hash['user_agent']
       @country = user_hash['country']
       @locale = user_hash['locale']
-      @client_version = user_hash['clientVersion']
+      @client_version = user_hash['clientVersion'] || user_hash['client_version']
       @custom = user_hash['custom']
     end
   end
