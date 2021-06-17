@@ -20,11 +20,11 @@ You could skip this for now, but you will need an SDK Key and some Feature Gates
 
 If you are using Bundler, add the [gem](https://rubygems.org/gems/statsig) to your Gemfile from command line:
 ```Ruby
-bundle add statsig --version ">= 0.1.5"
+bundle add statsig --version ">= 1.0.0"
 ```
 or directly include it in your Gemfile and run `bundle install`:
 ```Ruby
-gem "statsig", ">= 0.1.5"
+gem "statsig", ">= 1.0.0"
 ```
 
 #### Step 3 - Initialize and use the SDK

@@ -94,7 +94,7 @@ class Evaluator
     when 'user_bucket'
       salt = additional_values['salt']
       user_id = user.user_id || ''
-      value = compute_user_hash_bucket("#{salt}.#{rule['name']}.#{user_id}")
+      value = compute_user_hash_bucket("#{salt}.#{user_id}")
     else
       return $fetch_from_server
     end
@@ -220,7 +220,7 @@ class Evaluator
     return false unless salt.is_a?(String) && !rule['passPercentage'].nil?
     begin
       user_id = user.user_id || ''
-      bucket = compute_user_hash_bucket("#{salt}.#{rule['name']}.#{user_id}")
+      bucket = compute_user_hash_bucket("#{salt}.#{rule['id']}.#{user_id}")
       return bucket < (rule['passPercentage'].to_f * 100)
     rescue
       return false
