@@ -20,6 +20,11 @@ module Statsig
     @shared_instance.get_config(user, dynamic_config_name)
   end
 
+  def self.get_experiment(user, experiment_name)
+    self.ensure_initialized
+    @shared_instance.get_config(user, experiment_name)
+  end
+
   def self.log_event(user, event_name, value, metadata)
     self.ensure_initialized
     @shared_instance.log_event(user, event_name, value, metadata)
