@@ -40,4 +40,11 @@ class TestStatsig < Minitest::Test
     assert_raises{ Statsig.check_gate(StatsigUser.new({'email' => 'jkw@statsig.com'}), 'test_email')}
     assert_raises{ Statsig.get_config(StatsigUser.new({'email' => 'jkw@statsig.com'}), 'fake_config_name')}
   end
+
+  def test_environment_setting
+    Statsig.initialize('secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW', StatsigOptions.new({'tier' => 'production'}))
+    user = StatsigUser.new({'userID'=> '123'})
+    Statsig.check_gate(user, 'my_gate')
+    assert(user.statsig_environment == {'tier' => 'production'})
+  end
 end

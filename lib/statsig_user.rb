@@ -6,6 +6,7 @@ class StatsigUser
   attr_accessor :country
   attr_accessor :locale
   attr_accessor :client_version
+  attr_accessor :statsig_environment
 
   def custom
     @custom
@@ -26,6 +27,7 @@ class StatsigUser
       @client_version = user_hash['clientVersion'] || user_hash['client_version']
       @custom = user_hash['custom']
     end
+    @statsig_environment = Hash.new
   end
 
   def serialize
@@ -38,6 +40,7 @@ class StatsigUser
       'locale' => @locale,
       'clientVersion' => @client_version,
       'custom' => @custom,
+      'statsigEnvironment' => @statsig_environment,
     }
   end
 

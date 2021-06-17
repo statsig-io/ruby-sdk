@@ -33,4 +33,36 @@ class TestEvaluator < Minitest::Test
     assert(pass_gate_ip == true)
     assert(fail_gate_ip == false)
   end
+
+  def test_env_tier_gate_works
+    Statsig.shutdown
+    Statsig.initialize('secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW', StatsigOptions.new({'TIER' => 'development'}))
+    pass_gate = Statsig.check_gate(StatsigUser.new({'userID' => '123'}), 'test_environment_tier')
+    assert(pass_gate == true)
+    Statsig.shutdown
+
+    Statsig.shutdown
+    Statsig.initialize('secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW', StatsigOptions.new({'tier' => 'development'}))
+    pass_gate_2 = Statsig.check_gate(StatsigUser.new({'userID' => '123'}), 'test_environment_tier')
+    assert(pass_gate_2 == true)
+    Statsig.shutdown
+
+    Statsig.initialize('secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW', StatsigOptions.new({'tier' => 'production'}))
+    fail_gate = Statsig.check_gate(StatsigUser.new({'userID' => '123'}), 'test_environment_tier')
+    assert(fail_gate == false)
+    Statsig.shutdown
+
+    Statsig.initialize('secret-9IWfdzNwExEYHEW4YfOQcFZ4xreZyFkbOXHaNbPsMwW')
+    fail_gate_2 = Statsig.check_gate(StatsigUser.new({'userID' => '123'}), 'test_environment_tier')
+    assert(fail_gate_2 == false)
+    Statsig.shutdown
+  end
+
+  def test_half_pass_country_gate
+    fail_gate = Statsig.check_gate(StatsigUser.new({'userID' => '123', 'country' => 'US'}), 'test_country_partial')
+    assert(fail_gate == false)
+
+    pass_gate = Statsig.check_gate(StatsigUser.new({'userID' => '4', 'country' => 'US'}), 'test_country_partial')
+    assert(pass_gate == true)
+  end
 end

@@ -3,15 +3,21 @@ require 'evaluator'
 require 'network'
 require 'statsig_event'
 require 'statsig_logger'
+require 'statsig_options'
 require 'statsig_user'
 require 'spec_store'
 
 class StatsigDriver
-  def initialize(secret_key)
+  def initialize(secret_key, options = nil)
     super()
     if !secret_key.is_a?(String) || !secret_key.start_with?('secret-')
       raise 'Invalid secret key provided. Provide your project secret key from the Statsig console'
     end
+    if !options.nil? && !options.instance_of?(StatsigOptions)
+      raise 'Invalid options provided. Either provide a valid StatsigOptions object or nil'
+    end
+
+    @options = options
     @shutdown = false
     @secret_key = secret_key
     @net = Network.new(secret_key, 'https://api.statsig.com/v1/')
@@ -34,6 +40,7 @@ class StatsigDriver
 
   def check_gate(user, gate_name)
     validate_user(user)
+    user = normalize_user(user)
     if !gate_name.is_a?(String) || gate_name.empty?
       raise 'Invalid gate_name provided'
     end
@@ -57,6 +64,7 @@ class StatsigDriver
 
   def get_config(user, dynamic_config_name)
     validate_user(user)
+    user = normalize_user(user)
     if !dynamic_config_name.is_a?(String) || dynamic_config_name.empty?
       raise "Invalid dynamic_config_name provided"
     end
@@ -85,6 +93,8 @@ class StatsigDriver
     end
     check_shutdown
 
+    user = normalize_user(user)
+
     event = StatsigEvent.new(event_name)
     event.user = user&.serialize
     event.value = value
@@ -105,6 +115,11 @@ class StatsigDriver
     if user.nil? || !user.instance_of?(StatsigUser) || !user.user_id.is_a?(String)
       raise 'Must provide a valid StatsigUser with a user_id to use the server SDK. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.'
     end
+  end
+
+  def normalize_user(user)
+    user.statsig_environment = @options&.environment
+    user
   end
 
   def check_shutdown

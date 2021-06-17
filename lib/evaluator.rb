@@ -65,8 +65,10 @@ class Evaluator
     target = condition['targetValue']
     type = condition['type']
     operator = condition['operator']
+    additional_values = condition['additionalValues']
+    additional_values = Hash.new unless additional_values.is_a? Hash
 
-    return $fetch_from_server unless type.is_a?(String)
+    return $fetch_from_server unless type.is_a? String
     type = type.downcase
 
     case type
@@ -85,8 +87,14 @@ class Evaluator
       return $fetch_from_server if value == $fetch_from_server
     when 'user_field'
       value = get_value_from_user(user, field)
+    when 'environment_field'
+      value = get_value_from_environment(user, field)
     when 'current_time'
       value = Time.now.to_f # epoch time in seconds
+    when 'user_bucket'
+      salt = additional_values['salt']
+      user_id = user.user_id || ''
+      value = compute_user_hash_bucket("#{salt}.#{rule['name']}.#{user_id}")
     else
       return $fetch_from_server
     end
@@ -166,11 +174,22 @@ class Evaluator
     user_custom.each do |key, value|
       return value if key.downcase.casecmp(field.downcase)
     end
+    nil
+  end
+
+  def get_value_from_environment(user, field)
+    return nil unless user.instance_of?(StatsigUser) && field.is_a?(String)
+    field = field.downcase
+    return nil unless user.statsig_environment.is_a? Hash
+    user.statsig_environment.each do |key, value|
+      return value if key.downcase == (field)
+    end
+    nil
   end
 
   def get_value_from_ip(ip, field)
     return nil unless ip.is_a?(String) && field.is_a?(String)
-    # TODO
+    # TODO: add IP3 country for local evaluation
     $fetch_from_server
   end
 
@@ -201,10 +220,20 @@ class Evaluator
     return false unless salt.is_a?(String) && !rule['passPercentage'].nil?
     begin
       user_id = user.user_id || ''
-      hash = Digest::SHA256.digest("#{salt}.#{rule['name']}.#{user_id}").unpack('Q>')[0]
-      return hash % 10000 < rule['passPercentage'].to_f * 100
+      bucket = compute_user_hash_bucket("#{salt}.#{rule['name']}.#{user_id}")
+      return bucket < (rule['passPercentage'].to_f * 100)
     rescue
       return false
+    end
+  end
+
+  def compute_user_hash_bucket(user_hash)
+    begin
+      hash = Digest::SHA256.digest(user_hash).unpack('Q>')[0]
+      return hash % 10000
+    rescue
+      # if any error is raised, we return a value that will never pass any user hash bucket
+      return 10000 * 2
     end
   end
 end
