@@ -92,9 +92,13 @@ class Evaluator
     when 'current_time'
       value = Time.now.to_f # epoch time in seconds
     when 'user_bucket'
-      salt = additional_values['salt']
-      user_id = user.user_id || ''
-      value = compute_user_hash_bucket("#{salt}.#{user_id}")
+      begin
+        salt = additional_values['salt']
+        user_id = user.user_id || ''
+        value = compute_user_hash_bucket("#{salt}.#{user_id}")
+      rescue
+        return false
+      end
     else
       return $fetch_from_server
     end
@@ -228,12 +232,7 @@ class Evaluator
   end
 
   def compute_user_hash_bucket(user_hash)
-    begin
-      hash = Digest::SHA256.digest(user_hash).unpack('Q>')[0]
-      return hash % 10000
-    rescue
-      # if any error is raised, we return a value that will never pass any user hash bucket
-      return 10000 * 2
-    end
+    hash = Digest::SHA256.digest(user_hash).unpack('Q>')[0]
+    hash % 10000
   end
 end
