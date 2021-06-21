@@ -65,4 +65,22 @@ class TestEvaluator < Minitest::Test
     pass_gate = Statsig.check_gate(StatsigUser.new({'userID' => '4', 'country' => 'US'}), 'test_country_partial')
     assert(pass_gate == true)
   end
+
+  def test_version_gate
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1'}), 'test_version') == true)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2'}), 'test_version') == true)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.3'}), 'test_version') == true)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.3.1'}), 'test_version') == true)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.3.3.9'}), 'test_version') == true)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2-alpha'}), 'test_version') == true)
+
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123'}), 'test_version') == false)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '2'}), 'test_version') == false)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.3'}), 'test_version') == false)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.4'}), 'test_version') == false)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.4-beta'}), 'test_version') == false)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.3.4'}), 'test_version') == false)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.3.10'}), 'test_version') == false)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123', 'clientVersion' => '1.2.3.4.1'}), 'test_version') == false)
+  end
 end
