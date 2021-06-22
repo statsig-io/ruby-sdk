@@ -1,5 +1,6 @@
 require 'browser'
 require 'config_result'
+require 'country_lookup'
 require 'digest'
 require 'evaluation_helpers'
 require 'spec_store'
@@ -11,6 +12,7 @@ class Evaluator
   def initialize(store)
     @spec_store = store
     @initialized = true
+    CountryLookup.initialize()
   end
 
   def check_gate(user, gate_name)
@@ -193,8 +195,11 @@ class Evaluator
 
   def get_value_from_ip(ip, field)
     return nil unless ip.is_a?(String) && field.is_a?(String)
-    # TODO: add IP3 country for local evaluation
-    $fetch_from_server
+
+    if field.downcase != 'country'
+      return $fetch_from_server
+    end
+    CountryLookup.lookup_ip_string(ip)
   end
 
   def get_value_from_ua(ua, field)
