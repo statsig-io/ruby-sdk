@@ -5,7 +5,7 @@ class StatsigEvent
   attr_accessor :statsig_metadata
   def initialize(event_name)
     @event_name = event_name
-    @time = Time.now.to_i * 1000
+    @time = Time.now.to_f * 1000
   end
 
   def serialize

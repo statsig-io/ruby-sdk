@@ -16,7 +16,7 @@ class Network
   def post_helper(endpoint, body)
     http = HTTP.headers(
       {"STATSIG-API-KEY" => @server_secret,
-       # "STATSIG-CLIENT-TIME" => Time.now.to_i * 1000,
+       "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_s,
        "Content-Type" => "application/json; charset=UTF-8"
       }).accept(:json)
     http.post(@api + endpoint, body: body)
