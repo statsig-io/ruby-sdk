@@ -8,17 +8,24 @@ class Network
     unless api.end_with?('/')
       api += '/'
     end
-    @http = HTTP
-        .headers({"STATSIG-API-KEY" => server_secret, "Content-Type" => "application/json; charset=UTF-8"})
-        .accept(:json)
+    @server_secret = server_secret
     @api = api
     @last_sync_time = 0
+  end
+
+  def post_helper(endpoint, body)
+    http = HTTP.headers(
+      {"STATSIG-API-KEY" => @server_secret,
+       "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_s,
+       "Content-Type" => "application/json; charset=UTF-8"
+      }).accept(:json)
+    http.post(@api + endpoint, body: body)
   end
 
   def check_gate(user, gate_name)
     begin
       request_body = JSON.generate({'user' => user&.serialize, 'gateName' => gate_name})
-      response = @http.post(@api + 'check_gate', body: request_body)
+      response = post_helper('check_gate', request_body)
       return JSON.parse(response.body)
     rescue
       return false
@@ -28,7 +35,7 @@ class Network
   def get_config(user, dynamic_config_name)
     begin
       request_body = JSON.generate({'user' => user&.serialize, 'configName' => dynamic_config_name})
-      response = @http.post(@api + 'get_config', body: request_body)
+      response = post_helper('get_config', request_body)
       return JSON.parse(response.body)
     rescue
       return nil
@@ -37,7 +44,7 @@ class Network
 
   def download_config_specs
     begin
-      response = @http.post(@api + 'download_config_specs', body: JSON.generate({'sinceTime' => @last_sync_time}))
+      response = post_helper('download_config_specs', JSON.generate({'sinceTime' => @last_sync_time}))
       json_body = JSON.parse(response.body)
       @last_sync_time = json_body['time']
       return json_body
@@ -61,7 +68,7 @@ class Network
   def post_logs(events, statsig_metadata)
     begin
       json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsig_metadata})
-      @http.post(@api + 'log_event', body: json_body)
+      post_helper('log_event', body: json_body)
     rescue
       # TODO: retries
     end

@@ -5,7 +5,7 @@ class StatsigUser
   attr_accessor :user_agent
   attr_accessor :country
   attr_accessor :locale
-  attr_accessor :client_version
+  attr_accessor :app_version
   attr_accessor :statsig_environment
 
   def custom
@@ -24,7 +24,7 @@ class StatsigUser
       @user_agent = user_hash['userAgent'] || user_hash['user_agent']
       @country = user_hash['country']
       @locale = user_hash['locale']
-      @client_version = user_hash['clientVersion'] || user_hash['client_version']
+      @app_version = user_hash['appVersion'] || user_hash['app_version']
       @custom = user_hash['custom']
     end
     @statsig_environment = Hash.new
@@ -38,7 +38,7 @@ class StatsigUser
       'userAgent' => @user_agent,
       'country' => @country,
       'locale' => @locale,
-      'clientVersion' => @client_version,
+      'appVersion' => @app_version,
       'custom' => @custom,
       'statsigEnvironment' => @statsig_environment,
     }
@@ -56,9 +56,9 @@ class StatsigUser
       'user_agent' => @user_agent,
       'country' => @country,
       'locale' => @locale,
-      'clientVersion' => @client_version,
-      'clientversion' => @client_version,
-      'client_version' => @client_version,
+      'appVersion' => @app_version,
+      'appversion' => @app_version,
+      'app_version' => @app_version,
       'custom' => @custom,
     }
   end
