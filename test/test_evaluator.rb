@@ -115,4 +115,9 @@ class TestEvaluator < Minitest::Test
     fail_partial = evaluator.check_gate(StatsigUser.new({'userID' => '4', 'ip' => '27.62.93.211'}), 'test_country_partial')
     assert(fail_partial.gate_value == false)
   end
+
+  def test_before_time_gate
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123'}), 'test_time_before') == true)
+    assert(Statsig.check_gate(StatsigUser.new({'userID' => '123'}), 'test_time_after') == true)
+  end
 end
