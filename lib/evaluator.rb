@@ -98,7 +98,8 @@ class Evaluator
       begin
         salt = additional_values['salt']
         user_id = user.user_id || ''
-        value = compute_user_hash_bucket("#{salt}.#{user_id}")
+        # there are only 1000 user buckets as opposed to 10k for gate pass %
+        value = compute_user_hash("#{salt}.#{user_id}") % 1000
       rescue
         return false
       end
@@ -230,15 +231,14 @@ class Evaluator
     return false unless salt.is_a?(String) && !rule['passPercentage'].nil?
     begin
       user_id = user.user_id || ''
-      bucket = compute_user_hash_bucket("#{salt}.#{rule['id']}.#{user_id}")
-      return bucket < (rule['passPercentage'].to_f * 100)
+      hash = compute_user_hash("#{salt}.#{rule['id']}.#{user_id}")
+      return (hash % 10000) < (rule['passPercentage'].to_f * 100)
     rescue
       return false
     end
   end
 
-  def compute_user_hash_bucket(user_hash)
-    hash = Digest::SHA256.digest(user_hash).unpack('Q>')[0]
-    hash % 10000
+  def compute_user_hash(user_hash)
+    Digest::SHA256.digest(user_hash).unpack('Q>')[0]
   end
 end
