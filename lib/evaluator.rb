@@ -4,6 +4,7 @@ require 'country_lookup'
 require 'digest'
 require 'evaluation_helpers'
 require 'spec_store'
+require 'time'
 
 $fetch_from_server = :fetch_from_server
 $type_dynamic_config = 'dynamic_config'
@@ -158,11 +159,11 @@ class Evaluator
 
       # dates
     when 'before'
-      # TODO - planned future conditions
+      return EvaluationHelpers::compare_times(value, target, ->(a, b) { a < b })
     when 'after'
-      # TODO - planned future conditions
+      return EvaluationHelpers::compare_times(value, target, ->(a, b) { a > b })
     when 'on'
-      # TODO - planned future conditions
+      return EvaluationHelpers::compare_times(value, target, ->(a, b) { a.year == b.year && a.month == b.month && a.day == b.day })
     else
       return $fetch_from_server
     end
