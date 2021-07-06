@@ -17,5 +17,6 @@ jobs:
         run: bundle install
       - name: Run tests
         run: rake test
+        env:
           test_api_key: ${{ secrets.SDK_E2E_TEST_COMPANY_API_KEY }}
           test_users: ${{ secrets.SDK_E2E_TEST_USERS }}
