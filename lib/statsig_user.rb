@@ -19,6 +19,7 @@ class StatsigUser
   def initialize(user_hash)
     if user_hash.is_a?(Hash)
       @user_id = user_hash['userID'] || user_hash['user_id']
+      @user_id = @user_id.to_s unless @user_id.nil?
       @email = user_hash['email']
       @ip = user_hash['ip']
       @user_agent = user_hash['userAgent'] || user_hash['user_agent']
