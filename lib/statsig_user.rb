@@ -17,6 +17,7 @@ class StatsigUser
   end
 
   def initialize(user_hash)
+    @statsig_environment = Hash.new
     if user_hash.is_a?(Hash)
       @user_id = user_hash['userID'] || user_hash['user_id']
       @user_id = @user_id.to_s unless @user_id.nil?
@@ -27,8 +28,8 @@ class StatsigUser
       @locale = user_hash['locale']
       @app_version = user_hash['appVersion'] || user_hash['app_version']
       @custom = user_hash['custom']
+      @statsig_environment = user_hash['statsigEnvironment']
     end
-    @statsig_environment = Hash.new
   end
 
   def serialize

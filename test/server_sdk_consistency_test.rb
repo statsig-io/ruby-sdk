@@ -2,6 +2,7 @@ require 'http'
 require 'json'
 require 'minitest'
 require 'minitest/autorun'
+require 'pp'
 require 'statsig'
 
 class ServerSDKConsistencyTest < Minitest::Test
@@ -44,7 +45,9 @@ class ServerSDKConsistencyTest < Minitest::Test
       configs = data[i]['dynamic_configs']
 
       gates.each do |name, value|
-        assert(Statsig.check_gate(user, name) == value)
+        sdk_result = Statsig.check_gate(user, name)
+        pp "Failed validation for gate #{name}", user, "Expected: #{value}", "Actual: #{sdk_result}" unless sdk_result == value
+        assert(sdk_result == value)
       end
 
       configs.each do |name, value|
