@@ -10,7 +10,7 @@ module EvaluationHelpers
   def self.array_contains(array, value)
     return false unless array.is_a?(Array) && !value.nil?
     return array.include?(value) unless value.is_a?(String)
-    array.any?{ |s| s.is_a?(String) && s.casecmp(value) == 0 } rescue false
+    array.any?{ |s| s.is_a?(String) && s.casecmp?(value) } rescue false
   end
 
   # returns true if array has any element that evaluates to true with value using func lambda, ignoring case

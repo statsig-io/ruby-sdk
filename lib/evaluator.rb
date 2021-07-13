@@ -180,7 +180,7 @@ class Evaluator
     user_custom = user_lookup_table['custom']
     return nil unless user_custom.is_a?(Hash)
     user_custom.each do |key, value|
-      return value if key.downcase.casecmp(field.downcase)
+      return value if key.downcase.casecmp?(field.downcase)
     end
     nil
   end

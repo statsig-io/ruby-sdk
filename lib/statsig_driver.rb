@@ -118,7 +118,9 @@ class StatsigDriver
   end
 
   def normalize_user(user)
-    user.statsig_environment = @options&.environment
+    if !@options&.environment.nil?
+      user.statsig_environment = @options.environment
+    end
     user
   end
 
