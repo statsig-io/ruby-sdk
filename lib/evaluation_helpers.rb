@@ -7,16 +7,18 @@ module EvaluationHelpers
   end
 
   # returns true if array contains value, ignoring case when comparing strings
-  def self.array_contains(array, value)
+  def self.array_contains(array, value, ignore_case)
     return false unless array.is_a?(Array) && !value.nil?
-    return array.include?(value) unless value.is_a?(String)
-    array.any?{ |s| s.is_a?(String) && s.casecmp?(value) } rescue false
+    if value.is_a?(String) && match_string_in_array(array, value, ignore_case, ->(a, b) { a == b })
+      return true
+    end
+    return array.include?(value)
   end
 
   # returns true if array has any element that evaluates to true with value using func lambda, ignoring case
-  def self.match_string_in_array(array, value, func)
+  def self.match_string_in_array(array, value, ignore_case, func)
     return false unless array.is_a?(Array) && value.is_a?(String)
-    array.any?{ |s| s.is_a?(String) && func.call(value.downcase, s.downcase) } rescue false
+    array.any?{ |s| s.is_a?(String) && ((ignore_case && func.call(value.downcase, s.downcase)) || func.call(value, s)) } rescue false
   end
 
   def self.compare_times(a, b, func)
