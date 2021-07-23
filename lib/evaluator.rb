@@ -1,10 +1,11 @@
-require 'browser'
 require 'config_result'
 require 'country_lookup'
 require 'digest'
 require 'evaluation_helpers'
 require 'spec_store'
 require 'time'
+require 'user_agent_parser'
+require 'user_agent_parser/operating_system'
 
 $fetch_from_server = :fetch_from_server
 $type_dynamic_config = 'dynamic_config'
@@ -13,7 +14,8 @@ class Evaluator
   def initialize(store)
     @spec_store = store
     @initialized = true
-    CountryLookup.initialize()
+    @ua_parser = UserAgentParser::Parser.new
+    CountryLookup.initialize
   end
 
   def check_gate(user, gate_name)
@@ -140,17 +142,21 @@ class Evaluator
 
       # array operations
     when 'any'
-      return EvaluationHelpers::array_contains(target, value)
+      return EvaluationHelpers::array_contains(target, value, true)
     when 'none'
-      return !EvaluationHelpers::array_contains(target, value)
+      return !EvaluationHelpers::array_contains(target, value, true)
+    when 'any_case_sensitive'
+      return EvaluationHelpers::array_contains(target, value, false)
+    when 'none_case_sensitive'
+      return !EvaluationHelpers::array_contains(target, value, false)
 
       #string
     when 'str_starts_with_any'
-      return EvaluationHelpers::match_string_in_array(target, value, ->(a, b) { a.start_with?(b) })
+      return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.start_with?(b) })
     when 'str_ends_with_any'
-      return EvaluationHelpers::match_string_in_array(target, value, ->(a, b) { a.end_with?(b) })
+      return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.end_with?(b) })
     when 'str_contains_any'
-      return EvaluationHelpers::match_string_in_array(target, value, ->(a, b) { a.include?(b) })
+      return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
     when 'str_matches'
       return (value.is_a?(String) && !(value =~ Regexp.new(target)).nil? rescue false)
     when 'eq'
@@ -206,22 +212,17 @@ class Evaluator
 
   def get_value_from_ua(ua, field)
     return nil unless ua.is_a?(String) && field.is_a?(String)
-    b = Browser.new(ua)
+    parsed = @ua_parser.parse ua
+    os = parsed.os
     case field.downcase
-    when 'os_name'
-      os_name = b.platform.name
-      # special case for iOS because value is 'iOS (iPhone)'
-      if os_name.include?('iOS') || os_name.include?('ios')
-        return 'iOS'
-      else
-        return os_name
-      end
-    when 'os_version'
-      return b.platform.version
-    when 'browser_name'
-      return b.name
-    when 'browser_version'
-      return b.full_version
+    when 'os_name', 'osname'
+      return os&.family
+    when 'os_version', 'osversion'
+      return os&.version unless os&.version.nil?
+    when 'browser_name', 'browsername'
+      return parsed.family
+    when 'browser_version', 'browserversion'
+      return parsed.version.to_s
     else
       nil
     end
