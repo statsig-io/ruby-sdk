@@ -17,10 +17,10 @@ class StatsigDriver
       raise 'Invalid options provided. Either provide a valid StatsigOptions object or nil'
     end
 
-    @options = options
+    @options = options || StatsigOptions.new()
     @shutdown = false
     @secret_key = secret_key
-    @net = Network.new(secret_key, 'https://api.statsig.com/v1/')
+    @net = Network.new(secret_key, @options.api_url_base)
     @statsig_metadata = {
       'sdkType' => 'ruby-server',
       'sdkVersion' => Gem::Specification::load('statsig.gemspec')&.version,
