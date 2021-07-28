@@ -228,11 +228,12 @@ class Evaluator
     end
   end
 
-  def eval_pass_percent(user, rule, salt)
-    return false unless salt.is_a?(String) && !rule['passPercentage'].nil?
+  def eval_pass_percent(user, rule, config_salt)
+    return false unless config_salt.is_a?(String) && !rule['passPercentage'].nil?
     begin
       user_id = user.user_id || ''
-      hash = compute_user_hash("#{salt}.#{rule['id']}.#{user_id}")
+      rule_salt = rule['salt'] || rule['id'] || ''
+      hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{user_id}")
       return (hash % 10000) < (rule['passPercentage'].to_f * 100)
     rescue
       return false
