@@ -83,7 +83,7 @@ class Evaluator
     when 'pass_gate'
       other_gate_result = self.check_gate(user, target)
       return $fetch_from_server if other_gate_result == $fetch_from_server
-      return type == 'pass_gate' ? other_gate_result[:gate_value] : !other_gate_result[:gate_value]
+      return type == 'pass_gate' ? other_gate_result.gate_value : !other_gate_result.gate_value
     when 'ip_based'
       value = get_value_from_user(user, field) || get_value_from_ip(user&.value_lookup['ip'], field)
       return $fetch_from_server if value == $fetch_from_server
