@@ -79,8 +79,7 @@ class Evaluator
     case type
     when 'public'
       return true
-    when 'fail_gate'
-    when 'pass_gate'
+    when 'fail_gate', 'pass_gate'
       other_gate_result = self.check_gate(user, target)
       return $fetch_from_server if other_gate_result == $fetch_from_server
       return type == 'pass_gate' ? other_gate_result.gate_value : !other_gate_result.gate_value
