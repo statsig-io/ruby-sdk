@@ -76,6 +76,9 @@ class Evaluator
     return $fetch_from_server unless type.is_a? String
     type = type.downcase
 
+    return $fetch_from_server unless operator.is_a?(String)
+    operator = operator.downcase
+
     case type
     when 'public'
       return true
@@ -109,10 +112,6 @@ class Evaluator
     end
 
     return $fetch_from_server if value == $fetch_from_server
-    return false if value.nil?
-
-    return $fetch_from_server unless operator.is_a?(String)
-    operator = operator.downcase
 
     case operator
       # numerical comparison
