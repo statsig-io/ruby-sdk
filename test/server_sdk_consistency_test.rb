@@ -15,15 +15,29 @@ class ServerSDKConsistencyTest < Minitest::Test
     end
   end
 
-  def test_prod_consistency
+  def test_prod
     validate_consistency('https://api.statsig.com/v1')
   end
 
-  def test_staging_consistency
+  def test_staging
     validate_consistency('https://latest.api.statsig.com/v1')
   end
 
+  def test_uswest
+    validate_consistency('https://us-west-2.api.statsig.com/v1')
+  end
+
+  def test_useast
+    validate_consistency('https://us-east-2.api.statsig.com/v1')
+  end
+
+  def test_apsouth
+    validate_consistency('https://ap-south-1.api.statsig.com/v1')
+  end
+
   def validate_consistency(apiOverride)
+    puts "Testing for #{apiOverride}"
+
     http = HTTP.headers(
       {"STATSIG-API-KEY" => @secret,
        "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_s,
