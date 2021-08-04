@@ -8,6 +8,10 @@ class StatsigLogger
     @network = network
     @statsig_metadata = statsig_metadata
     @events = []
+    @background_flush = Thread.new do
+      sleep 60
+      flush
+    end
   end
 
   def log_event(event)
@@ -40,13 +44,18 @@ class StatsigLogger
     log_event(event)
   end
 
-  def flush
+  def flush(closing = false)
+    if closing
+      @background_flush.exit
+    end
     if @events.length == 0
       return
     end
     flush_events = @events.map { |e| e.serialize() }
     @events = []
 
-    @network.post_logs(flush_events, @statsig_metadata)
+    Thread.new do
+      @network.post_logs(flush_events, @statsig_metadata)
+    end
   end
 end

@@ -105,7 +105,7 @@ class StatsigDriver
 
   def shutdown
     @shutdown = true
-    @logger.flush
+    @logger.flush(true)
     @polling_thread&.exit
   end
 

@@ -9,6 +9,9 @@ Gem::Specification.new do |s|
     s.license     = 'ISC'
     s.files       = Dir['lib/**/*']
     s.add_development_dependency "bundler", "~> 2.1"
+    s.add_development_dependency "webmock", "~> 3.13"
+    s.add_development_dependency "minitest", "~> 5.14"
+    s.add_development_dependency "spy", "~> 1.0"
     s.add_runtime_dependency 'user_agent_parser', '~>2.7'
     s.add_runtime_dependency 'http', '~>4.4'
     s.add_runtime_dependency 'ip3country', '~>0.1'
