@@ -9,8 +9,8 @@ class DynamicConfig
     @rule_id = rule_id
   end
 
-  def get(index)
-    return nil if @value.nil?
-    value[index]
+  def get(index, default_value)
+    return default_value if @value.nil? || !@value.key?(index)
+    @value[index]
   end
 end
