@@ -6,6 +6,7 @@ require 'webmock/minitest'
 class TestStatsig < Minitest::Test
   def before_setup
     super
+    Statsig.shutdown
     WebMock.disable!
     WebMock.allow_net_connect!
   end
