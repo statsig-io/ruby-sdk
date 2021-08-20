@@ -7,6 +7,7 @@ class StatsigUser
   attr_accessor :locale
   attr_accessor :app_version
   attr_accessor :statsig_environment
+  attr_accessor :private_attributes
 
   def custom
     @custom
@@ -29,6 +30,7 @@ class StatsigUser
       @app_version = user_hash['appVersion'] || user_hash['app_version']
       @custom = user_hash['custom']
       @statsig_environment = user_hash['statsigEnvironment']
+      @private_attributes = user_hash['privateAttributes']
     end
   end
 
@@ -43,6 +45,7 @@ class StatsigUser
       'appVersion' => @app_version,
       'custom' => @custom,
       'statsigEnvironment' => @statsig_environment,
+      'privateAttributes' => @private_attributes,
     }
   end
 
@@ -62,6 +65,7 @@ class StatsigUser
       'appversion' => @app_version,
       'app_version' => @app_version,
       'custom' => @custom,
+      'privateAttributes' => @private_attributes,
     }
   end
 end

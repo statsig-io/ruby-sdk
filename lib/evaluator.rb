@@ -84,10 +84,10 @@ class Evaluator
       return $fetch_from_server if other_gate_result == $fetch_from_server
       return type == 'pass_gate' ? other_gate_result.gate_value : !other_gate_result.gate_value
     when 'ip_based'
-      value = get_value_from_user(user, field) || get_value_from_ip(user&.value_lookup['ip'], field)
+      value = get_value_from_user(user, field) || get_value_from_ip(user, field)
       return $fetch_from_server if value == $fetch_from_server
     when 'ua_based'
-      value = get_value_from_user(user, field) || get_value_from_ua(user&.value_lookup['userAgent'], field)
+      value = get_value_from_user(user, field) || get_value_from_ua(user, field)
       return $fetch_from_server if value == $fetch_from_server
     when 'user_field'
       value = get_value_from_user(user, field)
@@ -180,10 +180,19 @@ class Evaluator
     return user_lookup_table[field.downcase] if user_lookup_table.has_key?(field.downcase)
 
     user_custom = user_lookup_table['custom']
-    return nil unless user_custom.is_a?(Hash)
-    user_custom.each do |key, value|
-      return value if key.downcase.casecmp?(field.downcase)
+    if user_custom.is_a?(Hash)
+      user_custom.each do |key, value|
+        return value if key.downcase.casecmp?(field.downcase)
+      end
     end
+
+    private_attributes = user_lookup_table['privateAttributes']
+    if private_attributes.is_a?(Hash)
+      private_attributes.each do |key, value|
+        return value if key.downcase.casecmp?(field.downcase)
+      end
+    end
+
     nil
   end
 
@@ -197,17 +206,19 @@ class Evaluator
     nil
   end
 
-  def get_value_from_ip(ip, field)
-    return nil unless ip.is_a?(String) && field.is_a?(String)
+  def get_value_from_ip(user, field)
+    return nil unless user.is_a?(StatsigUser) && field.is_a?(String) && field.downcase == 'country'
+    ip = get_value_from_user(user, 'ip')
+    return nil unless ip.is_a?(String)
 
-    if field.downcase != 'country'
-      return $fetch_from_server
-    end
     CountryLookup.lookup_ip_string(ip)
   end
 
-  def get_value_from_ua(ua, field)
-    return nil unless ua.is_a?(String) && field.is_a?(String)
+  def get_value_from_ua(user, field)
+    return nil unless user.is_a?(StatsigUser) && field.is_a?(String)
+    ua = get_value_from_user(user, 'userAgent')
+    return nil unless ua.is_a?(String)
+
     parsed = @ua_parser.parse ua
     os = parsed.os
     case field.downcase

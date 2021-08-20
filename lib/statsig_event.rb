@@ -8,12 +8,19 @@ class StatsigEvent
     @time = Time.now.to_f * 1000
   end
 
+  def user=(value)
+    @user = value
+    @user.private_attributes = nil
+  end
+
   def serialize
+    private_user = @user
+    private_user.private_attributes = nil
     return {
       'eventName' => @event_name,
       'metadata' => @metadata,
       'value' => @value,
-      'user' => @user,
+      'user' => private_user,
       'time' => @time,
       'statsigMetadata' => @statsig_metadata,
     }
