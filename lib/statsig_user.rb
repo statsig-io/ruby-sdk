@@ -34,8 +34,8 @@ class StatsigUser
     end
   end
 
-  def serialize
-    {
+  def serialize(for_logging)
+    hash = {
       'userID' => @user_id,
       'email' => @email,
       'ip' => @ip,
@@ -47,6 +47,10 @@ class StatsigUser
       'statsigEnvironment' => @statsig_environment,
       'privateAttributes' => @private_attributes,
     }
+    if for_logging
+      hash.delete('privateAttributes')
+    end
+    hash
   end
 
   def value_lookup
