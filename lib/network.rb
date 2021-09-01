@@ -39,7 +39,7 @@ class Network
 
   def check_gate(user, gate_name)
     begin
-      request_body = JSON.generate({'user' => user&.serialize, 'gateName' => gate_name})
+      request_body = JSON.generate({'user' => user&.serialize(false), 'gateName' => gate_name})
       response = post_helper('check_gate', request_body)
       return JSON.parse(response.body) unless response.nil?
       false
@@ -50,7 +50,7 @@ class Network
 
   def get_config(user, dynamic_config_name)
     begin
-      request_body = JSON.generate({'user' => user&.serialize, 'configName' => dynamic_config_name})
+      request_body = JSON.generate({'user' => user&.serialize(false), 'configName' => dynamic_config_name})
       response = post_helper('get_config', request_body)
       return JSON.parse(response.body) unless response.nil?
       nil

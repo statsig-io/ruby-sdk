@@ -177,19 +177,19 @@ class Evaluator
 
     user_lookup_table = user&.value_lookup
     return nil unless user_lookup_table.is_a?(Hash)
-    return user_lookup_table[field.downcase] if user_lookup_table.has_key?(field.downcase)
+    return user_lookup_table[field.downcase] if user_lookup_table.has_key?(field.downcase) && !user_lookup_table[field.downcase].nil?
 
     user_custom = user_lookup_table['custom']
     if user_custom.is_a?(Hash)
       user_custom.each do |key, value|
-        return value if key.downcase.casecmp?(field.downcase)
+        return value if key.downcase.casecmp?(field.downcase) && !value.nil?
       end
     end
 
     private_attributes = user_lookup_table['privateAttributes']
     if private_attributes.is_a?(Hash)
       private_attributes.each do |key, value|
-        return value if key.downcase.casecmp?(field.downcase)
+        return value if key.downcase.casecmp?(field.downcase) && !value.nil?
       end
     end
 

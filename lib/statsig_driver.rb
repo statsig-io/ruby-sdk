@@ -96,7 +96,7 @@ class StatsigDriver
     user = normalize_user(user)
 
     event = StatsigEvent.new(event_name)
-    event.user = user&.serialize
+    event.user = user
     event.value = value
     event.metadata = metadata
     event.statsig_metadata = @statsig_metadata

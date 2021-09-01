@@ -12,7 +12,7 @@ class TestLogging < Minitest::Test
     user = StatsigUser.new({'userID' => '123', 'privateAttributes' => {'secret_value' => 'shhhhh'}})
     event = StatsigEvent.new('test')
     event.user = user
-
-    assert(event.user.private_attributes == nil)
+    assert(event.user['private_attributes'] == nil)
+    assert(event.serialize.has_key?('privateAttributes') == false)
   end
 end
