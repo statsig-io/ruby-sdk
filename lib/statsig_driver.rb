@@ -56,9 +56,11 @@ class StatsigDriver
 
     if res == $fetch_from_server
       res = check_gate_fallback(user, gate_name)
+      # exposure logged by the server
+    else
+      @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id)
     end
 
-    @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id)
     res.gate_value
   end
 
@@ -80,11 +82,12 @@ class StatsigDriver
 
     if res == $fetch_from_server
       res = get_config_fallback(user, dynamic_config_name)
+      # exposure logged by the server
+    else
+      @logger.log_config_exposure(user, res.name, res.rule_id)
     end
 
-    result_config = DynamicConfig.new(res.name, res.json_value, res.rule_id)
-    @logger.log_config_exposure(user, result_config.name, result_config.rule_id)
-    result_config
+    DynamicConfig.new(res.name, res.json_value, res.rule_id)
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
