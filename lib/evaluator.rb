@@ -153,6 +153,8 @@ class Evaluator
       return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.end_with?(b) })
     when 'str_contains_any'
       return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
+    when 'str_contains_none'
+      return !EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
     when 'str_matches'
       return (value.is_a?(String) && !(value =~ Regexp.new(target)).nil? rescue false)
     when 'eq'
