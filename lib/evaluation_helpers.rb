@@ -10,7 +10,7 @@ module EvaluationHelpers
   def self.match_string_in_array(array, value, ignore_case, func)
     return false unless array.is_a?(Array) && !value.nil?
     str_value = value.to_s
-    array.any?{ |s| (ignore_case && func.call(str_value.downcase, s.to_s.downcase)) || func.call(str_value, s.to_s) } rescue false
+    array.any?{ |s| !s.nil? && ((ignore_case && func.call(str_value.downcase, s.to_s.downcase)) || func.call(str_value, s.to_s)) } rescue false
   end
 
   def self.compare_times(a, b, func)
