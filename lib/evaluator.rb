@@ -138,13 +138,13 @@ class Evaluator
 
       # array operations
     when 'any'
-      return EvaluationHelpers::array_contains(target, value, true)
+      return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a == b })
     when 'none'
-      return !EvaluationHelpers::array_contains(target, value, true)
+      return !EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a == b })
     when 'any_case_sensitive'
-      return EvaluationHelpers::array_contains(target, value, false)
+      return EvaluationHelpers::match_string_in_array(target, value, false, ->(a, b) { a == b })
     when 'none_case_sensitive'
-      return !EvaluationHelpers::array_contains(target, value, false)
+      return !EvaluationHelpers::match_string_in_array(target, value, false, ->(a, b) { a == b })
 
       #string
     when 'str_starts_with_any'
