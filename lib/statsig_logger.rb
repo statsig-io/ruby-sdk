@@ -54,8 +54,6 @@ class StatsigLogger
     flush_events = @events.map { |e| e.serialize() }
     @events = []
 
-    Thread.new do
-      @network.post_logs(flush_events, @statsig_metadata)
-    end
+    @network.post_logs(flush_events, @statsig_metadata)
   end
 end

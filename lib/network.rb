@@ -86,7 +86,7 @@ class Network
   def post_logs(events, statsig_metadata)
     begin
       json_body = JSON.generate({'events' => events, 'statsigMetadata' => statsig_metadata})
-      post_helper('log_event', body: json_body, retries: 5)
+      post_helper('log_event', json_body, retries: 5)
     rescue
     end
   end
