@@ -21,7 +21,7 @@ class StatsigLogger
     end
   end
 
-  def log_gate_exposure(user, gate_name, value, rule_id)
+  def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures)
     event = StatsigEvent.new($gate_exposure_event)
     event.user = user
     event.metadata = {
@@ -30,10 +30,11 @@ class StatsigLogger
       'ruleID' => rule_id
     }
     event.statsig_metadata = @statsig_metadata
+    event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
     log_event(event)
   end
 
-  def log_config_exposure(user, config_name, rule_id)
+  def log_config_exposure(user, config_name, rule_id, secondary_exposures)
     event = StatsigEvent.new($config_exposure_event)
     event.user = user
     event.metadata = {
@@ -41,6 +42,7 @@ class StatsigLogger
       'ruleID' => rule_id
     }
     event.statsig_metadata = @statsig_metadata
+    event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
     log_event(event)
   end
 
@@ -51,7 +53,7 @@ class StatsigLogger
     if @events.length == 0
       return
     end
-    flush_events = @events.map { |e| e.serialize() }
+    flush_events = @events.map { |e| e.serialize }
     @events = []
 
     @network.post_logs(flush_events, @statsig_metadata)
