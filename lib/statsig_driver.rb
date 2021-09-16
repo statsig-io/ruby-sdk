@@ -90,6 +90,13 @@ class StatsigDriver
     DynamicConfig.new(res.name, res.json_value, res.rule_id)
   end
 
+  def get_experiment(user, experiment_name)
+    if !experiment_name.is_a?(String) || experiment_name.empty?
+      raise "Invalid experiment_name provided"
+    end
+    get_config(user, experiment_name)
+  end
+
   def log_event(user, event_name, value = nil, metadata = nil)
     if !user.nil? && !user.instance_of?(StatsigUser)
       raise 'Must provide a valid StatsigUser or nil'

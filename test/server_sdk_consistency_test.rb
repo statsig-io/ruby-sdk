@@ -76,13 +76,4 @@ class ServerSDKConsistencyTest < Minitest::Test
       i += 1
     end
   end
-
-  def test_log_event
-    # test case for https://github.com/statsig-io/ruby-sdk/issues/1
-    # currently requires manual validation in the statsig console
-    driver = StatsigDriver.new(@secret)
-    user = StatsigUser.new({'userID' => '123'})
-    driver.log_event(user, 'add_to_cart', 'SKU_12345', { 'price' => '9.99', 'item_name' => 'diet_coke_48_pack' })
-    driver.shutdown
-  end
 end
