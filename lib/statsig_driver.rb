@@ -58,7 +58,7 @@ class StatsigDriver
       res = check_gate_fallback(user, gate_name)
       # exposure logged by the server
     else
-      @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id)
+      @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id, res.secondary_exposures)
     end
 
     res.gate_value
@@ -84,7 +84,7 @@ class StatsigDriver
       res = get_config_fallback(user, dynamic_config_name)
       # exposure logged by the server
     else
-      @logger.log_config_exposure(user, res.name, res.rule_id)
+      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures)
     end
 
     DynamicConfig.new(res.name, res.json_value, res.rule_id)

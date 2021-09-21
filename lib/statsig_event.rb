@@ -2,6 +2,7 @@ class StatsigEvent
   attr_accessor :value
   attr_accessor :metadata
   attr_accessor :statsig_metadata
+  attr_accessor :secondary_exposures
   attr_reader :user
 
   def initialize(event_name)
@@ -23,6 +24,7 @@ class StatsigEvent
       'user' => @user,
       'time' => @time,
       'statsigMetadata' => @statsig_metadata,
+      'secondaryExposures' => @secondary_exposures
     }
   end
 end
