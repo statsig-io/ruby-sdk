@@ -55,22 +55,48 @@ class ServerSDKConsistencyTest < Minitest::Test
     i = 0
     until i >= data.length do
       user = StatsigUser.new(data[i]['user'])
-      gates = data[i]['feature_gates']
+      gates = data[i]['feature_gates_v2']
       configs = data[i]['dynamic_configs']
 
-      gates.each do |name, value|
-        sdk_result = driver.check_gate(user, name)
-        pp "Failed validation for gate #{name}", user, "Expected: #{value}", "Actual: #{sdk_result}" unless sdk_result == value
-        assert(sdk_result == value)
+      gates.each do |name, server_result|
+        sdk_result = driver.instance_variable_get('@evaluator').check_gate(user, name)
+        if sdk_result.gate_value != server_result['value']
+          pp "Different values for gate #{name}", user, "Expected: #{server_result['value']}", "Actual: #{sdk_result.gate_value}"
+        end
+        assert(sdk_result.gate_value == server_result['value'])
+
+        if sdk_result.rule_id != server_result['rule_id']
+          pp "Different rule IDs for gate #{name}", user, "Expected: #{server_result['rule_id']}", "Actual: #{sdk_result.rule_id}"
+        end
+        assert(sdk_result.rule_id == server_result['rule_id'])
+
+        if sdk_result.secondary_exposures != server_result['secondary_exposures']
+          pp "Different secondary exposures for gate #{name}", user,
+             "Expected: #{server_result['secondary_exposures']}", "Actual: #{sdk_result.secondary_exposures}"
+        end
+        assert(sdk_result.secondary_exposures == server_result['secondary_exposures'])
       end
 
-      configs.each do |name, value|
-        config_value = value['value']
-        rule_id = value['rule_id']
-        sdkConfig = driver.get_config(user, name)
+      configs.each do |name, server_result|
+        config_value = server_result['value']
+        rule_id = server_result['rule_id']
+        sdk_result = driver.instance_variable_get('@evaluator').get_config(user, name)
 
-        assert(sdkConfig.value == config_value)
-        assert(sdkConfig.rule_id == rule_id)
+        if sdk_result.json_value != server_result['value']
+          pp "Different values for config #{name}", user, "Expected: #{server_result['value']}", "Actual: #{sdk_result.json_value}"
+        end
+        assert(sdk_result.json_value == config_value)
+
+        if sdk_result.rule_id != server_result['rule_id']
+          pp "Different rule IDs for config #{name}", user, "Expected: #{server_result['rule_id']}", "Actual: #{sdk_result.rule_id}"
+        end
+        assert(sdk_result.rule_id == rule_id)
+
+        if sdk_result.secondary_exposures != server_result['secondary_exposures']
+          pp "Different secondary exposures for config #{name}", user,
+             "Expected: #{server_result['secondary_exposures']}", "Actual: #{sdk_result.secondary_exposures}"
+        end
+        assert(sdk_result.secondary_exposures == server_result['secondary_exposures'])
       end
 
       i += 1

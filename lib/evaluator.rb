@@ -31,14 +31,15 @@ class Evaluator
   private
 
   def eval_spec(user, config)
+    default_rule_id = 'default'
+    exposures = []
     if config['enabled']
-      exposures = []
       i = 0
       until i >= config['rules'].length do
         rule = config['rules'][i]
         result = self.eval_rule(user, rule)
         return $fetch_from_server if result == $fetch_from_server
-        exposures = exposures + result["exposures"] if result["exposures"].is_a? Array
+        exposures = exposures + result['exposures'] if result['exposures'].is_a? Array
         if result['value']
           pass = self.eval_pass_percent(user, rule, config['salt'])
           return ConfigResult.new(
@@ -52,9 +53,10 @@ class Evaluator
 
         i += 1
       end
+    elsif (default_rule_id = 'disabled')
     end
 
-    ConfigResult.new(config['name'], false, config['defaultValue'], 'default', [])
+    ConfigResult.new(config['name'], false, config['defaultValue'], default_rule_id, exposures)
   end
 
   def eval_rule(user, rule)
@@ -68,14 +70,14 @@ class Evaluator
       end
 
       if result.is_a?(Hash)
-        exposures = exposures + result["exposures"] if result["exposures"].is_a? Array
-        pass = false if result["value"] == false
+        exposures = exposures + result['exposures'] if result['exposures'].is_a? Array
+        pass = false if result['value'] == false
       elsif result == false
         pass = false
       end
       i += 1
     end
-    { "value" => pass, "exposures" => exposures }
+    { 'value' => pass, 'exposures' => exposures }
   end
 
   def eval_condition(user, condition)
@@ -99,14 +101,14 @@ class Evaluator
 
       gate_value = other_gate_result&.gate_value == true
       new_exposure = {
-        "gate" => target,
-        "gateValue" => gate_value ? "true" : "false",
-        "ruleID" => other_gate_result&.rule_id
+        'gate' => target,
+        'gateValue' => gate_value ? 'true' : 'false',
+        'ruleID' => other_gate_result&.rule_id
       }
       exposures = other_gate_result&.secondary_exposures&.append(new_exposure)
       return {
-        "value" => type == 'pass_gate' ? gate_value : !gate_value,
-        "exposures" => exposures
+        'value' => type == 'pass_gate' ? gate_value : !gate_value,
+        'exposures' => exposures
       }
     when 'ip_based'
       value = get_value_from_user(user, field) || get_value_from_ip(user, field)
