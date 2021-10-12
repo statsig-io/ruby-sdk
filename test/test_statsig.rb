@@ -28,4 +28,10 @@ class TestStatsig < Minitest::Test
     assert_raises{ Statsig.check_gate(StatsigUser.new({'email' => 'jkw@statsig.com'}), 'test_email')}
     assert_raises{ Statsig.get_config(StatsigUser.new({'email' => 'jkw@statsig.com'}), 'fake_config_name')}
   end
+
+  def test_error_callback_called
+    Statsig.initialize('secret-fake', nil, (-> (e) {
+      assert(e.message.include?('401'))
+    }))
+  end
 end

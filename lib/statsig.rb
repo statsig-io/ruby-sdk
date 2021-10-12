@@ -1,13 +1,13 @@
 require 'statsig_driver'
 
 module Statsig
-  def self.initialize(secret_key, options = nil)
+  def self.initialize(secret_key, options = nil, error_callback = nil)
     unless @shared_instance.nil?
       puts 'Statsig already initialized.'
       return @shared_instance
     end
 
-    @shared_instance = StatsigDriver.new(secret_key, options)
+    @shared_instance = StatsigDriver.new(secret_key, options, error_callback)
   end
 
   def self.check_gate(user, gate_name)

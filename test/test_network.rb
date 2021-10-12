@@ -30,7 +30,7 @@ class TestNetwork < Minitest::Test
     @net = Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
-    res = @net.post_helper('log_event', {}, 5, 1)
+    res, _ = @net.post_helper('log_event', {}, 5, 1)
 
     assert(spy.calls.size == 3) ## 500, 500, 200
     res.status.success?
@@ -43,9 +43,10 @@ class TestNetwork < Minitest::Test
     @net = Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
-    res = @net.post_helper('log_event', {}, 5, 1)
+    res, e = @net.post_helper('log_event', {}, 5, 1)
     assert(res.nil?)
     assert(spy.calls.size == 6)
+    assert(!e.nil?)
   end
 
   def teardown

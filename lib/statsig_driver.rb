@@ -8,7 +8,7 @@ require 'statsig_user'
 require 'spec_store'
 
 class StatsigDriver
-  def initialize(secret_key, options = nil)
+  def initialize(secret_key, options = nil, error_callback = nil)
     super()
     if !secret_key.is_a?(String) || !secret_key.start_with?('secret-')
       raise 'Invalid secret key provided. Provide your project secret key from the Statsig console'
@@ -17,7 +17,7 @@ class StatsigDriver
       raise 'Invalid options provided. Either provide a valid StatsigOptions object or nil'
     end
 
-    @options = options || StatsigOptions.new()
+    @options = options || StatsigOptions.new
     @shutdown = false
     @secret_key = secret_key
     @net = Network.new(secret_key, @options.api_url_base)
@@ -27,7 +27,7 @@ class StatsigDriver
     }
     @logger = StatsigLogger.new(@net, @statsig_metadata)
 
-    downloaded_specs = @net.download_config_specs
+    downloaded_specs, e = @net.download_config_specs
     unless downloaded_specs.nil?
       @initialized = true
     end
@@ -36,6 +36,8 @@ class StatsigDriver
     @evaluator = Evaluator.new(@store)
 
     @polling_thread = @net.poll_for_changes(-> (config_specs) { @store.process(config_specs) })
+
+    error_callback.call(e) unless error_callback.nil?
   end
 
   def check_gate(user, gate_name)

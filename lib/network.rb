@@ -24,14 +24,14 @@ class Network
       }).accept(:json)
     begin
       res = http.post(@api + endpoint, body: body)
-    rescue
+    rescue StandardError => e
       ## network error retry
-      return nil unless retries > 0
+      return nil, e unless retries > 0
       sleep backoff
       return post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
     end
-    return res unless !res.status.success?
-    return nil unless retries > 0 && $retry_codes.include?(res.code)
+    return res, nil unless !res.status.success?
+    return nil, StandardError.new("Got an exception when making request to #{@api + endpoint}: #{res.to_s}") unless retries > 0 && $retry_codes.include?(res.code)
     ## status code retry
     sleep backoff
     post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
@@ -40,7 +40,7 @@ class Network
   def check_gate(user, gate_name)
     begin
       request_body = JSON.generate({'user' => user&.serialize(false), 'gateName' => gate_name})
-      response = post_helper('check_gate', request_body)
+      response, _ = post_helper('check_gate', request_body)
       return JSON.parse(response.body) unless response.nil?
       false
     rescue
@@ -51,7 +51,7 @@ class Network
   def get_config(user, dynamic_config_name)
     begin
       request_body = JSON.generate({'user' => user&.serialize(false), 'configName' => dynamic_config_name})
-      response = post_helper('get_config', request_body)
+      response, _ = post_helper('get_config', request_body)
       return JSON.parse(response.body) unless response.nil?
       nil
     rescue
@@ -61,13 +61,13 @@ class Network
 
   def download_config_specs
     begin
-      response = post_helper('download_config_specs', JSON.generate({'sinceTime' => @last_sync_time}))
-      return nil unless !response.nil?
+      response, e = post_helper('download_config_specs', JSON.generate({'sinceTime' => @last_sync_time}))
+      return nil, e if response.nil?
       json_body = JSON.parse(response.body)
       @last_sync_time = json_body['time']
-      return json_body
-    rescue
-      return nil
+      return json_body, nil
+    rescue StandardError => e
+      return nil, e
     end
   end
 
@@ -75,7 +75,7 @@ class Network
     Thread.new do
       loop do
         sleep 10
-        specs = download_config_specs
+        specs, _ = download_config_specs
         unless specs.nil?
           callback.call(specs)
         end
