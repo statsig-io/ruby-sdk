@@ -31,11 +31,15 @@ class ServerSDKConsistencyTest < Minitest::Test
   end
 
   def test_useast
-    validate_consistency('https://us-east-2.api.statsig.com/v1')
+    validate_consistency('https://az-eastus-2.api.statsig.com/v1')
   end
 
   def test_apsouth
     validate_consistency('https://ap-south-1.api.statsig.com/v1')
+  end
+
+  def test_europe
+    validate_consistency('https://az-northeurope.api.statsig.com/v1')
   end
 
   def validate_consistency(apiOverride)
