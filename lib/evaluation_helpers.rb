@@ -2,7 +2,7 @@ require 'time'
 
 module EvaluationHelpers
   def self.compare_numbers(a, b, func)
-    return false unless self.is_numeric(a) && self.is_numeric(b)
+    return false unless is_numeric(a) && is_numeric(b)
     func.call(a.to_f, b.to_f) rescue false
   end
 
@@ -15,8 +15,8 @@ module EvaluationHelpers
 
   def self.compare_times(a, b, func)
     begin
-      time_1 = self.get_epoch_time(a)
-      time_2 = self.get_epoch_time(b)
+      time_1 = get_epoch_time(a)
+      time_2 = get_epoch_time(b)
       func.call(time_1, time_2)
     rescue
       false
@@ -30,7 +30,7 @@ module EvaluationHelpers
   end
 
   def self.get_epoch_time(v)
-    time = self.is_numeric(v) ? Time.at(v.to_f) : Time.parse(v)
+    time = is_numeric(v) ? Time.at(v.to_f) : Time.parse(v)
     if time.year > Time.now.year + 100
       # divide by 1000 when the epoch time is in milliseconds instead of seconds
       return time.to_i / 1000

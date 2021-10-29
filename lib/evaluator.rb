@@ -20,12 +20,12 @@ class Evaluator
 
   def check_gate(user, gate_name)
     return nil unless @initialized && @spec_store.has_gate?(gate_name)
-    self.eval_spec(user, @spec_store.get_gate(gate_name))
+    eval_spec(user, @spec_store.get_gate(gate_name))
   end
 
   def get_config(user, config_name)
     return nil unless @initialized && @spec_store.has_config?(config_name)
-    self.eval_spec(user, @spec_store.get_config(config_name))
+    eval_spec(user, @spec_store.get_config(config_name))
   end
 
   private
@@ -37,11 +37,11 @@ class Evaluator
       i = 0
       until i >= config['rules'].length do
         rule = config['rules'][i]
-        result = self.eval_rule(user, rule)
+        result = eval_rule(user, rule)
         return $fetch_from_server if result == $fetch_from_server
         exposures = exposures + result['exposures'] if result['exposures'].is_a? Array
         if result['value']
-          pass = self.eval_pass_percent(user, rule, config['salt'])
+          pass = eval_pass_percent(user, rule, config['salt'])
           return ConfigResult.new(
             config['name'],
             pass,
@@ -64,7 +64,7 @@ class Evaluator
     pass = true
     i = 0
     until i >= rule['conditions'].length do
-      result = self.eval_condition(user, rule['conditions'][i])
+      result = eval_condition(user, rule['conditions'][i])
       if result == $fetch_from_server
         return $fetch_from_server
       end
@@ -96,7 +96,7 @@ class Evaluator
     when 'public'
       return true
     when 'fail_gate', 'pass_gate'
-      other_gate_result = self.check_gate(user, target)
+      other_gate_result = check_gate(user, target)
       return $fetch_from_server if other_gate_result == $fetch_from_server
 
       gate_value = other_gate_result&.gate_value == true
