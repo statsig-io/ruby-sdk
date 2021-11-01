@@ -26,22 +26,6 @@ class ServerSDKConsistencyTest < Minitest::Test
     validate_consistency('https://latest.api.statsig.com/v1')
   end
 
-  def test_uswest
-    validate_consistency('https://us-west-2.api.statsig.com/v1')
-  end
-
-  def test_useast
-    validate_consistency('https://az-eastus-2.api.statsig.com/v1')
-  end
-
-  def test_apsouth
-    validate_consistency('https://ap-south-1.api.statsig.com/v1')
-  end
-
-  def test_europe
-    validate_consistency('https://az-northeurope.api.statsig.com/v1')
-  end
-
   def validate_consistency(apiOverride)
     puts "Testing for #{apiOverride}"
 
