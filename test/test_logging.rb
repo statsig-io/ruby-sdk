@@ -75,7 +75,5 @@ class TestLogging < Minitest::Test
       "gateValue" => "false",
       "ruleID" => 'another_rule_id_2'
     }])
-
-    assert(spy.calls[0].args[1]['sdkVersion'] == '1.7.0')
   end
 end
