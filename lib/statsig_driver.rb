@@ -23,7 +23,7 @@ class StatsigDriver
     @net = Network.new(secret_key, @options.api_url_base)
     @statsig_metadata = {
       'sdkType' => 'ruby-server',
-      'sdkVersion' => Gem::Specification::load('statsig.gemspec')&.version,
+      'sdkVersion' => '1.7.0',
     }
     @logger = StatsigLogger.new(@net, @statsig_metadata)
 

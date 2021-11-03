@@ -59,8 +59,14 @@ class StatsigE2ETest < Minitest::Test
               'gateValue' => 'false',
               'ruleID' => 'default'
             )),
-        ]),
-       :times => 1)
+        ],
+        'statsigMetadata' => 
+          hash_including(
+            'sdkVersion' => '1.7.0',
+            'sdkType' => 'ruby-server'
+          )
+      ),
+      :times => 1)
   end
 
   def test_dynamic_config
