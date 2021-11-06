@@ -131,6 +131,8 @@ class Evaluator
       rescue
         return false
       end
+    when 'unit_id'
+      value = get_unit_id(user, field)
     else
       return $fetch_from_server
     end
