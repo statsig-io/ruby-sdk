@@ -88,6 +88,7 @@ class Evaluator
     operator = condition['operator']
     additional_values = condition['additionalValues']
     additional_values = Hash.new unless additional_values.is_a? Hash
+    idType = condition['idType']
 
     return $fetch_from_server unless type.is_a? String
     type = type.downcase
@@ -125,14 +126,14 @@ class Evaluator
     when 'user_bucket'
       begin
         salt = additional_values['salt']
-        unit_id = get_unit_id(user, field) || ''
+        unit_id = get_unit_id(user, idType) || ''
         # there are only 1000 user buckets as opposed to 10k for gate pass %
         value = compute_user_hash("#{salt}.#{unit_id}") % 1000
       rescue
         return false
       end
     when 'unit_id'
-      value = get_unit_id(user, field)
+      value = get_unit_id(user, idType)
     else
       return $fetch_from_server
     end
