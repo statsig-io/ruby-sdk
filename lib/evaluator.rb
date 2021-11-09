@@ -88,6 +88,7 @@ class Evaluator
     operator = condition['operator']
     additional_values = condition['additionalValues']
     additional_values = Hash.new unless additional_values.is_a? Hash
+    idType = condition['idType']
 
     return $fetch_from_server unless type.is_a? String
     type = type.downcase
@@ -125,12 +126,14 @@ class Evaluator
     when 'user_bucket'
       begin
         salt = additional_values['salt']
-        user_id = user.user_id || ''
+        unit_id = get_unit_id(user, idType) || ''
         # there are only 1000 user buckets as opposed to 10k for gate pass %
-        value = compute_user_hash("#{salt}.#{user_id}") % 1000
+        value = compute_user_hash("#{salt}.#{unit_id}") % 1000
       rescue
         return false
       end
+    when 'unit_id'
+      value = get_unit_id(user, idType)
     else
       return $fetch_from_server
     end
@@ -267,13 +270,21 @@ class Evaluator
   def eval_pass_percent(user, rule, config_salt)
     return false unless config_salt.is_a?(String) && !rule['passPercentage'].nil?
     begin
-      user_id = user.user_id || ''
+      unit_id = get_unit_id(user, rule['id_type']) || ''
       rule_salt = rule['salt'] || rule['id'] || ''
-      hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{user_id}")
+      hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
       return (hash % 10000) < (rule['passPercentage'].to_f * 100)
     rescue
       return false
     end
+  end
+
+  def get_unit_id(user, id_type)
+    if id_type.is_a?(String) && id_type.downcase != 'userid'
+      return nil unless user&.custom_ids.is_a? Hash
+      return user.custom_ids[id_type] || user.custom_ids[id_type.downcase]
+    end
+    user.user_id
   end
 
   def compute_user_hash(user_hash)
