@@ -26,18 +26,7 @@ class StatsigDriver
       'sdkVersion' => '1.7.0',
     }
     @logger = StatsigLogger.new(@net, @statsig_metadata)
-
-    downloaded_specs, e = @net.download_config_specs
-    unless downloaded_specs.nil?
-      @initialized = true
-    end
-
-    @store = SpecStore.new(downloaded_specs)
-    @evaluator = Evaluator.new(@store)
-
-    @polling_thread = @net.poll_for_changes(-> (config_specs) { @store.process(config_specs) })
-
-    error_callback.call(e) unless error_callback.nil?
+    @evaluator = Evaluator.new(@net, error_callback)
   end
 
   def check_gate(user, gate_name)
@@ -47,9 +36,6 @@ class StatsigDriver
       raise 'Invalid gate_name provided'
     end
     check_shutdown
-    unless @initialized
-      return false
-    end
 
     res = @evaluator.check_gate(user, gate_name)
     if res.nil?
@@ -73,9 +59,6 @@ class StatsigDriver
       raise "Invalid dynamic_config_name provided"
     end
     check_shutdown
-    unless @initialized
-      return DynamicConfig.new(dynamic_config_name)
-    end
 
     res = @evaluator.get_config(user, dynamic_config_name)
     if res.nil?
@@ -118,7 +101,7 @@ class StatsigDriver
   def shutdown
     @shutdown = true
     @logger.flush(true)
-    @polling_thread&.exit
+    @evaluator.shutdown
   end
 
   private

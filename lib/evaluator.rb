@@ -11,11 +11,11 @@ $fetch_from_server = :fetch_from_server
 $type_dynamic_config = 'dynamic_config'
 
 class Evaluator
-  def initialize(store)
-    @spec_store = store
-    @initialized = true
+  def initialize(network, error_callback)
+    @spec_store = SpecStore.new(network, error_callback)
     @ua_parser = UserAgentParser::Parser.new
     CountryLookup.initialize
+    @initialized = true
   end
 
   def check_gate(user, gate_name)
@@ -26,6 +26,10 @@ class Evaluator
   def get_config(user, config_name)
     return nil unless @initialized && @spec_store.has_config?(config_name)
     eval_spec(user, @spec_store.get_config(config_name))
+  end
+
+  def shutdown
+    @spec_store.shutdown
   end
 
   private

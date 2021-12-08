@@ -12,7 +12,6 @@ class Network
     end
     @server_secret = server_secret
     @api = api
-    @last_sync_time = 0
     @backoff_multiplier = backoff_mult
   end
 
@@ -56,30 +55,6 @@ class Network
       nil
     rescue
       return nil
-    end
-  end
-
-  def download_config_specs
-    begin
-      response, e = post_helper('download_config_specs', JSON.generate({'sinceTime' => @last_sync_time}))
-      return nil, e if response.nil?
-      json_body = JSON.parse(response.body)
-      @last_sync_time = json_body['time']
-      return json_body, nil
-    rescue StandardError => e
-      return nil, e
-    end
-  end
-
-  def poll_for_changes(callback)
-    Thread.new do
-      loop do
-        sleep 10
-        specs, _ = download_config_specs
-        unless specs.nil?
-          callback.call(specs)
-        end
-      end
     end
   end
 
