@@ -16,7 +16,7 @@ class SpecStore
     @config_sync_thread = sync_config_specs
   end
 
-  def shut_down
+  def shutdown
     @config_sync_thread&.exit
   end
 

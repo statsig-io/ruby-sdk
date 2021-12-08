@@ -28,6 +28,10 @@ class Evaluator
     eval_spec(user, @spec_store.get_config(config_name))
   end
 
+  def shutdown
+    @spec_store.shutdown
+  end
+
   private
 
   def eval_spec(user, config)
