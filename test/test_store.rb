@@ -12,20 +12,6 @@ class TestStore < Minitest::Test
   end
 
   def test_store_sync
-    config_spec_mock_response = {
-      'dynamic_configs' => [
-        {'name' => 'config_1'},
-        {'name' => 'config_2'}
-      ],
-      'feature_gates' => [
-        {'name' => 'gate_1'},
-        {'name' => 'gate_2'},
-      ],
-      'has_updates' => true,
-      'id_lists' => {
-        'list_1' => true,
-      }
-    }
     id_list_1_response_1 = {
       'add_ids' => %w[1 2 3],
       'remove_ids' => [],
@@ -40,8 +26,34 @@ class TestStore < Minitest::Test
       'add_ids' => %w[7 8 9],
       'time' => 3,
     }
-    stub_request(:post, 'https://api.statsig.com/v1/download_config_specs')
-      .to_return(status: 200, body: JSON.generate(config_spec_mock_response))
+    stub_request(:post, 'https://api.statsig.com/v1/download_config_specs').
+      to_return(status: 200, body: JSON.generate({
+        'dynamic_configs' => [
+          {'name' => 'config_1'},
+          {'name' => 'config_2'}
+        ],
+        'feature_gates' => [
+          {'name' => 'gate_1'},
+          {'name' => 'gate_2'},
+        ],
+        'has_updates' => true,
+        'id_lists' => {
+          'list_1' => true,
+        }
+      })).times(1).then.
+      to_return(status: 200, body: JSON.generate({
+        'dynamic_configs' => [
+          {'name' => 'config_1'},
+        ],
+        'feature_gates' => [
+          {'name' => 'gate_1'},
+        ],
+        'has_updates' => true,
+        'id_lists' => {
+          'list_1' => true,
+          'list_2' => true,
+        }
+      }))
     stub_request(:post, 'https://api.statsig.com/v1/download_id_list').
       with(body: /list_1/).
       to_return(status: 200, body: JSON.generate(id_list_1_response_1)).times(1).then.
@@ -59,24 +71,6 @@ class TestStore < Minitest::Test
     assert(!store.get_gate('gate_2').nil?)
     assert(store.get_id_list('list_1') == { :ids => {'1'=>true, '2'=>true,'3'=>true,}, :time => 1 })
     assert(store.get_id_list('list_2').nil?)
-
-    config_spec_mock_response = {
-      'dynamic_configs' => [
-        {'name' => 'config_1'},
-      ],
-      'feature_gates' => [
-        {'name' => 'gate_1'},
-      ],
-      'has_updates' => true,
-      'id_lists' => {
-        'list_1' => true,
-        'list_2' => true,
-      }
-    }
-
-
-    stub_request(:post, 'https://api.statsig.com/v1/download_config_specs')
-      .to_return(status: 200, body: JSON.generate(config_spec_mock_response))
 
     sleep 4
 
