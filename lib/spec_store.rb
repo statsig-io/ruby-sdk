@@ -2,7 +2,7 @@ require 'net/http'
 require 'uri'
 
 class SpecStore
-  def initialize(network, error_callback = null, config_sync_interval = 10, id_lists_sync_interval = 60)
+  def initialize(network, error_callback = nil, config_sync_interval = 10, id_lists_sync_interval = 60)
     @network = network
     @last_sync_time = 0
     @config_sync_interval = config_sync_interval
