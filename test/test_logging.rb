@@ -26,7 +26,7 @@ class TestLogging < Minitest::Test
       'sdkType' => 'ruby-server',
       'sdkVersion' => Gem::Specification::load('statsig.gemspec')&.version,
     }
-    @logger = StatsigLogger.new(@net, @statsig_metadata)
+    @logger = StatsigLogger.new(@net)
     @logger.log_gate_exposure(
       StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' }}),
       'test_gate',

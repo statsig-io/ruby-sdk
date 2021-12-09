@@ -21,11 +21,7 @@ class StatsigDriver
     @shutdown = false
     @secret_key = secret_key
     @net = Network.new(secret_key, @options.api_url_base)
-    @statsig_metadata = {
-      'sdkType' => 'ruby-server',
-      'sdkVersion' => '1.7.0',
-    }
-    @logger = StatsigLogger.new(@net, @statsig_metadata)
+    @logger = StatsigLogger.new(@net)
     @evaluator = Evaluator.new(@net, error_callback)
   end
 
@@ -94,7 +90,7 @@ class StatsigDriver
     event.user = user
     event.value = value
     event.metadata = metadata
-    event.statsig_metadata = @statsig_metadata
+    event.statsig_metadata = Statsig.get_statsig_metadata
     @logger.log_event(event)
   end
 
