@@ -37,6 +37,13 @@ module Statsig
     @shared_instance = nil
   end
 
+  def self.get_statsig_metadata
+    {
+      'sdkType' => 'ruby-server',
+      'sdkVersion' => '1.8.0',
+    }
+  end
+
   private
 
   def self.ensure_initialized

@@ -4,9 +4,8 @@ $gate_exposure_event = 'statsig::gate_exposure'
 $config_exposure_event = 'statsig::config_exposure'
 
 class StatsigLogger
-  def initialize(network, statsig_metadata)
+  def initialize(network)
     @network = network
-    @statsig_metadata = statsig_metadata
     @events = []
     @background_flush = Thread.new do
       sleep 60
@@ -29,7 +28,7 @@ class StatsigLogger
       'gateValue' => value.to_s,
       'ruleID' => rule_id
     }
-    event.statsig_metadata = @statsig_metadata
+    event.statsig_metadata = Statsig.get_statsig_metadata
     event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
     log_event(event)
   end
@@ -41,7 +40,7 @@ class StatsigLogger
       'config' => config_name,
       'ruleID' => rule_id
     }
-    event.statsig_metadata = @statsig_metadata
+    event.statsig_metadata = Statsig.get_statsig_metadata
     event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
     log_event(event)
   end
@@ -56,6 +55,6 @@ class StatsigLogger
     flush_events = @events.map { |e| e.serialize }
     @events = []
 
-    @network.post_logs(flush_events, @statsig_metadata)
+    @network.post_logs(flush_events)
   end
 end

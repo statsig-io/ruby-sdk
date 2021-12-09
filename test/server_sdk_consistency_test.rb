@@ -48,9 +48,6 @@ class ServerSDKConsistencyTest < Minitest::Test
 
       gates.each do |name, server_result|
         sdk_result = driver.instance_variable_get('@evaluator').check_gate(user, name)
-        if sdk_result == $fetch_from_server
-            next
-        end
         if sdk_result.gate_value != server_result['value']
           pp "Different values for gate #{name}", user, "Expected: #{server_result['value']}", "Actual: #{sdk_result.gate_value}"
         end
@@ -72,9 +69,6 @@ class ServerSDKConsistencyTest < Minitest::Test
         config_value = server_result['value']
         rule_id = server_result['rule_id']
         sdk_result = driver.instance_variable_get('@evaluator').get_config(user, name)
-        if sdk_result == $fetch_from_server
-            next
-        end
         if sdk_result.json_value != server_result['value']
           pp "Different values for config #{name}", user, "Expected: #{server_result['value']}", "Actual: #{sdk_result.json_value}"
         end
