@@ -57,7 +57,8 @@ class Evaluator
 
         i += 1
       end
-    elsif (default_rule_id = 'disabled')
+    else
+      default_rule_id = 'disabled'
     end
 
     ConfigResult.new(config['name'], false, config['defaultValue'], default_rule_id, exposures)
