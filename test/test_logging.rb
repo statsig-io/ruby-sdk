@@ -20,13 +20,13 @@ class TestLogging < Minitest::Test
   def test_exposure_event
     stub_request(:post, "https://api.statsig.com/v1/log_event").to_return(status: 200, body: "hello")
 
-    @net = Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    @net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
     spy = Spy.on(@net, :post_logs).and_return
     @statsig_metadata = {
       'sdkType' => 'ruby-server',
       'sdkVersion' => Gem::Specification::load('statsig.gemspec')&.version,
     }
-    @logger = StatsigLogger.new(@net)
+    @logger = Statsig::StatsigLogger.new(@net)
     @logger.log_gate_exposure(
       StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' }}),
       'test_gate',

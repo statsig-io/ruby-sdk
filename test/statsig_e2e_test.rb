@@ -62,7 +62,7 @@ class StatsigE2ETest < Minitest::Test
         ],
         'statsigMetadata' => 
           hash_including(
-            'sdkVersion' => '1.8.0',
+            'sdkVersion' => '1.8.2',
             'sdkType' => 'ruby-server'
           )
       ),

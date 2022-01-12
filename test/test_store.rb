@@ -62,8 +62,8 @@ class TestStore < Minitest::Test
       with(body: /list_2/).
       to_return(status: 200, body: JSON.generate(id_list_2_response))
 
-    net = Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
-    store = SpecStore.new(net, nil, 1, 0.1)
+    net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    store = Statsig::SpecStore.new(net, nil, 1, 0.1)
 
     assert(!store.get_config('config_1').nil?)
     assert(!store.get_config('config_2').nil?)
@@ -98,9 +98,9 @@ class TestStore < Minitest::Test
     stub_request(:post, 'https://api.statsig.com/v1/download_config_specs')
       .to_return(status: 200, body: JSON.generate(config_spec_mock_response))
 
-    net = Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
     spy = Spy.on(net, :post_helper).and_call_through
-    SpecStore.new(net, nil, 1, 0.1)
+    Statsig::SpecStore.new(net, nil, 1, 0.1)
     sleep 3
     assert(spy.calls.size == 3) # only download_config_specs were called, 3 times
   end

@@ -20,9 +20,9 @@ class StatsigDriver
     @options = options || StatsigOptions.new
     @shutdown = false
     @secret_key = secret_key
-    @net = Network.new(secret_key, @options.api_url_base)
-    @logger = StatsigLogger.new(@net)
-    @evaluator = Evaluator.new(@net, error_callback)
+    @net = Statsig::Network.new(secret_key, @options.api_url_base)
+    @logger = Statsig::StatsigLogger.new(@net)
+    @evaluator = Statsig::Evaluator.new(@net, error_callback)
   end
 
   def check_gate(user, gate_name)
@@ -35,7 +35,7 @@ class StatsigDriver
 
     res = @evaluator.check_gate(user, gate_name)
     if res.nil?
-      res = ConfigResult.new(gate_name)
+      res = Statsig::ConfigResult.new(gate_name)
     end
 
     if res == $fetch_from_server
@@ -58,7 +58,7 @@ class StatsigDriver
 
     res = @evaluator.get_config(user, dynamic_config_name)
     if res.nil?
-      res = ConfigResult.new(dynamic_config_name)
+      res = Statsig::ConfigResult.new(dynamic_config_name)
     end
 
     if res == $fetch_from_server
@@ -124,11 +124,11 @@ class StatsigDriver
   def check_gate_fallback(user, gate_name)
     network_result = @net.check_gate(user, gate_name)
     if network_result.nil?
-      config_result = ConfigResult.new(gate_name)
+      config_result = Statsig::ConfigResult.new(gate_name)
       return config_result
     end
 
-    ConfigResult.new(
+    Statsig::ConfigResult.new(
       network_result['name'],
       network_result['value'],
       {},
@@ -139,11 +139,11 @@ class StatsigDriver
   def get_config_fallback(user, dynamic_config_name)
     network_result = @net.get_config(user, dynamic_config_name)
     if network_result.nil?
-      config_result = ConfigResult.new(dynamic_config_name)
+      config_result = Statsig::ConfigResult.new(dynamic_config_name)
       return config_result
     end
 
-    ConfigResult.new(
+    Statsig::ConfigResult.new(
       network_result['name'],
       false,
       network_result['value'],
