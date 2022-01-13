@@ -8,10 +8,7 @@ module Statsig
     def initialize(network)
       @network = network
       @events = []
-      @background_flush = Thread.new do
-        sleep 60
-        flush
-      end
+      @background_flush = periodic_flush
     end
 
     def log_event(event)
@@ -46,9 +43,18 @@ module Statsig
       log_event(event)
     end
 
+    def periodic_flush
+      Thread.new do
+        loop do
+          sleep 60
+          flush
+        end
+      end
+    end
+
     def flush(closing = false)
       if closing
-        @background_flush.exit
+        @background_flush&.exit
       end
       if @events.length == 0
         return
