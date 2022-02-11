@@ -159,17 +159,24 @@ module Statsig
         return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a <= b })
 
         # version comparison
+        # need to check for nil or empty value because Version takes them as valid values
       when 'version_gt'
+        return false if value.to_s.empty?
         return (Gem::Version.new(value) > Gem::Version.new(target) rescue false)
       when 'version_gte'
+        return false if value.to_s.empty?
         return (Gem::Version.new(value) >= Gem::Version.new(target) rescue false)
       when 'version_lt'
+        return false if value.to_s.empty?
         return (Gem::Version.new(value) < Gem::Version.new(target) rescue false)
       when 'version_lte'
+        return false if value.to_s.empty?
         return (Gem::Version.new(value) <= Gem::Version.new(target) rescue false)
       when 'version_eq'
+        return false if value.to_s.empty?
         return (Gem::Version.new(value) == Gem::Version.new(target) rescue false)
       when 'version_neq'
+        return false if value.to_s.empty?
         return (Gem::Version.new(value) != Gem::Version.new(target) rescue false)
 
         # array operations
