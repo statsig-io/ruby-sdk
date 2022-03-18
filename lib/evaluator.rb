@@ -29,6 +29,11 @@ module Statsig
       eval_spec(user, @spec_store.get_config(config_name))
     end
 
+    def get_layer(user, layer_name)
+      return nil unless @initialized && @spec_store.has_layer?(layer_name)
+      eval_spec(user, @spec_store.get_layer(layer_name))
+    end
+
     def shutdown
       @spec_store.shutdown
     end
@@ -44,15 +49,16 @@ module Statsig
           rule = config['rules'][i]
           result = eval_rule(user, rule)
           return $fetch_from_server if result == $fetch_from_server
-          exposures = exposures + result['exposures'] if result['exposures'].is_a? Array
-          if result['value']
+          exposures = exposures + result.secondary_exposures
+          if result.gate_value
             pass = eval_pass_percent(user, rule, config['salt'])
             return Statsig::ConfigResult.new(
               config['name'],
               pass,
-              pass ? rule['returnValue'] : config['defaultValue'],
-              rule['id'],
-              exposures
+              pass ? result.json_value : config['defaultValue'],
+              result.rule_id,
+              exposures,
+              result.config_delegate
             )
           end
 
@@ -83,7 +89,16 @@ module Statsig
         end
         i += 1
       end
-      { 'value' => pass, 'exposures' => exposures }
+
+      delegate = rule['configDelegate']
+      if pass and @spec_store.get_config(delegate)
+        delegated_result = self.eval_spec(user, @spec_store.get_config(delegate))
+        delegated_result.config_delegate = delegate
+        delegated_result.secondary_exposures = exposures + delegated_result.secondary_exposures
+        return delegated_result
+      end
+
+      Statsig::ConfigResult.new('', pass, rule['returnValue'], rule['id'], exposures)
     end
 
     def eval_condition(user, condition)

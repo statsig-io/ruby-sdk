@@ -2,6 +2,7 @@ require 'statsig_event'
 
 $gate_exposure_event = 'statsig::gate_exposure'
 $config_exposure_event = 'statsig::config_exposure'
+$layer_exposure_event = 'statsig::layer_exposure'
 
 module Statsig
   class StatsigLogger
@@ -37,6 +38,19 @@ module Statsig
       event.metadata = {
         'config' => config_name,
         'ruleID' => rule_id
+      }
+      event.statsig_metadata = Statsig.get_statsig_metadata
+      event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
+      log_event(event)
+    end
+
+    def log_layer_exposure(user, config_name, rule_id, secondary_exposures, allocated_experiment)
+      event = StatsigEvent.new($layer_exposure_event)
+      event.user = user
+      event.metadata = {
+        'config' => config_name,
+        'ruleID' => rule_id,
+        'allocatedExperiment' => allocated_experiment
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []

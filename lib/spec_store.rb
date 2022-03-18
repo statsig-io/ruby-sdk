@@ -11,6 +11,7 @@ module Statsig
       @store = {
         :gates => {},
         :configs => {},
+        :layers => {},
         :id_lists => {},
       }
       e = download_config_specs
@@ -34,6 +35,10 @@ module Statsig
       @store[:configs].key?(config_name)
     end
 
+    def has_layer?(layer_name)
+      @store[:layers].key?(layer_name)
+    end
+
     def get_gate(gate_name)
       return nil unless has_gate?(gate_name)
       @store[:gates][gate_name]
@@ -42,6 +47,11 @@ module Statsig
     def get_config(config_name)
       return nil unless has_config?(config_name)
       @store[:configs][config_name]
+    end
+
+    def get_layer(layer_name)
+      return nil unless has_layer?(layer_name)
+      @store[:layers][layer_name]
     end
 
     def get_id_list(list_name)
@@ -89,15 +99,19 @@ module Statsig
       @last_sync_time = specs_json['time'] || @last_sync_time
       return unless specs_json['has_updates'] == true &&
         !specs_json['feature_gates'].nil? &&
-        !specs_json['dynamic_configs'].nil?
+        !specs_json['dynamic_configs'].nil? &&
+        !specs_json['layer_configs'].nil? 
 
       new_gates = {}
       new_configs = {}
+      new_layers = {}
 
       specs_json['feature_gates'].map{|gate|  new_gates[gate['name']] = gate }
       specs_json['dynamic_configs'].map{|config|  new_configs[config['name']] = config }
+      specs_json['layer_configs'].map{|layer|  new_layers[layer['name']] = layer }
       @store[:gates] = new_gates
       @store[:configs] = new_configs
+      @store[:layers] = new_layers
 
       new_id_lists = specs_json['id_lists']
       if new_id_lists.is_a? Hash

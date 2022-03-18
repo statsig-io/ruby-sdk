@@ -1,6 +1,5 @@
 require 'http'
 require 'json'
-require 'dynamic_config'
 
 $retry_codes = [408, 500, 502, 503, 504, 522, 524, 599]
 

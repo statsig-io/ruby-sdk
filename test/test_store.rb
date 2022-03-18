@@ -36,6 +36,7 @@ class TestStore < Minitest::Test
           {'name' => 'gate_1'},
           {'name' => 'gate_2'},
         ],
+        'layer_configs' => [],
         'has_updates' => true,
         'id_lists' => {
           'list_1' => true,
@@ -48,6 +49,7 @@ class TestStore < Minitest::Test
         'feature_gates' => [
           {'name' => 'gate_1'},
         ],
+        'layer_configs' => [],
         'has_updates' => true,
         'id_lists' => {
           'list_1' => true,
@@ -92,6 +94,7 @@ class TestStore < Minitest::Test
         {'name' => 'gate_1'},
         {'name' => 'gate_2'},
       ],
+      'layer_configs' => [],
       'has_updates' => true,
       'id_lists' => {}
     }

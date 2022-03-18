@@ -26,12 +26,7 @@ class StatsigDriver
   end
 
   def check_gate(user, gate_name)
-    validate_user(user)
-    user = normalize_user(user)
-    if !gate_name.is_a?(String) || gate_name.empty?
-      raise 'Invalid gate_name provided'
-    end
-    check_shutdown
+    user = verify_inputs(user, gate_name, "gate_name")
 
     res = @evaluator.check_gate(user, gate_name)
     if res.nil?
@@ -49,33 +44,34 @@ class StatsigDriver
   end
 
   def get_config(user, dynamic_config_name)
-    validate_user(user)
-    user = normalize_user(user)
-    if !dynamic_config_name.is_a?(String) || dynamic_config_name.empty?
-      raise "Invalid dynamic_config_name provided"
-    end
-    check_shutdown
-
-    res = @evaluator.get_config(user, dynamic_config_name)
-    if res.nil?
-      res = Statsig::ConfigResult.new(dynamic_config_name)
-    end
-
-    if res == $fetch_from_server
-      res = get_config_fallback(user, dynamic_config_name)
-      # exposure logged by the server
-    else
-      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures)
-    end
-
-    DynamicConfig.new(res.name, res.json_value, res.rule_id)
+    user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
+    get_config_impl(user, dynamic_config_name)
   end
 
   def get_experiment(user, experiment_name)
-    if !experiment_name.is_a?(String) || experiment_name.empty?
-      raise "Invalid experiment_name provided"
+    user = verify_inputs(user, experiment_name, "experiment_name")
+    get_config_impl(user, experiment_name)
+  end
+
+  def get_layer(user, layer_name)
+    user = verify_inputs(user, layer_name, "layer_name")
+
+    res = @evaluator.get_layer(user, layer_name)
+    if res.nil?
+      res = Statsig::ConfigResult.new(layer_name)
     end
-    get_config(user, experiment_name)
+
+    if res == $fetch_from_server
+      if res.config_delegate.empty?
+        return Layer.new(layer_name)
+      end
+      res = get_config_fallback(user, res.config_delegate)
+      # exposure logged by the server
+    else
+      @logger.log_layer_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.config_delegate)
+    end
+
+    Layer.new(res.name, res.json_value, res.rule_id)
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
@@ -101,6 +97,32 @@ class StatsigDriver
   end
 
   private
+
+  def verify_inputs(user, config_name, variable_name)
+    validate_user(user)
+    if !config_name.is_a?(String) || config_name.empty?
+      raise "Invalid " + variable_name +" provided"
+    end
+
+    check_shutdown
+    normalize_user(user)
+  end
+
+  def get_config_impl(user, config_name)
+    res = @evaluator.get_config(user, config_name)
+    if res.nil?
+      res = Statsig::ConfigResult.new(config_name)
+    end
+
+    if res == $fetch_from_server
+      res = get_config_fallback(user, config_name)
+      # exposure logged by the server
+    else
+      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures)
+    end
+
+    DynamicConfig.new(res.name, res.json_value, res.rule_id)
+  end
 
   def validate_user(user)
     if user.nil? || !user.instance_of?(StatsigUser) || !user.user_id.is_a?(String)

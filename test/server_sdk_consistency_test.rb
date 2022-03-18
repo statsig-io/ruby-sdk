@@ -27,7 +27,7 @@ class ServerSDKConsistencyTest < Minitest::Test
   end
 
   def validate_consistency(apiOverride)
-    puts "Testing for #{apiOverride}"
+    puts "\nTesting for #{apiOverride}"
 
     http = HTTP.headers(
       {"STATSIG-API-KEY" => @secret,
@@ -45,6 +45,7 @@ class ServerSDKConsistencyTest < Minitest::Test
       user = StatsigUser.new(data[i]['user'])
       gates = data[i]['feature_gates_v2']
       configs = data[i]['dynamic_configs']
+      layers = data[i]['layer_configs']
 
       gates.each do |name, server_result|
         sdk_result = driver.instance_variable_get('@evaluator').check_gate(user, name)
@@ -66,27 +67,37 @@ class ServerSDKConsistencyTest < Minitest::Test
       end
 
       configs.each do |name, server_result|
-        config_value = server_result['value']
-        rule_id = server_result['rule_id']
         sdk_result = driver.instance_variable_get('@evaluator').get_config(user, name)
-        if sdk_result.json_value != server_result['value']
-          pp "Different values for config #{name}", user, "Expected: #{server_result['value']}", "Actual: #{sdk_result.json_value}"
-        end
-        assert(sdk_result.json_value == config_value)
+        validate_config(sdk_result, server_result)
+      end
 
-        if sdk_result.rule_id != server_result['rule_id']
-          pp "Different rule IDs for config #{name}", user, "Expected: #{server_result['rule_id']}", "Actual: #{sdk_result.rule_id}"
-        end
-        assert(sdk_result.rule_id == rule_id)
-
-        if sdk_result.secondary_exposures != server_result['secondary_exposures']
-          pp "Different secondary exposures for config #{name}", user,
-             "Expected: #{server_result['secondary_exposures']}", "Actual: #{sdk_result.secondary_exposures}"
-        end
-        assert(sdk_result.secondary_exposures == server_result['secondary_exposures'])
+      layers.each do |name, server_result|
+        sdk_result = driver.instance_variable_get('@evaluator').get_layer(user, name)
+        validate_config(sdk_result, server_result)
       end
 
       i += 1
     end
+  end
+
+  def validate_config(sdk_result, server_result)
+    config_value = server_result['value']
+    rule_id = server_result['rule_id']
+
+    if sdk_result.json_value != server_result['value']
+      pp "Different values for config #{name}", user, "Expected: #{server_result['value']}", "Actual: #{sdk_result.json_value}"
+    end
+    assert(sdk_result.json_value == config_value)
+
+    if sdk_result.rule_id != server_result['rule_id']
+      pp "Different rule IDs for config #{name}", user, "Expected: #{server_result['rule_id']}", "Actual: #{sdk_result.rule_id}"
+    end
+    assert(sdk_result.rule_id == rule_id)
+
+    if sdk_result.secondary_exposures != server_result['secondary_exposures']
+      pp "Different secondary exposures for config #{name}", user,
+         "Expected: #{server_result['secondary_exposures']}", "Actual: #{sdk_result.secondary_exposures}"
+    end
+    assert(sdk_result.secondary_exposures == server_result['secondary_exposures'])
   end
 end

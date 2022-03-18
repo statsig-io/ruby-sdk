@@ -25,6 +25,11 @@ module Statsig
     @shared_instance&.get_config(user, experiment_name)
   end
 
+  def self.get_layer(user, layer_name)
+    ensure_initialized
+    @shared_instance&.get_config(user, layer_name)
+  end
+
   def self.log_event(user, event_name, value, metadata)
     ensure_initialized
     @shared_instance&.log_event(user, event_name, value, metadata)
