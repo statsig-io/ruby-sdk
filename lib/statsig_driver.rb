@@ -101,7 +101,7 @@ class StatsigDriver
   def verify_inputs(user, config_name, variable_name)
     validate_user(user)
     if !config_name.is_a?(String) || config_name.empty?
-      raise "Invalid " + variable_name +" provided"
+      raise "Invalid #{variable_name} provided"
     end
 
     check_shutdown

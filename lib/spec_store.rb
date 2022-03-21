@@ -1,6 +1,8 @@
 require 'net/http'
 require 'uri'
 
+require 'id_list'
+
 module Statsig
   class SpecStore
     def initialize(network, error_callback = nil, config_sync_interval = 10, id_lists_sync_interval = 60)
@@ -16,7 +18,7 @@ module Statsig
       }
       e = download_config_specs
       error_callback.call(e) unless error_callback.nil?
-      download_id_lists
+      get_id_lists
 
       @config_sync_thread = sync_config_specs
       @id_lists_sync_thread = sync_id_lists
@@ -73,7 +75,7 @@ module Statsig
       Thread.new do
         loop do
           sleep @id_lists_sync_interval
-          download_id_lists
+          get_id_lists
         end
       end
     end
@@ -112,53 +114,96 @@ module Statsig
       @store[:gates] = new_gates
       @store[:configs] = new_configs
       @store[:layers] = new_layers
+    end
 
-      new_id_lists = specs_json['id_lists']
-      if new_id_lists.is_a? Hash
-        new_id_lists.each do |list_name, _|
-          unless @store[:id_lists].key?(list_name)
-            @store[:id_lists][list_name] = { :ids => {}, :time => 0 }
+    def get_id_lists
+      response, e = @network.post_helper('get_id_lists', JSON.generate({'statsigMetadata' => Statsig.get_statsig_metadata}))
+      if e.nil? && !response.nil?
+        begin
+          server_id_lists = JSON.parse(response)
+          local_id_lists = @store[:id_lists]
+          if !server_id_lists.is_a?(Hash) || !local_id_lists.is_a?(Hash)
+            return
           end
-        end
+          threads = []
 
-        @store[:id_lists].each do |list_name, _|
-          unless new_id_lists.key?(list_name)
-            @store[:id_lists].delete(list_name)
+          server_id_lists.each do |list_name, list|
+            server_list = IDList.new(list)
+            local_list = get_id_list(list_name)
+
+            unless local_list.is_a? IDList
+              local_list = IDList.new(list)
+              local_list.size = 0
+              local_id_lists[list_name] = local_list
+            end
+
+            # skip if server list is invalid
+            if server_list.url.nil? || server_list.creation_time < local_list.creation_time || server_list.file_id.nil?
+              next
+            end
+
+            # skip if server list returns a newer file
+            if server_list.file_id != local_list.file_id && server_list.creation_time >= local_list.creation_time
+              local_list = IDList.new(list)
+              local_list.size = 0
+              local_id_lists[list_name] = local_list
+            end
+
+            # skip if server list is no bigger than local list, which means nothing new to read
+            if server_list.size <= local_list.size
+              next
+            end
+
+            threads << Thread.new do
+              download_single_id_list(local_list)
+            end
           end
+          threads.each(&:join)
+          delete_lists = []
+          local_id_lists.each do |list_name, list|
+            unless server_id_lists.key? list_name
+              delete_lists.push list_name
+            end
+          end
+          delete_lists.each do |list_name|
+            local_id_lists.delete list_name
+          end
+        rescue
+          # Ignored, will try again
         end
       end
     end
 
-    def download_id_lists
-      if @store[:id_lists].is_a? Hash
-        threads = []
-        id_lists = @store[:id_lists]
-        id_lists.each do |list_name, list|
-          threads << Thread.new do
-            response, e = @network.post_helper('download_id_list', JSON.generate({'listName' => list_name, 'statsigMetadata' => Statsig.get_statsig_metadata, 'sinceTime' => list['time'] || 0 }))
-            if e.nil? && !response.nil?
-              begin
-                data = JSON.parse(response)
-                if data['add_ids'].is_a? Array
-                  data['add_ids'].each do |id|
-                    list[:ids][id] = true
-                  end
-                end
-                if data['remove_ids'].is_a? Array
-                  data['remove_ids'].each do |id|
-                    list[:ids]&.delete(id)
-                  end
-                end
-                if data['time'].is_a? Numeric
-                  list[:time] = data['time']
-                end
-              rescue
-                # Ignored
-              end
-            end
+    def download_single_id_list(list)
+      nil unless list.is_a? IDList
+      http = HTTP.headers({'Range' => "bytes=#{list&.size || 0}-"}).accept(:json)
+      begin
+        res = http.get(list.url)
+        nil unless res.status.success?
+        content_length = Integer(res['content-length'])
+        nil if content_length.nil? || content_length <= 0
+        content = res.body.to_s
+        unless content.is_a?(String) && (content[0] == '-' || content[0] == '+')
+          @store[:id_lists].delete(list.name)
+          return
+        end
+        ids_clone = list.ids # clone the list, operate on the new list, and swap out the old list, so the operation is thread-safe
+        lines = content.split(/\r?\n/)
+        lines.each do |li|
+          line = li.strip
+          next if line.length <= 1
+          op = line[0]
+          id = line[1..]
+          if op == '+'
+            ids_clone.add(id)
+          elsif op == '-'
+            ids_clone.delete(id)
           end
         end
-        threads.each(&:join)
+        list.ids = ids_clone
+        list.size = list.size + content_length
+      rescue
+        nil
       end
     end
   end
