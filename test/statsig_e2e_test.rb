@@ -23,7 +23,7 @@ class StatsigE2ETest < Minitest::Test
     super
     stub_request(:post, 'https://api.statsig.com/v1/download_config_specs').to_return(status: 200, body: $mock_response)
     stub_request(:post, 'https://api.statsig.com/v1/log_event').to_return(status: 200)
-    stub_request(:post, 'https://api.statsig.com/v1/download_id_list').to_return(status: 200)
+    stub_request(:post, 'https://api.statsig.com/v1/get_id_lists').to_return(status: 200)
     @statsig_user = StatsigUser.new({'userID' => '123', 'email' => 'testuser@statsig.com'})
     @random_user = StatsigUser.new({'userID' => 'random'})
   end
