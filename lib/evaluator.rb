@@ -229,13 +229,15 @@ module Statsig
         return EvaluationHelpers::compare_times(value, target, ->(a, b) { a.year == b.year && a.month == b.month && a.day == b.day })
       when 'in_segment_list', 'not_in_segment_list'
         begin
-        id_list = (@spec_store.get_id_list(target) || {:ids => {}})[:ids]
-        hashed_id = Digest::SHA256.base64digest(value.to_s)[0, 8]    
-        is_in_list = id_list.is_a?(Hash) && id_list[hashed_id] == true
-        
-        return is_in_list if operator == 'in_segment_list'
-        return !is_in_list
-        rescue StandardError => e
+          is_in_list = false
+          id_list = @spec_store.get_id_list(target)
+          if id_list.is_a? IDList
+            hashed_id = Digest::SHA256.base64digest(value.to_s)[0, 8]
+            is_in_list = id_list.ids.include?(hashed_id)
+          end
+          return is_in_list if operator == 'in_segment_list'
+          return !is_in_list
+        rescue
           return false
         end
       else
