@@ -51,14 +51,18 @@ module Statsig
           return $fetch_from_server if result == $fetch_from_server
           exposures = exposures + result.secondary_exposures
           if result.gate_value
+
+            if (delegated_result = eval_delegate(config['name'], user, rule, exposures))
+              return delegated_result
+            end
+
             pass = eval_pass_percent(user, rule, config['salt'])
             return Statsig::ConfigResult.new(
               config['name'],
               pass,
               pass ? result.json_value : config['defaultValue'],
               result.rule_id,
-              exposures,
-              result.config_delegate
+              exposures
             )
           end
 
@@ -90,15 +94,19 @@ module Statsig
         i += 1
       end
 
-      delegate = rule['configDelegate']
-      if pass and @spec_store.get_config(delegate)
-        delegated_result = self.eval_spec(user, @spec_store.get_config(delegate))
-        delegated_result.config_delegate = delegate
-        delegated_result.secondary_exposures = exposures + delegated_result.secondary_exposures
-        return delegated_result
-      end
-
       Statsig::ConfigResult.new('', pass, rule['returnValue'], rule['id'], exposures)
+    end
+
+    def eval_delegate(name, user, rule, exposures)
+      return nil unless (delegate = rule['configDelegate'])
+      return nil unless (config = @spec_store.get_config(delegate))
+
+      delegated_result = self.eval_spec(user, config)
+      delegated_result.name = name
+      delegated_result.config_delegate = delegate
+      delegated_result.secondary_exposures = exposures + delegated_result.secondary_exposures
+      delegated_result.undelegated_sec_exps = exposures
+      delegated_result
     end
 
     def eval_condition(user, condition)

@@ -1,4 +1,3 @@
-
 module Statsig
   class IDList
     attr_accessor :name
@@ -8,7 +7,7 @@ module Statsig
     attr_accessor :file_id
     attr_accessor :ids
 
-    def initialize(json, ids=Set.new)
+    def initialize(json, ids = Set.new)
       @name = json['name'] || ''
       @size = json['size'] || 0
       @creation_time = json['creationTime'] || 0
@@ -24,7 +23,9 @@ module Statsig
     end
 
     def ==(other)
-      self.name  == other.name &&
+      return false if other.nil?
+
+      self.name == other.name &&
         self.size == other.size &&
         self.creation_time == other.creation_time &&
         self.url == other.url &&

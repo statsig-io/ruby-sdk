@@ -68,19 +68,25 @@ class ServerSDKConsistencyTest < Minitest::Test
 
       configs.each do |name, server_result|
         sdk_result = driver.instance_variable_get('@evaluator').get_config(user, name)
-        validate_config(sdk_result, server_result)
+        validate_config(user, sdk_result, server_result)
       end
 
       layers.each do |name, server_result|
         sdk_result = driver.instance_variable_get('@evaluator').get_layer(user, name)
-        validate_config(sdk_result, server_result)
+        validate_config(user, sdk_result, server_result)
+
+        if sdk_result.undelegated_sec_exps != server_result['undelegated_secondary_exposures']
+          pp "Different undelegated secondary exposures for config #{name}", user,
+             "Expected: #{server_result['undelegated_secondary_exposures']}", "Actual: #{sdk_result.undelegated_sec_exps}"
+        end
+        assert(sdk_result.undelegated_sec_exps == server_result['undelegated_secondary_exposures'])
       end
 
       i += 1
     end
   end
 
-  def validate_config(sdk_result, server_result)
+  def validate_config(user, sdk_result, server_result)
     config_value = server_result['value']
     rule_id = server_result['rule_id']
 

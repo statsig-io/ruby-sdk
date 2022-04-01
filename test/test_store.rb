@@ -14,6 +14,19 @@ class TestStore < Minitest::Test
     WebMock.disable!
   end
 
+  def wait_for
+    timeout = 3
+    start = Time.now
+    x = yield
+    until x
+      if Time.now - start > timeout
+        raise "Wait to long here. Timeout #{timeout} sec"
+      end
+      sleep(0.1)
+      x = yield
+    end
+  end
+
   def test_1_store_sync
     stub_request(:post, 'https://api.statsig.com/v1/download_config_specs').
       to_return(status: 200, body: JSON.generate({
@@ -153,26 +166,34 @@ class TestStore < Minitest::Test
                                      }, Set.new(["a"])), store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    sleep 1.01
+    wait_for do
+      Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])) == store.get_id_list('list_1')
+    end
     assert_equal(Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    sleep 1.01
+    wait_for do
+      Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1')
+    end
     assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    sleep 1.01
+    wait_for do
+      Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1')
+    end
     # list_1 not changed because response was pointing to the older url
     assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    sleep 1.01
+    wait_for do
+      store.get_id_list('list_1') == nil
+    end
     # list_1 is reset to nil because response gave an invalid string
     assert_nil(store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
@@ -184,7 +205,9 @@ class TestStore < Minitest::Test
                                        'fileID' => 'file_id_3',
                                      }, Set.new(["0"])), store.get_id_list('list_3'))
 
-    sleep 1.01
+    wait_for do
+      Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])) == store.get_id_list('list_1')
+    end
     assert_equal(Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
@@ -195,7 +218,6 @@ class TestStore < Minitest::Test
                                        'creationTime' => 5,
                                        'fileID' => 'file_id_3',
                                      }, Set.new(["0"])), store.get_id_list('list_3'))
-
 
     assert(!store.get_config('config_1').nil?)
     assert(store.get_config('config_2').nil?)
@@ -226,10 +248,16 @@ class TestStore < Minitest::Test
     net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
     spy = Spy.on(net, :post_helper).and_call_through
     store = Statsig::SpecStore.new(net, nil, 1, 1)
-    sleep 3
+
+    wait_for do
+      spy.calls.size == 6
+    end
     assert(6, spy.calls.size) # download_config_specs were called 3 times + get_id_lists 3 time
     store.shutdown
-    sleep 3
+
+    wait_for do
+      spy.calls.size == 6
+    end
     assert(6, spy.calls.size) # after shutdown no more call should be made
   end
 end
