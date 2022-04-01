@@ -1,5 +1,6 @@
 require 'http'
 require 'json'
+require 'securerandom'
 
 $retry_codes = [408, 500, 502, 503, 504, 522, 524, 599]
 
@@ -13,12 +14,14 @@ module Statsig
       @server_secret = server_secret
       @api = api
       @backoff_multiplier = backoff_mult
+      @session_id = SecureRandom.uuid
     end
 
     def post_helper(endpoint, body, retries = 0, backoff = 1)
       http = HTTP.headers(
         {"STATSIG-API-KEY" => @server_secret,
         "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_s,
+         "STATSIG-SERVER-SESSION-ID" => @session_id,
         "Content-Type" => "application/json; charset=UTF-8"
         }).accept(:json)
       begin
