@@ -311,7 +311,7 @@ module Statsig
     def eval_pass_percent(user, rule, config_salt)
       return false unless config_salt.is_a?(String) && !rule['passPercentage'].nil?
       begin
-        unit_id = get_unit_id(user, rule['id_type']) || ''
+        unit_id = get_unit_id(user, rule['idType']) || ''
         rule_salt = rule['salt'] || rule['id'] || ''
         hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
         return (hash % 10000) < (rule['passPercentage'].to_f * 100)
