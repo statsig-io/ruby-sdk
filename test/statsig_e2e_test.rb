@@ -47,6 +47,10 @@ class StatsigE2ETest < Minitest::Test
         'events' => [
           hash_including(
             'eventName' => 'statsig::gate_exposure',
+            'user' => {
+              'userID' => '123',
+              'email' => 'testuser@statsig.com'
+            },
             'metadata' => hash_including(
               'gate' => 'always_on_gate',
               'gateValue' => 'true',
@@ -68,6 +72,9 @@ class StatsigE2ETest < Minitest::Test
             )),
           hash_including(
             'eventName' => 'statsig::gate_exposure',
+            'user' => {
+              'userID' => 'random'
+            },
             'metadata' => hash_including(
               'gate' => 'on_for_statsig_email',
               'gateValue' => 'false',

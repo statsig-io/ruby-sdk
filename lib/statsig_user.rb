@@ -54,7 +54,7 @@ class StatsigUser
     if for_logging
       hash.delete('privateAttributes')
     end
-    hash
+    hash.compact
   end
 
   def value_lookup
