@@ -44,16 +44,26 @@ module Statsig
       log_event(event)
     end
 
-    def log_layer_exposure(user, config_name, rule_id, secondary_exposures, allocated_experiment)
+    def log_layer_exposure(user, layer, parameter_name, config_evaluation)
+      exposures = config_evaluation.undelegated_sec_exps
+      allocated_experiment = ''
+      is_explicit = config_evaluation.explicit_parameters.include? parameter_name
+      if is_explicit
+        allocated_experiment = config_evaluation.config_delegate
+        exposures = config_evaluation.secondary_exposures
+      end
+
       event = StatsigEvent.new($layer_exposure_event)
       event.user = user
       event.metadata = {
-        'config' => config_name,
-        'ruleID' => rule_id,
-        'allocatedExperiment' => allocated_experiment
+        'config' => layer.name,
+        'ruleID' => layer.rule_id,
+        'allocatedExperiment' => allocated_experiment,
+        'parameterName' => parameter_name,
+        'isExplicitParameter' => String(is_explicit)
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
-      event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
+      event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
       log_event(event)
     end
 

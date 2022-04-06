@@ -106,6 +106,7 @@ module Statsig
       delegated_result.config_delegate = delegate
       delegated_result.secondary_exposures = exposures + delegated_result.secondary_exposures
       delegated_result.undelegated_sec_exps = exposures
+      delegated_result.explicit_parameters = config['explicitParameters']
       delegated_result
     end
 

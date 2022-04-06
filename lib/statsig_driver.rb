@@ -67,11 +67,11 @@ class StatsigDriver
       end
       res = get_config_fallback(user, res.config_delegate)
       # exposure logged by the server
-    else
-      @logger.log_layer_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.config_delegate)
     end
 
-    Layer.new(res.name, res.json_value, res.rule_id)
+    Layer.new(res.name, res.json_value, res.rule_id, lambda { |layer, parameter_name|
+      @logger.log_layer_exposure(user, layer, parameter_name, res)
+    })
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)

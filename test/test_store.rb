@@ -192,7 +192,7 @@ class TestStore < Minitest::Test
     assert_nil(store.get_id_list('list_3'))
 
     wait_for do
-      store.get_id_list('list_1') == nil
+      store.get_id_list('list_1') == nil and store.get_id_list('list_3').size == 3
     end
     # list_1 is reset to nil because response gave an invalid string
     assert_nil(store.get_id_list('list_1'))

@@ -8,8 +8,9 @@ module Statsig
     attr_accessor :secondary_exposures
     attr_accessor :undelegated_sec_exps
     attr_accessor :config_delegate
+    attr_accessor :explicit_parameters
 
-    def initialize(name, gate_value = false, json_value = {}, rule_id = '', secondary_exposures = [], undelegated_sec_exps = [], config_delegate = '')
+    def initialize(name, gate_value = false, json_value = {}, rule_id = '', secondary_exposures = [], undelegated_sec_exps = [], config_delegate = '', explicit_parameters = [])
       @name = name
       @gate_value = gate_value
       @json_value = json_value
@@ -17,6 +18,7 @@ module Statsig
       @secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
       @undelegated_sec_exps = undelegated_sec_exps.is_a?(Array) ? undelegated_sec_exps : []
       @config_delegate = config_delegate
+      @explicit_parameters = explicit_parameters
     end
   end
 end
