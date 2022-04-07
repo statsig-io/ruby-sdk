@@ -12,9 +12,9 @@ class LayerExposureTest < Minitest::Test
 
   def before_setup
     super
-    stub_request(:post, 'https://api.statsig.com/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
-    stub_request(:post, 'https://api.statsig.com/v1/log_event').to_return(status: 200)
-    stub_request(:post, 'https://api.statsig.com/v1/get_id_lists').to_return(status: 200)
+    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
+    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @user = StatsigUser.new({'userID' => 'random'})
   end
 
@@ -29,7 +29,7 @@ class LayerExposureTest < Minitest::Test
 
     assert_requested(
       :post,
-      'https://api.statsig.com/v1/log_event',
+      'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
           hash_including(
@@ -47,7 +47,7 @@ class LayerExposureTest < Minitest::Test
 
     assert_requested(
       :post,
-      'https://api.statsig.com/v1/log_event',
+      'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
           hash_including(
@@ -65,7 +65,7 @@ class LayerExposureTest < Minitest::Test
 
     assert_requested(
       :post,
-      'https://api.statsig.com/v1/log_event',
+      'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
           hash_including(
@@ -90,7 +90,7 @@ class LayerExposureTest < Minitest::Test
 
     assert_requested(
       :post,
-      'https://api.statsig.com/v1/log_event',
+      'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
           hash_including(
@@ -124,7 +124,7 @@ class LayerExposureTest < Minitest::Test
 
     assert_requested(
       :post,
-      'https://api.statsig.com/v1/log_event',
+      'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
           hash_including(

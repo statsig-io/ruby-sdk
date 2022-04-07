@@ -28,7 +28,7 @@ class TestStore < Minitest::Test
   end
 
   def test_1_store_sync
-    stub_request(:post, 'https://api.statsig.com/v1/download_config_specs').
+    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').
       to_return(status: 200, body: JSON.generate({
         'dynamic_configs' => [
           {'name' => 'config_1'},
@@ -125,7 +125,7 @@ class TestStore < Minitest::Test
         }
       }
     ]
-    stub_request(:post, 'https://api.statsig.com/v1/get_id_lists').
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').
       to_return(status: 200, body: JSON.generate(get_id_lists_responses[0])).times(1).then.
       to_return(status: 200, body: JSON.generate(get_id_lists_responses[1])).times(1).then.
       to_return(status: 200, body: JSON.generate(get_id_lists_responses[2])).times(1).then.
@@ -148,7 +148,7 @@ class TestStore < Minitest::Test
       to_return(status: 200, body: "+0\n", headers: {'Content-Length' => 3}).times(1).then.
       to_return(status: 200, body: "", headers: {'Content-Length' => 0})
 
-    net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
     store = Statsig::SpecStore.new(net, nil, 1, 1)
 
     assert(!store.get_config('config_1').nil?)
@@ -239,13 +239,13 @@ class TestStore < Minitest::Test
       'has_updates' => true,
       'id_lists' => {}
     }
-    stub_request(:post, 'https://api.statsig.com/v1/download_config_specs')
+    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs')
       .to_return(status: 200, body: JSON.generate(config_spec_mock_response))
 
-    stub_request(:post, 'https://api.statsig.com/v1/get_id_lists')
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
       .to_return(status: 200, body: JSON.generate({}))
 
-    net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
     spy = Spy.on(net, :post_helper).and_call_through
     store = Statsig::SpecStore.new(net, nil, 1, 1)
 

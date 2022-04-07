@@ -18,9 +18,9 @@ class TestLogging < Minitest::Test
   end
 
   def test_exposure_event
-    stub_request(:post, "https://api.statsig.com/v1/log_event").to_return(status: 200, body: "hello")
+    stub_request(:post, "https://statsigapi.net/v1/log_event").to_return(status: 200, body: "hello")
 
-    @net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
     spy = Spy.on(@net, :post_logs).and_return
     @statsig_metadata = {
       'sdkType' => 'ruby-server',

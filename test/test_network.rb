@@ -25,9 +25,9 @@ class TestNetwork < Minitest::Test
   end
 
   def test_retries_succeed
-    stub_request(:post, "https://api.statsig.com/v1/log_event").to_return(status: lambda { |req| status_lambda(req) }, body: "hello")
+    stub_request(:post, "https://statsigapi.net/v1/log_event").to_return(status: lambda { |req| status_lambda(req) }, body: "hello")
 
-    @net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
     res, _ = @net.post_helper('log_event', {}, 5, 1)
@@ -38,9 +38,9 @@ class TestNetwork < Minitest::Test
   end
 
   def test_retry_until_out_of_retries
-    stub_request(:post, "https://api.statsig.com/v1/log_event").to_raise(StandardError)
+    stub_request(:post, "https://statsigapi.net/v1/log_event").to_raise(StandardError)
 
-    @net = Statsig::Network.new('secret-abc', 'https://api.statsig.com/v1/', 1)
+    @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
     res, e = @net.post_helper('log_event', {}, 5, 1)
