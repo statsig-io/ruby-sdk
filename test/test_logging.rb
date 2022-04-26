@@ -19,6 +19,8 @@ class TestLogging < Minitest::Test
 
   def test_exposure_event
     stub_request(:post, "https://statsigapi.net/v1/log_event").to_return(status: 200, body: "hello")
+    stub_request(:post, "https://statsigapi.net/v1/download_config_specs").to_return(status: 500)
+    stub_request(:post, "https://statsigapi.net/v1/get_id_lists").to_return(status: 500)
 
     @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
     spy = Spy.on(@net, :post_logs).and_return

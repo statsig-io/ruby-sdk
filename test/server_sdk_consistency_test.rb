@@ -10,7 +10,7 @@ class ServerSDKConsistencyTest < Minitest::Test
   def setup
     super
     begin
-      @secret = ENV['test_api_key'] || File.read("#{__dir__}/../../ops/secrets/prod_keys/statsig-rulesets-eval-consistency-test-secret.key")
+      @secret = ENV['test_api_key']
     rescue
       raise 'THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please proceed to submit a pull request. If you are a Statsig employee, chat with jkw.'
     end

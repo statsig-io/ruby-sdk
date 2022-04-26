@@ -6,6 +6,8 @@ require 'statsig_logger'
 require 'statsig_options'
 require 'statsig_user'
 require 'spec_store'
+require 'dynamic_config'
+require 'layer'
 
 class StatsigDriver
   def initialize(secret_key, options = nil, error_callback = nil)

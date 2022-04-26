@@ -7,7 +7,7 @@ require 'time'
 require 'user_agent_parser'
 require 'user_agent_parser/operating_system'
 
-$fetch_from_server = :fetch_from_server
+$fetch_from_server = 'fetch_from_server'
 $type_dynamic_config = 'dynamic_config'
 
 module Statsig
@@ -48,7 +48,7 @@ module Statsig
         until i >= config['rules'].length do
           rule = config['rules'][i]
           result = eval_rule(user, rule)
-          return $fetch_from_server if result == $fetch_from_server
+          return $fetch_from_server if result.to_s == $fetch_from_server
           exposures = exposures + result.secondary_exposures
           if result.gate_value
 
@@ -81,7 +81,7 @@ module Statsig
       i = 0
       until i >= rule['conditions'].length do
         result = eval_condition(user, rule['conditions'][i])
-        if result == $fetch_from_server
+        if result.to_s == $fetch_from_server
           return $fetch_from_server
         end
 
@@ -102,6 +102,8 @@ module Statsig
       return nil unless (config = @spec_store.get_config(delegate))
 
       delegated_result = self.eval_spec(user, config)
+      return $fetch_from_server if delegated_result.to_s == $fetch_from_server
+
       delegated_result.name = name
       delegated_result.config_delegate = delegate
       delegated_result.secondary_exposures = exposures + delegated_result.secondary_exposures
@@ -128,7 +130,7 @@ module Statsig
         return true
       when 'fail_gate', 'pass_gate'
         other_gate_result = check_gate(user, target)
-        return $fetch_from_server if other_gate_result == $fetch_from_server
+        return $fetch_from_server if other_gate_result.to_s == $fetch_from_server
 
         gate_value = other_gate_result&.gate_value == true
         new_exposure = {
@@ -143,10 +145,10 @@ module Statsig
         }
       when 'ip_based'
         value = get_value_from_user(user, field) || get_value_from_ip(user, field)
-        return $fetch_from_server if value == $fetch_from_server
+        return $fetch_from_server if value.to_s == $fetch_from_server
       when 'ua_based'
         value = get_value_from_user(user, field) || get_value_from_ua(user, field)
-        return $fetch_from_server if value == $fetch_from_server
+        return $fetch_from_server if value.to_s == $fetch_from_server
       when 'user_field'
         value = get_value_from_user(user, field)
       when 'environment_field'
@@ -168,7 +170,7 @@ module Statsig
         return $fetch_from_server
       end
 
-      return $fetch_from_server if value == $fetch_from_server || !operator.is_a?(String)
+      return $fetch_from_server if value.to_s == $fetch_from_server || !operator.is_a?(String)
       operator = operator.downcase
 
       case operator
