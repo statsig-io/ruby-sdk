@@ -47,7 +47,7 @@ module Statsig
     def log_layer_exposure(user, layer, parameter_name, config_evaluation)
       exposures = config_evaluation.undelegated_sec_exps
       allocated_experiment = ''
-      is_explicit = config_evaluation.explicit_parameters.include? parameter_name
+      is_explicit = (config_evaluation.explicit_parameters&.include? parameter_name) || false
       if is_explicit
         allocated_experiment = config_evaluation.config_delegate
         exposures = config_evaluation.secondary_exposures
