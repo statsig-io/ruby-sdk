@@ -13,6 +13,6 @@ Gem::Specification.new do |s|
     s.add_development_dependency "minitest", "~> 5.14"
     s.add_development_dependency "spy", "~> 1.0"
     s.add_runtime_dependency 'user_agent_parser', '~>2.7'
-    s.add_runtime_dependency 'http', '~>4.4'
+    s.add_runtime_dependency 'http', '>= 4.4', '< 6.0'
     s.add_runtime_dependency 'ip3country', '~>0.1'
 end
