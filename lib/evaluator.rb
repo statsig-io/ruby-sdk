@@ -12,8 +12,8 @@ $type_dynamic_config = 'dynamic_config'
 
 module Statsig
   class Evaluator
-    def initialize(network, error_callback)
-      @spec_store = Statsig::SpecStore.new(network, error_callback)
+    def initialize(network, options, error_callback)
+      @spec_store = Statsig::SpecStore.new(network, error_callback, options.rulesets_sync_interval, options.idlists_sync_interval)
       @ua_parser = UserAgentParser::Parser.new
       CountryLookup.initialize
       @initialized = true

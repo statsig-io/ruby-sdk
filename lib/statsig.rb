@@ -30,7 +30,7 @@ module Statsig
     @shared_instance&.get_layer(user, layer_name)
   end
 
-  def self.log_event(user, event_name, value, metadata)
+  def self.log_event(user, event_name, value = nil, metadata = nil)
     ensure_initialized
     @shared_instance&.log_event(user, event_name, value, metadata)
   end
