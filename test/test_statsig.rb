@@ -34,4 +34,9 @@ class TestStatsig < Minitest::Test
       assert(e.message.include?('401'))
     }))
   end
+
+  def teardown
+    super
+    Statsig.shutdown
+  end
 end

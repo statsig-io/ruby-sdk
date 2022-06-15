@@ -24,7 +24,7 @@ class StatsigDriver
     @secret_key = secret_key
     @net = Statsig::Network.new(secret_key, @options.api_url_base)
     @logger = Statsig::StatsigLogger.new(@net)
-    @evaluator = Statsig::Evaluator.new(@net, error_callback)
+    @evaluator = Statsig::Evaluator.new(@net, @options, error_callback)
   end
 
   def check_gate(user, gate_name)

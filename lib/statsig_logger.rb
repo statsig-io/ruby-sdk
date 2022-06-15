@@ -14,7 +14,7 @@ module Statsig
 
     def log_event(event)
       @events.push(event)
-      if @events.length >= 500
+      if @events.length >= 1000
         flush
       end
     end
@@ -83,8 +83,9 @@ module Statsig
       if @events.length == 0
         return
       end
-      flush_events = @events.map { |e| e.serialize }
+      events_clone = @events
       @events = []
+      flush_events = events_clone.map { |e| e.serialize }
 
       @network.post_logs(flush_events)
     end

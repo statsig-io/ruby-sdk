@@ -166,34 +166,26 @@ class TestStore < Minitest::Test
                                      }, Set.new(["a"])), store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    wait_for do
-      Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])) == store.get_id_list('list_1')
-    end
+    sleep 1.1
     assert_equal(Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    wait_for do
-      Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1')
-    end
+    sleep 1.1
     assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    wait_for do
-      Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1')
-    end
+    sleep 1.1
     # list_1 not changed because response was pointing to the older url
     assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    wait_for do
-      store.get_id_list('list_1') == nil and store.get_id_list('list_3').size == 3
-    end
+    sleep 1.1
     # list_1 is reset to nil because response gave an invalid string
     assert_nil(store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
@@ -205,9 +197,7 @@ class TestStore < Minitest::Test
                                        'fileID' => 'file_id_3',
                                      }, Set.new(["0"])), store.get_id_list('list_3'))
 
-    wait_for do
-      Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])) == store.get_id_list('list_1')
-    end
+    sleep 1.1
     assert_equal(Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])),
                  store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))

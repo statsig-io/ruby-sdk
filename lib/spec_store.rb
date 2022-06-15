@@ -5,10 +5,10 @@ require 'id_list'
 
 module Statsig
   class SpecStore
-    def initialize(network, error_callback = nil, config_sync_interval = 10, id_lists_sync_interval = 60)
+    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60)
       @network = network
       @last_sync_time = 0
-      @config_sync_interval = config_sync_interval
+      @rulesets_sync_interval = rulesets_sync_interval
       @id_lists_sync_interval = id_lists_sync_interval
       @store = {
         :gates => {},
@@ -65,7 +65,7 @@ module Statsig
     def sync_config_specs
       Thread.new do
         loop do
-          sleep @config_sync_interval
+          sleep @rulesets_sync_interval
           download_config_specs
         end
       end
@@ -145,7 +145,7 @@ module Statsig
             next
           end
 
-          # skip if server list returns a newer file
+          # reset local list if server list returns a newer file
           if server_list.file_id != local_list.file_id && server_list.creation_time >= local_list.creation_time
             local_list = IDList.new(list)
             local_list.size = 0
