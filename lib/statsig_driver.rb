@@ -127,8 +127,14 @@ class StatsigDriver
   end
 
   def validate_user(user)
-    if user.nil? || !user.instance_of?(StatsigUser) || !user.user_id.is_a?(String)
-      raise 'Must provide a valid StatsigUser with a user_id to use the server SDK. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.'
+    if user.nil? ||
+      !user.instance_of?(StatsigUser) ||
+      (
+        # user_id is nil and custom_ids is not a hash with entries
+        !user.user_id.is_a?(String) &&
+        (!user.custom_ids.is_a?(Hash) || user.custom_ids.size == 0)
+      )
+      raise 'Must provide a valid StatsigUser with a user_id or at least a custom ID. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.'
     end
   end
 
