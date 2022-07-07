@@ -27,6 +27,10 @@ class TestStatsig < Minitest::Test
     Statsig.initialize('secret-123')
     assert_raises{ Statsig.check_gate(StatsigUser.new({'email' => 'jkw@statsig.com'}), 'test_email')}
     assert_raises{ Statsig.get_config(StatsigUser.new({'email' => 'jkw@statsig.com'}), 'fake_config_name')}
+    assert_raises{ Statsig.check_gate(StatsigUser.new({'email' => 'jkw@statsig.com', 'custom_ids' => {}}), 'test_email')}
+    assert_raises{ Statsig.get_config(StatsigUser.new({'email' => 'jkw@statsig.com', 'custom_ids' => {}}), 'fake_config_name')}
+    Statsig.check_gate(StatsigUser.new({'email' => 'jkw@statsig.com', 'custom_ids' => {'cid' => '1'}}), 'test_email')
+    Statsig.get_config(StatsigUser.new({'email' => 'jkw@statsig.com', 'custom_ids' => {'cid' => '1'}}), 'fake_config_name')
   end
 
   def test_error_callback_called
