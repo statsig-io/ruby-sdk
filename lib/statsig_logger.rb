@@ -6,15 +6,16 @@ $layer_exposure_event = 'statsig::layer_exposure'
 
 module Statsig
   class StatsigLogger
-    def initialize(network)
+    def initialize(network, options)
       @network = network
       @events = []
       @background_flush = periodic_flush
+      @options = options
     end
 
     def log_event(event)
       @events.push(event)
-      if @events.length >= 1000
+      if @events.length >= @options.logging_max_buffer_size
         flush
       end
     end
@@ -70,7 +71,7 @@ module Statsig
     def periodic_flush
       Thread.new do
         loop do
-          sleep 60
+          sleep @options.logging_interval_seconds
           flush
         end
       end
