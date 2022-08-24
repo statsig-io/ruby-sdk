@@ -6,18 +6,20 @@ $retry_codes = [408, 500, 502, 503, 504, 522, 524, 599]
 
 module Statsig
   class Network
-    def initialize(server_secret, api, backoff_mult = 10)
+    def initialize(server_secret, api, local_mode, backoff_mult = 10)
       super()
       unless api.end_with?('/')
         api += '/'
       end
       @server_secret = server_secret
       @api = api
+      @local_mode = local_mode
       @backoff_multiplier = backoff_mult
       @session_id = SecureRandom.uuid
     end
 
     def post_helper(endpoint, body, retries = 0, backoff = 1)
+      return nil unless !@local_mode
       http = HTTP.headers(
         {"STATSIG-API-KEY" => @server_secret,
         "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_s,

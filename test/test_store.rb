@@ -148,7 +148,7 @@ class TestStore < Minitest::Test
       to_return(status: 200, body: "+0\n", headers: {'Content-Length' => 3}).times(1).then.
       to_return(status: 200, body: "", headers: {'Content-Length' => 0})
 
-    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
+    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
     store = Statsig::SpecStore.new(net, nil, 1, 1)
 
     assert(!store.get_config('config_1').nil?)
@@ -235,7 +235,7 @@ class TestStore < Minitest::Test
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
       .to_return(status: 200, body: JSON.generate({}))
 
-    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
+    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
     spy = Spy.on(net, :post_helper).and_call_through
     store = Statsig::SpecStore.new(net, nil, 1, 1)
 
