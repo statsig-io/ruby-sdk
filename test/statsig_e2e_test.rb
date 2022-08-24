@@ -32,7 +32,10 @@ class StatsigE2ETest < Minitest::Test
   end
 
   def test_feature_gate
-    driver = StatsigDriver.new('secret-testcase')
+    driver = StatsigDriver.new('secret-testcase', nil, (-> (e) {
+      # error callback should not be called on successful initialize
+      assert(false)
+    }))
     assert(driver.check_gate(@statsig_user, 'always_on_gate') == true)
     assert(driver.check_gate(@statsig_user, 'on_for_statsig_email') == true)
     assert(driver.check_gate(@statsig_user, 'email_not_null') == true)

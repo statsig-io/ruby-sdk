@@ -16,8 +16,8 @@ module Statsig
         :layers => {},
         :id_lists => {},
       }
-      e = download_config_specs
-      error_callback.call(e) unless error_callback.nil?
+      @error_callback = error_callback
+      download_config_specs
       get_id_lists
 
       @config_sync_thread = sync_config_specs
@@ -81,10 +81,16 @@ module Statsig
     end
 
     def download_config_specs
+      e = get_config_specs_from_network
+      @error_callback.call(e) unless e.nil? or @error_callback.nil?
+    end
+
+    def get_config_specs_from_network
       begin
         response, e = @network.post_helper('download_config_specs', JSON.generate({'sinceTime' => @last_sync_time}))
         if e.nil?
           process(JSON.parse(response.body))
+          nil
         else
           e
         end

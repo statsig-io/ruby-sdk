@@ -22,20 +22,16 @@ jobs:
         run: |
           git clone https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/kong.git
 
-      - name: Setup Ruby Server
+      - name: Setup Ruby and Run Tests
         run: |
           cd kong/bridges/ruby-server
           bundle install
           gem install specific_install
           gem specific_install -l https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/private-ruby-sdk.git $GITHUB_HEAD_REF
-        env:
-          repo_pat: ${{ secrets.KONG_REPO_PAT }}
-
-      - name: Run Tests
-        run: |
-          cd kong
+          cd ../..
           npm install
-          FORCE_COLOR=true npm run kong -- test ruby
+          FORCE_COLOR=true npm run kong -- test ruby -v
         env:
           test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
+          repo_pat: ${{ secrets.KONG_REPO_PAT }}
