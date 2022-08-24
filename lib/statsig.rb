@@ -42,6 +42,16 @@ module Statsig
     @shared_instance = nil
   end
 
+  def self.override_gate(gate_name, gate_value)
+    ensure_initialized
+    @evaluator.override_gate(gate_name, gate_value)
+  end
+
+  def self.override_config(config_name, config_value)
+    ensure_initialized
+    @evaluator.override_config(config_name, config_value)
+  end
+
   def self.get_statsig_metadata
     {
       'sdkType' => 'ruby-server',

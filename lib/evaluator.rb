@@ -17,14 +17,29 @@ module Statsig
       @ua_parser = UserAgentParser::Parser.new
       CountryLookup.initialize
       @initialized = true
+
+      @gate_overrides = {}
+      @config_overrides = {}
     end
 
     def check_gate(user, gate_name)
+      return Statsig::ConfigResult.new(
+        gate_name,
+        @gate_overrides[gate_name],
+        @gate_overrides[gate_name],
+        'override',
+        []) unless !@gate_overrides.has_key?(gate_name)
       return nil unless @initialized && @spec_store.has_gate?(gate_name)
       eval_spec(user, @spec_store.get_gate(gate_name))
     end
 
     def get_config(user, config_name)
+      return Statsig::ConfigResult.new(
+        config_name,
+        false,
+        @config_overrides[config_name],
+        'override',
+        []) unless !@config_overrides.has_key?(config_name)
       return nil unless @initialized && @spec_store.has_config?(config_name)
       eval_spec(user, @spec_store.get_config(config_name))
     end
@@ -36,6 +51,14 @@ module Statsig
 
     def shutdown
       @spec_store.shutdown
+    end
+
+    def override_gate(gate, value)
+      @gate_overrides[gate] = value
+    end
+
+    def override_config(config, value)
+      @gate_overrides[config] = value
     end
 
     private

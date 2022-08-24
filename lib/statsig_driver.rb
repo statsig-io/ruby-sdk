@@ -22,7 +22,7 @@ class StatsigDriver
     @options = options || StatsigOptions.new
     @shutdown = false
     @secret_key = secret_key
-    @net = Statsig::Network.new(secret_key, @options.api_url_base)
+    @net = Statsig::Network.new(secret_key, @options.api_url_base, @options.local_mode)
     @logger = Statsig::StatsigLogger.new(@net, @options)
     @evaluator = Statsig::Evaluator.new(@net, @options, error_callback)
   end
@@ -96,6 +96,14 @@ class StatsigDriver
     @shutdown = true
     @logger.flush(true)
     @evaluator.shutdown
+  end
+
+  def override_gate(gate_name, gate_value)
+    @evaluator.override_gate(gate_name, gate_value)
+  end
+
+  def override_config(config_name, config_value)
+    @evaluator.override_config(config_name, config_value)
   end
 
   private
