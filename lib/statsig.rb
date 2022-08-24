@@ -44,12 +44,12 @@ module Statsig
 
   def self.override_gate(gate_name, gate_value)
     ensure_initialized
-    @evaluator.override_gate(gate_name, gate_value)
+    @shared_instance&.override_gate(gate_name, gate_value)
   end
 
   def self.override_config(config_name, config_value)
     ensure_initialized
-    @evaluator.override_config(config_name, config_value)
+    @shared_instance&.override_config(config_name, config_value)
   end
 
   def self.get_statsig_metadata
