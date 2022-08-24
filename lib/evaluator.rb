@@ -58,7 +58,7 @@ module Statsig
     end
 
     def override_config(config, value)
-      @gate_overrides[config] = value
+      @config_overrides[config] = value
     end
 
     private

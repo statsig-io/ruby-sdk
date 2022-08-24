@@ -1,3 +1,5 @@
+require 'minitest'
+require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
 
@@ -37,6 +39,7 @@ class StatsigE2ETest < Minitest::Test
 
     Statsig.override_config("override_me", { "hello" => "its me" })
     val = Statsig.get_config(StatsigUser.new({'userID' => 'some_user_id'}), "override_me")
+    puts(val.value)
     assert(val.value == { "hello" => "its me" })
 
     Statsig.override_config("override_me", { "hello" => "its no longer me" })
