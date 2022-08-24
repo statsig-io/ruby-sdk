@@ -87,11 +87,8 @@ class StatsigE2ETest < Minitest::Test
               'ruleID' => 'default'
             )),
         ],
-        'statsigMetadata' => 
-          hash_including(
-            'sdkVersion' => '1.10.0',
-            'sdkType' => 'ruby-server'
-          )
+        'statsigMetadata' =>
+          Statsig.get_statsig_metadata
       ),
       :times => 1)
   end
