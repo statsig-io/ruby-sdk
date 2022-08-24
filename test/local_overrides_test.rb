@@ -3,7 +3,7 @@ require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
 
-class StatsigE2ETest < Minitest::Test
+class StatsigLocalOverridesTest < Minitest::Test
 
   def setup
     super
