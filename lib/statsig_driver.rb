@@ -106,6 +106,13 @@ class StatsigDriver
     @evaluator.override_config(config_name, config_value)
   end
 
+  # @param [StatsigUser] user
+  # @return [Hash]
+  def get_client_initialize_response(user)
+    normalize_user(user)
+    @evaluator.get_client_initialize_response(user)
+  end
+
   private
 
   def verify_inputs(user, config_name, variable_name)
@@ -140,7 +147,7 @@ class StatsigDriver
       (
         # user_id is nil and custom_ids is not a hash with entries
         !user.user_id.is_a?(String) &&
-        (!user.custom_ids.is_a?(Hash) || user.custom_ids.size == 0)
+          (!user.custom_ids.is_a?(Hash) || user.custom_ids.size == 0)
       )
       raise 'Must provide a valid StatsigUser with a user_id or at least a custom ID. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.'
     end

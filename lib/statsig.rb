@@ -52,6 +52,11 @@ module Statsig
     @shared_instance&.override_config(config_name, config_value)
   end
 
+  def self.get_client_initialize_response(user)
+    ensure_initialized
+    @shared_instance&.get_client_initialize_response(user)
+  end
+
   def self.get_statsig_metadata
     {
       'sdkType' => 'ruby-server',

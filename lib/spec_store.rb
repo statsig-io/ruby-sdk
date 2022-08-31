@@ -10,12 +10,15 @@ module Statsig
       @last_sync_time = 0
       @rulesets_sync_interval = rulesets_sync_interval
       @id_lists_sync_interval = id_lists_sync_interval
-      @store = {
+      @specs = {
         :gates => {},
         :configs => {},
         :layers => {},
         :id_lists => {},
+        :experiment_to_layer => {}
       }
+      @time = 0
+
       @error_callback = error_callback
       download_config_specs
       get_id_lists
@@ -24,40 +27,48 @@ module Statsig
       @id_lists_sync_thread = sync_id_lists
     end
 
+    def is_ready_for_checks
+      @time != 0
+    end
+
     def shutdown
       @config_sync_thread&.exit
       @id_lists_sync_thread&.exit
     end
 
     def has_gate?(gate_name)
-      @store[:gates].key?(gate_name)
+      @specs[:gates].key?(gate_name)
     end
 
     def has_config?(config_name)
-      @store[:configs].key?(config_name)
+      @specs[:configs].key?(config_name)
     end
 
     def has_layer?(layer_name)
-      @store[:layers].key?(layer_name)
+      @specs[:layers].key?(layer_name)
     end
 
     def get_gate(gate_name)
       return nil unless has_gate?(gate_name)
-      @store[:gates][gate_name]
+      @specs[:gates][gate_name]
     end
 
     def get_config(config_name)
       return nil unless has_config?(config_name)
-      @store[:configs][config_name]
+      @specs[:configs][config_name]
     end
 
     def get_layer(layer_name)
       return nil unless has_layer?(layer_name)
-      @store[:layers][layer_name]
+      @specs[:layers][layer_name]
     end
 
     def get_id_list(list_name)
-      @store[:id_lists][list_name]
+      @specs[:id_lists][list_name]
+    end
+
+    def get_raw_specs
+      @specs
     end
 
     private
@@ -87,7 +98,7 @@ module Statsig
 
     def get_config_specs_from_network
       begin
-        response, e = @network.post_helper('download_config_specs', JSON.generate({'sinceTime' => @last_sync_time}))
+        response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_sync_time }))
         if e.nil?
           process(JSON.parse(response.body))
           nil
@@ -108,29 +119,39 @@ module Statsig
       return unless specs_json['has_updates'] == true &&
         !specs_json['feature_gates'].nil? &&
         !specs_json['dynamic_configs'].nil? &&
-        !specs_json['layer_configs'].nil? 
+        !specs_json['layer_configs'].nil?
 
       new_gates = {}
       new_configs = {}
       new_layers = {}
+      new_exp_to_layer = {}
 
-      specs_json['feature_gates'].map{|gate|  new_gates[gate['name']] = gate }
-      specs_json['dynamic_configs'].map{|config|  new_configs[config['name']] = config }
-      specs_json['layer_configs'].map{|layer|  new_layers[layer['name']] = layer }
-      @store[:gates] = new_gates
-      @store[:configs] = new_configs
-      @store[:layers] = new_layers
+      specs_json['feature_gates'].each { |gate| new_gates[gate['name']] = gate }
+      specs_json['dynamic_configs'].each { |config| new_configs[config['name']] = config }
+      specs_json['layer_configs'].each { |layer| new_layers[layer['name']] = layer }
+
+      if specs_json['layers'].is_a?(Hash)
+        specs_json['layers'].each { |layer_name, experiments|
+          experiments.each { |experiment_name| new_exp_to_layer[experiment_name] = layer_name }
+        }
+      end
+
+      @specs[:gates] = new_gates
+      @specs[:configs] = new_configs
+      @specs[:layers] = new_layers
+      @specs[:experiment_to_layer] = new_exp_to_layer
+      @time = specs_json['time'].is_a?(Numeric) ? specs_json['time'] : 0
     end
 
     def get_id_lists
-      response, e = @network.post_helper('get_id_lists', JSON.generate({'statsigMetadata' => Statsig.get_statsig_metadata}))
+      response, e = @network.post_helper('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
       if !e.nil? || response.nil?
         return
       end
 
       begin
         server_id_lists = JSON.parse(response)
-        local_id_lists = @store[:id_lists]
+        local_id_lists = @specs[:id_lists]
         if !server_id_lists.is_a?(Hash) || !local_id_lists.is_a?(Hash)
           return
         end
@@ -184,7 +205,7 @@ module Statsig
 
     def download_single_id_list(list)
       nil unless list.is_a? IDList
-      http = HTTP.headers({'Range' => "bytes=#{list&.size || 0}-"}).accept(:json)
+      http = HTTP.headers({ 'Range' => "bytes=#{list&.size || 0}-" }).accept(:json)
       begin
         res = http.get(list.url)
         nil unless res.status.success?
@@ -192,7 +213,7 @@ module Statsig
         nil if content_length.nil? || content_length <= 0
         content = res.body.to_s
         unless content.is_a?(String) && (content[0] == '-' || content[0] == '+')
-          @store[:id_lists].delete(list.name)
+          @specs[:id_lists].delete(list.name)
           return
         end
         ids_clone = list.ids # clone the list, operate on the new list, and swap out the old list, so the operation is thread-safe

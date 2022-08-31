@@ -9,8 +9,9 @@ module Statsig
     attr_accessor :undelegated_sec_exps
     attr_accessor :config_delegate
     attr_accessor :explicit_parameters
+    attr_accessor :is_experiment_group
 
-    def initialize(name, gate_value = false, json_value = {}, rule_id = '', secondary_exposures = [], undelegated_sec_exps = [], config_delegate = '', explicit_parameters = [])
+    def initialize(name, gate_value = false, json_value = {}, rule_id = '', secondary_exposures = [], undelegated_sec_exps = [], config_delegate = '', explicit_parameters = [], is_experiment_group: false)
       @name = name
       @gate_value = gate_value
       @json_value = json_value
@@ -19,6 +20,7 @@ module Statsig
       @undelegated_sec_exps = undelegated_sec_exps.is_a?(Array) ? undelegated_sec_exps : []
       @config_delegate = config_delegate
       @explicit_parameters = explicit_parameters
+      @is_experiment_group = is_experiment_group
     end
   end
 end

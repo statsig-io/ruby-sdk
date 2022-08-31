@@ -2,6 +2,7 @@ require 'config_result'
 require 'country_lookup'
 require 'digest'
 require 'evaluation_helpers'
+require 'client_initialize_helpers'
 require 'spec_store'
 require 'time'
 require 'user_agent_parser'
@@ -12,6 +13,8 @@ $type_dynamic_config = 'dynamic_config'
 
 module Statsig
   class Evaluator
+    attr_accessor :spec_store
+
     def initialize(network, options, error_callback)
       @spec_store = Statsig::SpecStore.new(network, error_callback, options.rulesets_sync_interval, options.idlists_sync_interval)
       @ua_parser = UserAgentParser::Parser.new
@@ -49,6 +52,34 @@ module Statsig
       eval_spec(user, @spec_store.get_layer(layer_name))
     end
 
+    def get_client_initialize_response(user)
+      if @spec_store.is_ready_for_checks == false
+        return nil
+      end
+
+      formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user)
+
+      {
+        "feature_gates" => formatter.get_responses(:gates),
+        "dynamic_configs" => formatter.get_responses(:configs),
+        "layer_configs" => formatter.get_responses(:layers),
+        "sdkParams" => {},
+        "has_updates" => true,
+        "generator" => "statsig-ruby-sdk",
+        "time" => 0,
+      }
+    end
+
+    def clean_exposures(exposures)
+      seen = {}
+      exposures.reject do |exposure|
+        key = "#{exposure["gate"]}|#{exposure["gateValue"]}|#{exposure["ruleID"]}}"
+        should_reject = seen[key]
+        seen[key] = true
+        should_reject == true
+      end
+    end
+
     def shutdown
       @spec_store.shutdown
     end
@@ -61,7 +92,6 @@ module Statsig
       @config_overrides[config] = value
     end
 
-    private
 
     def eval_spec(user, config)
       default_rule_id = 'default'
@@ -85,7 +115,8 @@ module Statsig
               pass,
               pass ? result.json_value : config['defaultValue'],
               result.rule_id,
-              exposures
+              exposures,
+              is_experiment_group: true
             )
           end
 
@@ -97,6 +128,8 @@ module Statsig
 
       Statsig::ConfigResult.new(config['name'], false, config['defaultValue'], default_rule_id, exposures)
     end
+
+    private
 
     def eval_rule(user, rule)
       exposures = []
