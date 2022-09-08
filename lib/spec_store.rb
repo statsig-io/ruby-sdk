@@ -71,6 +71,15 @@ module Statsig
       @specs
     end
 
+    def maybe_restart_background_threads
+      if @config_sync_thread.nil? or !@config_sync_thread.alive?
+        @config_sync_thread = sync_config_specs
+      end
+      if @id_lists_sync_thread.nil? or !@id_lists_sync_thread.alive?
+        @id_lists_sync_thread = sync_id_lists
+      end
+    end
+
     private
 
     def sync_config_specs

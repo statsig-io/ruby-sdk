@@ -10,6 +10,7 @@ class StatsigLocalOverridesTest < Minitest::Test
     options = StatsigOptions.new()
     options.local_mode = true
     Statsig.initialize("secret-local", options)
+    Statsig.initialize("secret-blah")
   end
 
   def teardown

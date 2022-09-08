@@ -113,6 +113,11 @@ class StatsigDriver
     @evaluator.get_client_initialize_response(user)
   end
 
+  def maybe_restart_background_threads
+    @evaluator.maybe_restart_background_threads
+    @logger.maybe_restart_background_threads
+  end
+
   private
 
   def verify_inputs(user, config_name, variable_name)

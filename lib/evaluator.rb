@@ -25,6 +25,10 @@ module Statsig
       @config_overrides = {}
     end
 
+    def maybe_restart_background_threads
+      @spec_store.maybe_restart_background_threads
+    end
+
     def check_gate(user, gate_name)
       return Statsig::ConfigResult.new(
         gate_name,

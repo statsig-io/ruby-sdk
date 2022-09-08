@@ -4,6 +4,7 @@ module Statsig
   def self.initialize(secret_key, options = nil, error_callback = nil)
     unless @shared_instance.nil?
       puts 'Statsig already initialized.'
+      @shared_instance.maybe_restart_background_threads
       return @shared_instance
     end
 
