@@ -60,7 +60,7 @@ module ClientInitializeHelpers
       end
 
       if entity_type == 'layer'
-        populate_layer_fields(safe_eval_result, result)
+        populate_layer_fields(config_spec, safe_eval_result, result)
       end
 
       hashed_name = hash_name(config_name)
@@ -102,8 +102,10 @@ module ClientInitializeHelpers
       result["value"] = layer["defaultValue"].merge(result["value"])
     end
 
-    def populate_layer_fields(eval_result, result)
+    def populate_layer_fields(config_spec, eval_result, result)
       delegate = eval_result[:config_delegate]
+      result["explicit_parameters"] = config_spec["explicitParameters"] || []
+
       if delegate.nil? == false && delegate.empty? == false
         delegate_spec = @specs[:configs][delegate]
         delegate_result = @evaluator.eval_spec(@user, delegate_spec)

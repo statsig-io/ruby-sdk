@@ -91,7 +91,11 @@ class ClientInitializeResponseTest < Minitest::Test
       'Content-Type' => 'application/json; charset=UTF-8'
     }
     http = HTTP.headers(headers).accept(:json)
-    response = http.post(api + '/initialize', body: JSON.generate({ user: $user_hash, statsigMetadata: $statsig_metadata }))
+    server_user_hash = $user_hash.clone
+    if environment.nil? == false
+      server_user_hash['statsigEnvironment'] = environment
+    end
+    response = http.post(api + '/initialize', body: JSON.generate({ user: server_user_hash, statsigMetadata: $statsig_metadata }))
 
     options = StatsigOptions.new(environment, api)
     Statsig.initialize(@secret_key, options)
@@ -115,6 +119,7 @@ class ClientInitializeResponseTest < Minitest::Test
       value["secondary_exposures"].each do |entry|
         entry["gate"] = "__REMOVED_FOR_TEST__"
       end
+      value
     end
 
     server_data.keys.each do |key|
@@ -122,7 +127,7 @@ class ClientInitializeResponseTest < Minitest::Test
         server_data[key].each do |sub_key, _|
           server_value = rm_secondary_exposure_hashes(server_data[key][sub_key])
           sdk_value = rm_secondary_exposure_hashes(sdk_data[key][sub_key])
-          assert_equal(sdk_value, server_value, "Failed comparing #{key} -> #{sub_key}")
+          assert_equal(server_value, sdk_value, "Failed comparing #{key} -> #{sub_key}")
         end
       elsif !%w[generator time].include?(key)
         assert_equal(sdk_data[key], server_data[key], "Failed comparing #{key}")

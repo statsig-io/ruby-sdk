@@ -120,7 +120,7 @@ module Statsig
               pass ? result.json_value : config['defaultValue'],
               result.rule_id,
               exposures,
-              is_experiment_group: true
+              is_experiment_group: result.is_experiment_group,
             )
           end
 
@@ -154,7 +154,13 @@ module Statsig
         i += 1
       end
 
-      Statsig::ConfigResult.new('', pass, rule['returnValue'], rule['id'], exposures)
+      Statsig::ConfigResult.new(
+        '',
+        pass,
+        rule['returnValue'],
+        rule['id'],
+        exposures,
+        is_experiment_group: rule["isExperimentGroup"] == true)
     end
 
     def eval_delegate(name, user, rule, exposures)
