@@ -2,6 +2,7 @@ require 'minitest'
 require 'minitest/autorun'
 require 'spy'
 require 'statsig'
+require 'layer'
 require 'webmock/minitest'
 
 class TestLogging < Minitest::Test
@@ -10,7 +11,7 @@ class TestLogging < Minitest::Test
   end
 
   def test_event_does_not_have_private_attributes
-    user = StatsigUser.new({'userID' => '123', 'privateAttributes' => {'secret_value' => 'shhhhh'}})
+    user = StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret_value' => 'shhhhh' } })
     event = StatsigEvent.new('test')
     event.user = user
     assert(event.user['private_attributes'] == nil)
@@ -28,54 +29,107 @@ class TestLogging < Minitest::Test
       'sdkType' => 'ruby-server',
       'sdkVersion' => Gem::Specification::load('statsig.gemspec')&.version,
     }
+
+    unrecognized_eval = Statsig::EvaluationDetails.unrecognized(1, 2)
+    override_eval = Statsig::EvaluationDetails.local_override(3, 4)
+    network_eval = Statsig::EvaluationDetails.network(5, 6)
+
     @logger = Statsig::StatsigLogger.new(@net, StatsigOptions.new)
     @logger.log_gate_exposure(
-      StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' }}),
+      StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' } }),
       'test_gate',
       true,
       'gate_rule_id',
       [{
-        "gate" => 'another_gate',
-        "gateValue" => "true",
-        "ruleID" => 'another_rule_id'
-      }]
+         "gate" => 'another_gate',
+         "gateValue" => "true",
+         "ruleID" => 'another_rule_id'
+       }],
+      unrecognized_eval
     )
 
     @logger.log_config_exposure(
-      StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' }}),
+      StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' } }),
       'test_config',
       'config_rule_id',
       [{
-        "gate" => 'another_gate_2',
-        "gateValue" => "false",
-        "ruleID" => 'another_rule_id_2'
-      }]
+         "gate" => 'another_gate_2',
+         "gateValue" => "false",
+         "ruleID" => 'another_rule_id_2'
+       }],
+      override_eval
     )
+
+    @logger.log_layer_exposure(
+      StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' } }),
+      Layer.new('test_layer', { 'foo' => 1 }, 'layer_rule_id'),
+      'test_parameter',
+      Statsig::ConfigResult.new('test_layer', evaluation_details: network_eval)
+    )
+
     @logger.flush
 
-    assert(spy.calls[0].args[0].is_a?(Array))
-    assert(spy.calls[0].args[0].size == 2)
+    events = spy.calls[0].args[0]
+    assert_instance_of(Array, events)
+    assert_equal(3, events.size)
 
-    gate_exposure = spy.calls[0].args[0][0]
+    gate_exposure = events[0]
     assert(gate_exposure['eventName'] == 'statsig::gate_exposure')
-    assert(gate_exposure['metadata'] == {"gate"=>"test_gate", "gateValue"=>"true", "ruleID"=>"gate_rule_id"})
+    assert_equal(
+      {
+        "gate" => "test_gate",
+        "gateValue" => "true",
+        "ruleID" => "gate_rule_id",
+        "reason" => "Unrecognized",
+        "configSyncTime" => unrecognized_eval.config_sync_time,
+        'initTime' => unrecognized_eval.init_time,
+        'serverTime' => unrecognized_eval.server_time,
+      }, gate_exposure['metadata'])
     assert(gate_exposure['user']['userID'] == '123')
     assert(gate_exposure['user']['privateAttributes'] == nil)
-    assert(gate_exposure['secondaryExposures'] == [{
-      "gate" => 'another_gate',
-      "gateValue" => "true",
-      "ruleID" => 'another_rule_id'
-    }])
+    assert_equal(
+      [{
+         "gate" => 'another_gate',
+         "gateValue" => "true",
+         "ruleID" => 'another_rule_id'
+       }], gate_exposure['secondaryExposures'])
 
-    config_exposure = spy.calls[0].args[0][1]
+    config_exposure = events[1]
     assert(config_exposure['eventName'] == 'statsig::config_exposure')
-    assert(config_exposure['metadata'] == {"config"=>"test_config", "ruleID"=>"config_rule_id"})
+    assert_equal(
+      {
+        "config" => "test_config", "ruleID" => "config_rule_id",
+        "reason" => "LocalOverride",
+        "configSyncTime" => override_eval.config_sync_time,
+        'initTime' => override_eval.init_time,
+        'serverTime' => override_eval.server_time
+      }, config_exposure['metadata'])
     assert(config_exposure['user']['userID'] == '123')
     assert(config_exposure['user']['privateAttributes'] == nil)
-    assert(config_exposure['secondaryExposures'] == [{
-      "gate" => 'another_gate_2',
-      "gateValue" => "false",
-      "ruleID" => 'another_rule_id_2'
-    }])
+    assert_equal(
+      [{
+         "gate" => 'another_gate_2',
+         "gateValue" => "false",
+         "ruleID" => 'another_rule_id_2'
+       }],
+      config_exposure['secondaryExposures'])
+
+    layer_exposure = events[2]
+    assert_equal('statsig::layer_exposure', layer_exposure['eventName'])
+    assert_equal(
+      {
+        "config" => "test_layer",
+        "ruleID" => "layer_rule_id",
+        "allocatedExperiment" => "",
+        "parameterName" => "test_parameter",
+        "isExplicitParameter" => "false",
+        "reason" => "Network",
+        "configSyncTime" => network_eval.config_sync_time,
+        'initTime' => network_eval.init_time,
+        'serverTime' => network_eval.server_time,
+      }, layer_exposure['metadata'])
+    assert(layer_exposure['user']['userID'] == '123')
+    assert(layer_exposure['user']['privateAttributes'] == nil)
+
   end
 end

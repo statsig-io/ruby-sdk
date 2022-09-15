@@ -20,28 +20,32 @@ module Statsig
       end
     end
 
-    def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures)
+    def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures, eval_details)
       event = StatsigEvent.new($gate_exposure_event)
       event.user = user
       event.metadata = {
         'gate' => gate_name,
         'gateValue' => value.to_s,
-        'ruleID' => rule_id
+        'ruleID' => rule_id,
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
+
+      safe_add_eval_details(eval_details, event)
       log_event(event)
     end
 
-    def log_config_exposure(user, config_name, rule_id, secondary_exposures)
+    def log_config_exposure(user, config_name, rule_id, secondary_exposures, eval_details)
       event = StatsigEvent.new($config_exposure_event)
       event.user = user
       event.metadata = {
         'config' => config_name,
-        'ruleID' => rule_id
+        'ruleID' => rule_id,
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
+
+      safe_add_eval_details(eval_details, event)
       log_event(event)
     end
 
@@ -61,10 +65,12 @@ module Statsig
         'ruleID' => layer.rule_id,
         'allocatedExperiment' => allocated_experiment,
         'parameterName' => parameter_name,
-        'isExplicitParameter' => String(is_explicit)
+        'isExplicitParameter' => String(is_explicit),
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
+
+      safe_add_eval_details(config_evaluation.evaluation_details, event)
       log_event(event)
     end
 
@@ -95,6 +101,19 @@ module Statsig
       if @background_flush.nil? or !@background_flush.alive?
         @background_flush = periodic_flush
       end
+    end
+
+    private
+
+    def safe_add_eval_details(eval_details, event)
+      if eval_details.nil?
+        return
+      end
+
+      event.metadata['reason'] = eval_details.reason
+      event.metadata['configSyncTime'] = eval_details.config_sync_time
+      event.metadata['initTime'] = eval_details.init_time
+      event.metadata['serverTime'] = eval_details.server_time
     end
   end
 end

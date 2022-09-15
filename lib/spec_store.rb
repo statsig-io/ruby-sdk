@@ -5,9 +5,13 @@ require 'id_list'
 
 module Statsig
   class SpecStore
+    attr_accessor :last_config_sync_time
+    attr_accessor :initial_config_sync_time
+
     def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60)
       @network = network
-      @last_sync_time = 0
+      @last_config_sync_time = 0
+      @initial_config_sync_time = 0
       @rulesets_sync_interval = rulesets_sync_interval
       @id_lists_sync_interval = id_lists_sync_interval
       @specs = {
@@ -17,10 +21,10 @@ module Statsig
         :id_lists => {},
         :experiment_to_layer => {}
       }
-      @time = 0
 
       @error_callback = error_callback
       download_config_specs
+      @initial_config_sync_time = @last_config_sync_time == 0 ? -1 : @last_config_sync_time
       get_id_lists
 
       @config_sync_thread = sync_config_specs
@@ -28,7 +32,7 @@ module Statsig
     end
 
     def is_ready_for_checks
-      @time != 0
+      @last_config_sync_time != 0
     end
 
     def shutdown
@@ -107,7 +111,7 @@ module Statsig
 
     def get_config_specs_from_network
       begin
-        response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_sync_time }))
+        response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_config_sync_time }))
         if e.nil?
           process(JSON.parse(response.body))
           nil
@@ -124,7 +128,8 @@ module Statsig
         return
       end
 
-      @last_sync_time = specs_json['time'] || @last_sync_time
+      @last_config_sync_time = specs_json['time'] || @last_config_sync_time
+
       return unless specs_json['has_updates'] == true &&
         !specs_json['feature_gates'].nil? &&
         !specs_json['dynamic_configs'].nil? &&
@@ -149,7 +154,6 @@ module Statsig
       @specs[:configs] = new_configs
       @specs[:layers] = new_layers
       @specs[:experiment_to_layer] = new_exp_to_layer
-      @time = specs_json['time'].is_a?(Numeric) ? specs_json['time'] : 0
     end
 
     def get_id_lists

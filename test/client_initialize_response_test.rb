@@ -123,6 +123,10 @@ class ClientInitializeResponseTest < Minitest::Test
     end
 
     server_data.keys.each do |key|
+      if server_data[key].is_a? Hash
+        assert_equal(server_data[key].keys.sort, sdk_data[key].keys.sort)
+      end
+
       if server_data[key].is_a?(Hash)
         server_data[key].each do |sub_key, _|
           server_value = rm_secondary_exposure_hashes(server_data[key][sub_key])

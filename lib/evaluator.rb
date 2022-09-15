@@ -6,6 +6,7 @@ require 'client_initialize_helpers'
 require 'spec_store'
 require 'time'
 require 'user_agent_parser'
+require 'evaluation_details'
 require 'user_agent_parser/operating_system'
 
 $fetch_from_server = 'fetch_from_server'
@@ -30,29 +31,58 @@ module Statsig
     end
 
     def check_gate(user, gate_name)
-      return Statsig::ConfigResult.new(
-        gate_name,
-        @gate_overrides[gate_name],
-        @gate_overrides[gate_name],
-        'override',
-        []) unless !@gate_overrides.has_key?(gate_name)
-      return nil unless @initialized && @spec_store.has_gate?(gate_name)
+      if @gate_overrides.has_key?(gate_name)
+        return Statsig::ConfigResult.new(
+          gate_name,
+          @gate_overrides[gate_name],
+          @gate_overrides[gate_name],
+          'override',
+          [],
+          evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+      end
+
+      if !@initialized
+        return Statsig::ConfigResult.new(gate_name, evaluation_details: EvaluationDetails.uninitialized)
+      end
+
+      if !@spec_store.has_gate?(gate_name)
+        return Statsig::ConfigResult.new(gate_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+      end
+
       eval_spec(user, @spec_store.get_gate(gate_name))
     end
 
     def get_config(user, config_name)
-      return Statsig::ConfigResult.new(
-        config_name,
-        false,
-        @config_overrides[config_name],
-        'override',
-        []) unless !@config_overrides.has_key?(config_name)
-      return nil unless @initialized && @spec_store.has_config?(config_name)
+      if @config_overrides.has_key?(config_name)
+        return Statsig::ConfigResult.new(
+          config_name,
+          false,
+          @config_overrides[config_name],
+          'override',
+          [],
+          evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+      end
+
+      if !@initialized
+        return Statsig::ConfigResult.new(config_name, evaluation_details: EvaluationDetails.uninitialized)
+      end
+
+      if !@spec_store.has_config?(config_name)
+        return Statsig::ConfigResult.new(config_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+      end
+
       eval_spec(user, @spec_store.get_config(config_name))
     end
 
     def get_layer(user, layer_name)
-      return nil unless @initialized && @spec_store.has_layer?(layer_name)
+      if !@initialized
+        return Statsig::ConfigResult.new(layer_name, evaluation_details: EvaluationDetails.uninitialized)
+      end
+
+      if !@spec_store.has_layer?(layer_name)
+        return Statsig::ConfigResult.new(layer_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+      end
+
       eval_spec(user, @spec_store.get_layer(layer_name))
     end
 
@@ -96,7 +126,6 @@ module Statsig
       @config_overrides[config] = value
     end
 
-
     def eval_spec(user, config)
       default_rule_id = 'default'
       exposures = []
@@ -120,6 +149,7 @@ module Statsig
               pass ? result.json_value : config['defaultValue'],
               result.rule_id,
               exposures,
+              evaluation_details: EvaluationDetails.network(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time),
               is_experiment_group: result.is_experiment_group,
             )
           end
@@ -130,7 +160,13 @@ module Statsig
         default_rule_id = 'disabled'
       end
 
-      Statsig::ConfigResult.new(config['name'], false, config['defaultValue'], default_rule_id, exposures)
+      Statsig::ConfigResult.new(
+        config['name'],
+        false,
+        config['defaultValue'],
+        default_rule_id,
+        exposures,
+        evaluation_details: EvaluationDetails.network(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
     end
 
     private
@@ -160,6 +196,7 @@ module Statsig
         rule['returnValue'],
         rule['id'],
         exposures,
+        evaluation_details: EvaluationDetails.network(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time),
         is_experiment_group: rule["isExperimentGroup"] == true)
     end
 

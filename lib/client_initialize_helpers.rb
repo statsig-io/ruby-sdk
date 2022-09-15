@@ -38,15 +38,20 @@ module ClientInitializeHelpers
         :undelegated_sec_exps => eval_result.undelegated_sec_exps
       }
 
+      category = config_spec['type']
       entity_type = config_spec['entity']
 
       result = {}
 
-      case entity_type
+      case category
 
       when 'feature_gate'
+        if entity_type == 'segment' || entity_type == 'holdout'
+          return nil
+        end
+
         result['value'] = safe_eval_result[:gate_value]
-      when 'experiment', 'layer', 'dynamic_config'
+      when 'dynamic_config'
         id_type = config_spec['idType']
         result['value'] = safe_eval_result[:json_value]
         result["group"] = safe_eval_result[:rule_id]

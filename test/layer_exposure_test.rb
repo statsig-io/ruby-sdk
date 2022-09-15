@@ -15,7 +15,7 @@ class LayerExposureTest < Minitest::Test
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
-    @user = StatsigUser.new({'userID' => 'random'})
+    @user = StatsigUser.new({ 'userID' => 'random' })
   end
 
   def setup
@@ -34,7 +34,7 @@ class LayerExposureTest < Minitest::Test
         'events' => [
           hash_including(
             'eventName' => 'statsig::layer_exposure',
-            ),
+          ),
         ]),
       :times => 0)
   end
@@ -52,7 +52,7 @@ class LayerExposureTest < Minitest::Test
         'events' => [
           hash_including(
             'eventName' => 'statsig::layer_exposure',
-            ),
+          ),
         ]),
       :times => 0)
   end
@@ -69,14 +69,15 @@ class LayerExposureTest < Minitest::Test
       :body => hash_including(
         'events' => [
           hash_including(
-            'metadata' => {
+            'metadata' => hash_including(
               'config' => 'unallocated_layer',
               'ruleID' => 'default',
               'allocatedExperiment' => '',
               'parameterName' => 'an_int',
-              'isExplicitParameter' => 'false'
-            },
+              'isExplicitParameter' => 'false',
+              'reason' => 'Network',
             ),
+          ),
         ]),
       :times => 1)
   end
@@ -94,22 +95,24 @@ class LayerExposureTest < Minitest::Test
       :body => hash_including(
         'events' => [
           hash_including(
-            'metadata' => {
+            'metadata' => hash_including(
               'config' => 'explicit_vs_implicit_parameter_layer',
               'ruleID' => 'alwaysPass',
               'allocatedExperiment' => 'experiment',
               'parameterName' => 'an_int',
-              'isExplicitParameter' => 'true'
-            },
+              'isExplicitParameter' => 'true',
+              'reason' => 'Network'
+            ),
           ),
           hash_including(
-            'metadata' => {
+            'metadata' => hash_including(
               'config' => 'explicit_vs_implicit_parameter_layer',
               'ruleID' => 'alwaysPass',
               'allocatedExperiment' => '',
               'parameterName' => 'a_string',
-              'isExplicitParameter' => 'false'
-            },
+              'isExplicitParameter' => 'false',
+              'reason' => 'Network'
+            ),
           ),
         ]),
       :times => 1)
@@ -117,7 +120,7 @@ class LayerExposureTest < Minitest::Test
 
   def test_logs_user_and_event_name
     driver = StatsigDriver.new('secret-testcase')
-    user = StatsigUser.new({'userID' => 'dloomb', 'email' => 'dan@loomb.com'})
+    user = StatsigUser.new({ 'userID' => 'dloomb', 'email' => 'dan@loomb.com' })
     layer = driver.get_layer(user, 'unallocated_layer')
     layer.get("an_int", 0)
     driver.shutdown
@@ -133,7 +136,7 @@ class LayerExposureTest < Minitest::Test
               'userID' => 'dloomb',
               'email' => 'dan@loomb.com',
             },
-            ),
+          ),
         ]),
       :times => 1)
   end
