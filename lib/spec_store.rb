@@ -8,7 +8,7 @@ module Statsig
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
 
-    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60)
+    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60, bootstrap_values = nil)
       @network = network
       @last_config_sync_time = 0
       @initial_config_sync_time = 0
@@ -21,6 +21,14 @@ module Statsig
         :id_lists => {},
         :experiment_to_layer => {}
       }
+
+      unless bootstrap_values.nil?
+        begin
+          process(JSON.parse(bootstrap_values))
+        rescue
+          puts 'the provided bootstrapValues is not a valid JSON string'
+        end
+      end
 
       @error_callback = error_callback
       download_config_specs
