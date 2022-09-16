@@ -7,6 +7,7 @@ class StatsigOptions
   attr_accessor :logging_max_buffer_size
   attr_accessor :local_mode
   attr_accessor :bootstrap_values
+  attr_accessor :rules_updated_callback
 
   def initialize(
     environment=nil,
@@ -25,5 +26,6 @@ class StatsigOptions
     @logging_max_buffer_size = [logging_max_buffer_size, 1000].min
     @local_mode = local_mode
     @bootstrap_values = bootstrap_values
+    @rules_updated_callback = rules_updated_callback
   end
 end

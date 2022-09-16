@@ -8,12 +8,13 @@ module Statsig
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
 
-    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60, bootstrap_values = nil)
+    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60, bootstrap_values = nil, rules_updated_callback = nil)
       @network = network
       @last_config_sync_time = 0
       @initial_config_sync_time = 0
       @rulesets_sync_interval = rulesets_sync_interval
       @id_lists_sync_interval = id_lists_sync_interval
+      @rules_updated_callback = rules_updated_callback
       @specs = {
         :gates => {},
         :configs => {},
