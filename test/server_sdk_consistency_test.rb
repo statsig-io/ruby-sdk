@@ -31,7 +31,7 @@ class ServerSDKConsistencyTest < Minitest::Test
 
     http = HTTP.headers(
       {"STATSIG-API-KEY" => @secret,
-       "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_s,
+       "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_i.to_s,
        "Content-Type" => "application/json; charset=UTF-8"
       }).accept(:json)
     response = http.post(apiOverride + '/rulesets_e2e_test', body: JSON.generate({}))

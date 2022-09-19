@@ -22,7 +22,7 @@ module Statsig
       return nil unless !@local_mode
       http = HTTP.headers(
         {"STATSIG-API-KEY" => @server_secret,
-        "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_s,
+        "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_i.to_s,
          "STATSIG-SERVER-SESSION-ID" => @session_id,
         "Content-Type" => "application/json; charset=UTF-8"
         }).accept(:json)

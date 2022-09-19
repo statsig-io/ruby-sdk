@@ -257,7 +257,7 @@ module Statsig
       when 'environment_field'
         value = get_value_from_environment(user, field)
       when 'current_time'
-        value = Time.now.to_f # epoch time in seconds
+        value = Time.now.to_i # epoch time in seconds
       when 'user_bucket'
         begin
           salt = additional_values['salt']

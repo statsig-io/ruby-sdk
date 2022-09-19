@@ -7,7 +7,7 @@ class StatsigEvent
 
   def initialize(event_name)
     @event_name = event_name
-    @time = Time.now.to_f * 1000
+    @time = (Time.now.to_f * 1000).to_i
   end
 
   def user=(value)

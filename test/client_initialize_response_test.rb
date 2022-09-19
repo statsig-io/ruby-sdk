@@ -87,7 +87,7 @@ class ClientInitializeResponseTest < Minitest::Test
   def get_initialize_responses(api, environment = nil, force_fetch_from_server: false)
     headers = {
       'STATSIG-API-KEY' => @client_key,
-      'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_s,
+      'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
       'Content-Type' => 'application/json; charset=UTF-8'
     }
     http = HTTP.headers(headers).accept(:json)
