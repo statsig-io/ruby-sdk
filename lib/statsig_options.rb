@@ -17,7 +17,8 @@ class StatsigOptions
     logging_interval_seconds: 60,
     logging_max_buffer_size: 1000,
     local_mode: false,
-    bootstrap_values: nil)
+    bootstrap_values: nil,
+    rules_updated_callback: nil)
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
     @rulesets_sync_interval = rulesets_sync_interval

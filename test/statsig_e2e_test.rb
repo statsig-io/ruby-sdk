@@ -14,9 +14,11 @@ require 'layer'
 # - failing (default) returns {number: 4, string: "default", boolean: true}
 # sample_experiment is a 50/50 experiment with a single parameter, experiment_param
 # - ("test" or "control" depending on the user's group)
+$expected_sync_time = 1631638014811
+
 class StatsigE2ETest < Minitest::Test
-  json_file = File.read("#{__dir__}/download_config_specs.json")
-  @@mock_response = JSON.parse(json_file).to_json
+  @@json_file = File.read("#{__dir__}/download_config_specs.json")
+  @@mock_response = JSON.parse(@@json_file).to_json
 
   def before_setup
     super
@@ -184,6 +186,25 @@ class StatsigE2ETest < Minitest::Test
           ),
         ]),
       :times => 1)
+  end
+
+  def test_bootstrap_option
+    # in local mode (without network), bootstrap_values makes evaluation work
+    options = StatsigOptions.new(bootstrap_values: @@json_file, local_mode: true)
+    driver = StatsigDriver.new('secret-testcase', options)
+    assert_equal(driver.check_gate(StatsigUser.new({'userID' => 'jkw'}), 'always_on_gate'), true)
+    
+    # with network, rules_updated_callback gets called when there are updated rulesets coming back from server
+    callback_validated = false
+    options = StatsigOptions.new(rulesets_sync_interval: 0.1, rules_updated_callback: ->(rules, time) {
+      if rules == @@mock_response && time == 1631638014811
+        callback_validated = true
+      end
+    })
+    driver = StatsigDriver.new('secret-testcase', options)
+    assert_equal(driver.check_gate(StatsigUser.new({'userID' => 'jkw'}), 'always_on_gate'), true)
+    assert_equal(true, callback_validated)
+    driver.shutdown
   end
 
   def teardown
