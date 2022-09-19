@@ -6,6 +6,8 @@ class StatsigOptions
   attr_accessor :logging_interval_seconds
   attr_accessor :logging_max_buffer_size
   attr_accessor :local_mode
+  attr_accessor :bootstrap_values
+  attr_accessor :rules_updated_callback
 
   def initialize(
     environment=nil,
@@ -14,7 +16,9 @@ class StatsigOptions
     idlists_sync_interval: 60,
     logging_interval_seconds: 60,
     logging_max_buffer_size: 1000,
-    local_mode: false)
+    local_mode: false,
+    bootstrap_values: nil,
+    rules_updated_callback: nil)
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
     @rulesets_sync_interval = rulesets_sync_interval
@@ -22,5 +26,7 @@ class StatsigOptions
     @logging_interval_seconds = logging_interval_seconds
     @logging_max_buffer_size = [logging_max_buffer_size, 1000].min
     @local_mode = local_mode
+    @bootstrap_values = bootstrap_values
+    @rules_updated_callback = rules_updated_callback
   end
 end

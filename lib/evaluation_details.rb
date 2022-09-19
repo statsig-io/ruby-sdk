@@ -5,6 +5,7 @@ module Statsig
     LOCAL_OVERRIDE = "LocalOverride"
     UNRECOGNIZED = "Unrecognized"
     UNINITIALIZED = "Uninitialized"
+    BOOTSTRAP = "Bootstrap"
   end
 
   class EvaluationDetails

@@ -1,19 +1,23 @@
 require 'net/http'
 require 'uri'
 
+require 'evaluation_details'
 require 'id_list'
 
 module Statsig
   class SpecStore
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
+    attr_accessor :init_reason
 
-    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60)
+    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60, bootstrap_values = nil, rules_updated_callback = nil)
+      @init_reason = EvaluationReason::UNINITIALIZED
       @network = network
       @last_config_sync_time = 0
       @initial_config_sync_time = 0
       @rulesets_sync_interval = rulesets_sync_interval
       @id_lists_sync_interval = id_lists_sync_interval
+      @rules_updated_callback = rules_updated_callback
       @specs = {
         :gates => {},
         :configs => {},
@@ -21,6 +25,16 @@ module Statsig
         :id_lists => {},
         :experiment_to_layer => {}
       }
+
+      unless bootstrap_values.nil?
+        begin
+          if process(JSON.parse(bootstrap_values))
+            @init_reason = EvaluationReason::BOOTSTRAP
+          end
+        rescue
+          puts 'the provided bootstrapValues is not a valid JSON string'
+        end
+      end
 
       @error_callback = error_callback
       download_config_specs
@@ -113,7 +127,10 @@ module Statsig
       begin
         response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_config_sync_time }))
         if e.nil?
-          process(JSON.parse(response.body))
+          if process(JSON.parse(response.body))
+            @init_reason = EvaluationReason::NETWORK
+            @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
+          end
           nil
         else
           e
@@ -125,12 +142,12 @@ module Statsig
 
     def process(specs_json)
       if specs_json.nil?
-        return
+        return false
       end
 
       @last_config_sync_time = specs_json['time'] || @last_config_sync_time
 
-      return unless specs_json['has_updates'] == true &&
+      return false unless specs_json['has_updates'] == true &&
         !specs_json['feature_gates'].nil? &&
         !specs_json['dynamic_configs'].nil? &&
         !specs_json['layer_configs'].nil?
@@ -154,6 +171,7 @@ module Statsig
       @specs[:configs] = new_configs
       @specs[:layers] = new_layers
       @specs[:experiment_to_layer] = new_exp_to_layer
+      true
     end
 
     def get_id_lists

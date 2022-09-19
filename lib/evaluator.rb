@@ -17,10 +17,9 @@ module Statsig
     attr_accessor :spec_store
 
     def initialize(network, options, error_callback)
-      @spec_store = Statsig::SpecStore.new(network, error_callback, options.rulesets_sync_interval, options.idlists_sync_interval)
+      @spec_store = Statsig::SpecStore.new(network, error_callback, options.rulesets_sync_interval, options.idlists_sync_interval, options.bootstrap_values, options.rules_updated_callback)
       @ua_parser = UserAgentParser::Parser.new
       CountryLookup.initialize
-      @initialized = true
 
       @gate_overrides = {}
       @config_overrides = {}
@@ -41,11 +40,11 @@ module Statsig
           evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
 
-      if !@initialized
+      if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
         return Statsig::ConfigResult.new(gate_name, evaluation_details: EvaluationDetails.uninitialized)
       end
 
-      if !@spec_store.has_gate?(gate_name)
+      unless @spec_store.has_gate?(gate_name)
         return Statsig::ConfigResult.new(gate_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
 
@@ -63,11 +62,11 @@ module Statsig
           evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
 
-      if !@initialized
+      if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
         return Statsig::ConfigResult.new(config_name, evaluation_details: EvaluationDetails.uninitialized)
       end
 
-      if !@spec_store.has_config?(config_name)
+      unless @spec_store.has_config?(config_name)
         return Statsig::ConfigResult.new(config_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
 
@@ -75,11 +74,11 @@ module Statsig
     end
 
     def get_layer(user, layer_name)
-      if !@initialized
+      if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
         return Statsig::ConfigResult.new(layer_name, evaluation_details: EvaluationDetails.uninitialized)
       end
 
-      if !@spec_store.has_layer?(layer_name)
+      unless @spec_store.has_layer?(layer_name)
         return Statsig::ConfigResult.new(layer_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
 
@@ -149,7 +148,7 @@ module Statsig
               pass ? result.json_value : config['defaultValue'],
               result.rule_id,
               exposures,
-              evaluation_details: EvaluationDetails.network(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time),
+              evaluation_details: EvaluationDetails.new(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time, @spec_store.init_reason),
               is_experiment_group: result.is_experiment_group,
             )
           end
@@ -166,7 +165,7 @@ module Statsig
         config['defaultValue'],
         default_rule_id,
         exposures,
-        evaluation_details: EvaluationDetails.network(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+        evaluation_details: EvaluationDetails.new(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time, @spec_store.init_reason))
     end
 
     private
@@ -196,7 +195,7 @@ module Statsig
         rule['returnValue'],
         rule['id'],
         exposures,
-        evaluation_details: EvaluationDetails.network(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time),
+        evaluation_details: EvaluationDetails.new(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time, @spec_store.init_reason),
         is_experiment_group: rule["isExperimentGroup"] == true)
     end
 

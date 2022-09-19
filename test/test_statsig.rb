@@ -4,6 +4,8 @@ require 'statsig'
 require 'webmock/minitest'
 
 class TestStatsig < Minitest::Test
+  @@json_file = File.read("#{__dir__}/download_config_specs.json")
+
   def before_setup
     super
     Statsig.shutdown
@@ -37,6 +39,18 @@ class TestStatsig < Minitest::Test
     Statsig.initialize('secret-fake', nil, (-> (e) {
       assert(e.message.include?('401'))
     }))
+  end
+
+  def test_bootstrap_option
+    # without bootstrap gate should evaluate to false
+    Statsig.initialize('secret-123')
+    assert_equal(Statsig.check_gate(StatsigUser.new({'userID' => 'jkw'}), 'always_on_gate'), false)
+    Statsig.shutdown
+
+    # without bootstrap gate should evaluate to true due to bootstrapped values
+    options = StatsigOptions.new(bootstrap_values: @@json_file)
+    Statsig.initialize('secret-123', options)
+    assert_equal(Statsig.check_gate(StatsigUser.new({'userID' => 'jkw'}), 'always_on_gate'), true)
   end
 
   def teardown
