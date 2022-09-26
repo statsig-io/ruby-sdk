@@ -92,6 +92,15 @@ module Statsig
 
       formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user)
 
+      evaluated_keys = {}
+      if user.user_id.nil? == false
+        evaluated_keys['userID'] = user.user_id
+      end
+
+      if user.custom_ids.nil? == false
+        evaluated_keys['customIDs'] = user.custom_ids
+      end
+
       {
         "feature_gates" => formatter.get_responses(:gates),
         "dynamic_configs" => formatter.get_responses(:configs),
@@ -99,6 +108,7 @@ module Statsig
         "sdkParams" => {},
         "has_updates" => true,
         "generator" => "statsig-ruby-sdk",
+        "evaluated_keys" => evaluated_keys,
         "time" => 0,
       }
     end
