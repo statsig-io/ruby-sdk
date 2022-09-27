@@ -66,7 +66,7 @@ module Statsig
     def post_logs(events)
       begin
         json_body = JSON.generate({'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata})
-        post_helper('log_event', json_body, retries: 5)
+        post_helper('log_event', json_body, 5)
       rescue
       end
     end

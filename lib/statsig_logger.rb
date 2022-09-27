@@ -94,7 +94,13 @@ module Statsig
       @events = []
       flush_events = events_clone.map { |e| e.serialize }
 
-      @network.post_logs(flush_events)
+      if closing
+        @network.post_logs(flush_events)
+      else
+        Thread.new do
+          @network.post_logs(flush_events)
+        end
+      end
     end
 
     def maybe_restart_background_threads
