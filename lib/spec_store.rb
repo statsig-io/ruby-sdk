@@ -1,23 +1,27 @@
 require 'net/http'
 require 'uri'
-
 require 'evaluation_details'
 require 'id_list'
 
 module Statsig
   class SpecStore
+
+    CONFIG_SPECS_KEY = "statsig.cache"
+
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
 
-    def initialize(network, error_callback = nil, rulesets_sync_interval = 10, id_lists_sync_interval = 60, bootstrap_values = nil, rules_updated_callback = nil)
+    def initialize(network, options, error_callback)
       @init_reason = EvaluationReason::UNINITIALIZED
       @network = network
+      @options = options
+      @error_callback = error_callback
       @last_config_sync_time = 0
       @initial_config_sync_time = 0
-      @rulesets_sync_interval = rulesets_sync_interval
-      @id_lists_sync_interval = id_lists_sync_interval
-      @rules_updated_callback = rules_updated_callback
+      @rulesets_sync_interval = options.rulesets_sync_interval
+      @id_lists_sync_interval = options.idlists_sync_interval
+      @rules_updated_callback = options.rules_updated_callback
       @specs = {
         :gates => {},
         :configs => {},
@@ -26,9 +30,11 @@ module Statsig
         :experiment_to_layer => {}
       }
 
-      unless bootstrap_values.nil?
+      unless @options.bootstrap_values.nil?
         begin
-          if process(JSON.parse(bootstrap_values))
+          if !@options.data_store.nil?
+            puts 'data_store gets priority over bootstrap_values. bootstrap_values will be ignored'
+          elsif process(options.bootstrap_values)
             @init_reason = EvaluationReason::BOOTSTRAP
           end
         rescue
@@ -36,7 +42,11 @@ module Statsig
         end
       end
 
-      @error_callback = error_callback
+      unless @options.data_store.nil?
+        @options.data_store.init
+        load_from_storage_adapter
+      end
+
       download_config_specs
       @initial_config_sync_time = @last_config_sync_time == 0 ? -1 : @last_config_sync_time
       get_id_lists
@@ -52,6 +62,9 @@ module Statsig
     def shutdown
       @config_sync_thread&.exit
       @id_lists_sync_thread&.exit
+      unless @options.data_store.nil?
+        @options.data_store.shutdown
+      end
     end
 
     def has_gate?(gate_name)
@@ -100,10 +113,26 @@ module Statsig
 
     private
 
+    def load_from_storage_adapter
+      cached_values = @options.data_store.get(CONFIG_SPECS_KEY)
+      if cached_values.nil?
+        return
+      end
+      process(cached_values, true)
+      @init_reason = EvaluationReason::DATA_ADAPTER
+    end
+
+    def save_to_storage_adapter(specs_string)
+      if @options.data_store.nil?
+        return
+      end
+      @options.data_store.set(CONFIG_SPECS_KEY, specs_string)
+    end
+
     def sync_config_specs
       Thread.new do
         loop do
-          sleep @rulesets_sync_interval
+          sleep @options.rulesets_sync_interval
           download_config_specs
         end
       end
@@ -127,7 +156,7 @@ module Statsig
       begin
         response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_config_sync_time }))
         if e.nil?
-          if process(JSON.parse(response.body))
+          if process(response.body)
             @init_reason = EvaluationReason::NETWORK
             @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
           end
@@ -140,13 +169,16 @@ module Statsig
       end
     end
 
-    def process(specs_json)
-      if specs_json.nil?
+    def process(specs_string, from_adapter = false)
+      if specs_string.nil?
+        return false
+      end
+      specs_json = JSON.parse(specs_string)
+      if specs_string.nil?
         return false
       end
 
       @last_config_sync_time = specs_json['time'] || @last_config_sync_time
-
       return false unless specs_json['has_updates'] == true &&
         !specs_json['feature_gates'].nil? &&
         !specs_json['dynamic_configs'].nil? &&
@@ -171,6 +203,10 @@ module Statsig
       @specs[:configs] = new_configs
       @specs[:layers] = new_layers
       @specs[:experiment_to_layer] = new_exp_to_layer
+
+      unless from_adapter
+        save_to_storage_adapter(specs_string)
+      end
       true
     end
 
