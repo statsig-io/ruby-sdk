@@ -6,6 +6,7 @@ module Statsig
     UNRECOGNIZED = "Unrecognized"
     UNINITIALIZED = "Uninitialized"
     BOOTSTRAP = "Bootstrap"
+    DATA_ADAPTER = "DataAdapter"
   end
 
   class EvaluationDetails

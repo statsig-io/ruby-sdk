@@ -15,12 +15,12 @@ class TestStore < Minitest::Test
   end
 
   def wait_for
-    timeout = 3
+    timeout = 5
     start = Time.now
     x = yield
     until x
       if Time.now - start > timeout
-        raise "Wait to long here. Timeout #{timeout} sec"
+        raise "Waited too long here. Timeout #{timeout} sec"
       end
       sleep(0.1)
       x = yield
@@ -149,7 +149,7 @@ class TestStore < Minitest::Test
       to_return(status: 200, body: "", headers: {'Content-Length' => 0})
 
     net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
-    store = Statsig::SpecStore.new(net, nil, 1, 1)
+    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 1, idlists_sync_interval: 1), nil)
 
     assert(!store.get_config('config_1').nil?)
     assert(!store.get_config('config_2').nil?)
@@ -237,12 +237,12 @@ class TestStore < Minitest::Test
 
     net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
     spy = Spy.on(net, :post_helper).and_call_through
-    store = Statsig::SpecStore.new(net, nil, 1, 1)
+    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 1), nil)
 
     wait_for do
       spy.calls.size == 6
     end
-    assert(6, spy.calls.size) # download_config_specs were called 3 times + get_id_lists 3 time
+    assert(6, spy.calls.size) # download_config_specs was called 3 times + get_id_lists 3 times
     store.shutdown
 
     wait_for do
