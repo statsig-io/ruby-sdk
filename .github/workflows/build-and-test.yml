@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: bundle install
       - name: Run tests
-        run: rake test
+        run: rake test --verbose
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
