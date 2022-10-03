@@ -289,7 +289,7 @@ module Statsig
           line = li.strip
           next if line.length <= 1
           op = line[0]
-          id = line[1..]
+          id = line[1..line.length]
           if op == '+'
             ids_clone.add(id)
           elsif op == '-'
