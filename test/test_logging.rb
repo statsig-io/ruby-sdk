@@ -37,10 +37,7 @@ class TestLogging < Minitest::Test
     logger = Statsig::StatsigLogger.new(net, StatsigOptions.new)
     logger.log_event(StatsigEvent.new("my_event"))
 
-    spy = Spy.on(Thread, :new)
     logger.flush
-    spy.calls.first.block.call()
-    Spy.off(Thread, :new)
 
     assert_equal([500, 202], codes)
     assert_equal(0, logger.instance_variable_get("@events").length)
@@ -117,10 +114,7 @@ class TestLogging < Minitest::Test
       Statsig::ConfigResult.new('test_layer', evaluation_details: network_eval)
     )
 
-    thread_spy = Spy.on(Thread, :new)
     logger.flush
-    thread_spy.calls.first.block.call()
-    Spy.off(Thread, :new)
 
     events = spy.calls[0].args[0]
     assert_instance_of(Array, events)
