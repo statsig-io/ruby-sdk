@@ -13,9 +13,11 @@ module Statsig
       @options = options
 
       @logging_pool = Concurrent::ThreadPoolExecutor.new(
-        min_threads: 3,
-        max_threads: 10,
-        max_queue: 100, # max jobs pending before we start dropping
+        min_threads: [2, Concurrent.processor_count].min,
+        max_threads: [2, Concurrent.processor_count].max,
+        # max jobs pending before we start dropping
+        max_queue:   [2, Concurrent.processor_count].max * 5,
+        fallback_policy: :discard,
       )
     end
 
