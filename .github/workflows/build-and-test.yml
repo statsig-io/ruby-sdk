@@ -17,7 +17,11 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.5.9
-      - name: Install dependencies
+      - name: Install dependencies 1
+        run: gem install public_suffix -v 4.0.7
+      - name: Install dependencies 2
+        run: gem install http -v 5.0.4
+      - name: Install dependencies 3
         run: bundle install
       - name: Run tests
         run: rake test
