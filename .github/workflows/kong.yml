@@ -25,9 +25,9 @@ jobs:
       - name: Setup Ruby and Run Tests
         run: |
           cd kong/bridges/ruby-server
-          bundle install
           gem install specific_install
           gem specific_install -l https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/private-ruby-sdk.git $GITHUB_HEAD_REF
+          bundle install
           cd ../..
           npm install
           FORCE_COLOR=true npm run kong -- test ruby -v
