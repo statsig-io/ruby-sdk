@@ -26,6 +26,7 @@ jobs:
         run: |
           cd kong/bridges/ruby-server
           gem install specific_install
+          gem install public_suffix -v 4.0.7
           gem specific_install -l https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/private-ruby-sdk.git $GITHUB_HEAD_REF
           bundle install
           cd ../..
