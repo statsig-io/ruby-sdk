@@ -16,7 +16,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 2.5.9
+          ruby-version: 3.0
       - name: Install dependencies 1
         run: gem install public_suffix -v 4.0.7
       - name: Install dependencies 2
