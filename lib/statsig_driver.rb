@@ -94,7 +94,7 @@ class StatsigDriver
 
   def shutdown
     @shutdown = true
-    @logger.flush(true)
+    @logger.shutdown
     @evaluator.shutdown
   end
 

@@ -17,4 +17,5 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency 'user_agent_parser', '~>2.7'
     s.add_runtime_dependency 'http', '>= 4.4', '< 6.0'
     s.add_runtime_dependency 'ip3country', '0.1.1'
+    s.add_runtime_dependency 'concurrent-ruby', '~>1.1'
 end
