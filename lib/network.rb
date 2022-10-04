@@ -19,7 +19,9 @@ module Statsig
     end
 
     def post_helper(endpoint, body, retries = 0, backoff = 1)
-      return nil unless !@local_mode
+      if @local_mode
+        return nil, nil
+      end
       http = HTTP.headers(
         {"STATSIG-API-KEY" => @server_secret,
         "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_i.to_s,
