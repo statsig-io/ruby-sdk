@@ -19,6 +19,8 @@ module Statsig
         max_queue:   [2, Concurrent.processor_count].max * 5,
         fallback_policy: :discard,
       )
+
+      @background_flush = periodic_flush
     end
 
     def log_event(event)
@@ -92,6 +94,7 @@ module Statsig
     end
 
     def shutdown
+      @background_flush&.exit
       @logging_pool.shutdown
       @logging_pool.wait_for_termination(timeout = 3)
       flush
