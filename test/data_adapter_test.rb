@@ -2,8 +2,8 @@ require 'minitest'
 require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
-require 'dummy_data_adapter'
 require 'statsig_user'
+require_relative './dummy_data_adapter'
 
 class StatsigDataAdapterTest < Minitest::Test
   @@json_file = File.read("#{__dir__}/download_config_specs.json")

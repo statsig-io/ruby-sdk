@@ -156,7 +156,7 @@ module Statsig
       begin
         response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_config_sync_time }))
         if e.nil?
-          if !response.nil? and process(JSON.parse(response.body))
+          if !response.nil? and process(response.body)
             @init_reason = EvaluationReason::NETWORK
             @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
           end
@@ -173,10 +173,9 @@ module Statsig
       if specs_string.nil?
         return false
       end
+
       specs_json = JSON.parse(specs_string)
-      if specs_string.nil?
-        return false
-      end
+      return false unless specs_json.is_a? Hash
 
       @last_config_sync_time = specs_json['time'] || @last_config_sync_time
       return false unless specs_json['has_updates'] == true &&
