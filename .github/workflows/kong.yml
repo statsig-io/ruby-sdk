@@ -25,8 +25,6 @@ jobs:
       - name: Setup Ruby and Run Tests
         run: |
           cd kong/bridges/ruby-server
-          gem install public_suffix -v 4.0.7
-          gem install http -v 5.0.4
           bundle install
           cd ../..
           npm install
