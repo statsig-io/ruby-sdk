@@ -25,7 +25,7 @@ jobs:
       - name: Setup Ruby and Run Tests
         run: |
           cd kong/bridges/ruby-server
-          bundle install
+          sdk_branch="${GITHUB_HEAD_REF:-main}"; bundle install
           cd ../..
           npm install
           FORCE_COLOR=true npm run kong -- test ruby -v
