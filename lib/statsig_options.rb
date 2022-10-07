@@ -8,6 +8,7 @@ class StatsigOptions
   attr_accessor :local_mode
   attr_accessor :bootstrap_values
   attr_accessor :rules_updated_callback
+  attr_accessor :data_store
 
   def initialize(
     environment=nil,
@@ -18,7 +19,8 @@ class StatsigOptions
     logging_max_buffer_size: 1000,
     local_mode: false,
     bootstrap_values: nil,
-    rules_updated_callback: nil)
+    rules_updated_callback: nil,
+    data_store: nil)
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
     @rulesets_sync_interval = rulesets_sync_interval
@@ -28,5 +30,6 @@ class StatsigOptions
     @local_mode = local_mode
     @bootstrap_values = bootstrap_values
     @rules_updated_callback = rules_updated_callback
+    @data_store = data_store
   end
 end

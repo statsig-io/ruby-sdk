@@ -17,7 +17,7 @@ module Statsig
     attr_accessor :spec_store
 
     def initialize(network, options, error_callback)
-      @spec_store = Statsig::SpecStore.new(network, error_callback, options.rulesets_sync_interval, options.idlists_sync_interval, options.bootstrap_values, options.rules_updated_callback)
+      @spec_store = Statsig::SpecStore.new(network, options, error_callback)
       @ua_parser = UserAgentParser::Parser.new
       CountryLookup.initialize
 

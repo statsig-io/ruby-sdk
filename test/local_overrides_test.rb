@@ -9,8 +9,12 @@ class StatsigLocalOverridesTest < Minitest::Test
     super
     options = StatsigOptions.new()
     options.local_mode = true
-    Statsig.initialize("secret-local", options)
-    Statsig.initialize("secret-blah")
+    Statsig.initialize("secret-local", options, method(:error_callback))
+  end
+
+  def error_callback(e)
+    puts e
+    assert(false) # force fail if this is called
   end
 
   def teardown
