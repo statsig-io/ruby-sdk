@@ -131,7 +131,11 @@ class ClientInitializeResponseTest < Minitest::Test
         server_data[key].each do |sub_key, _|
           server_value = rm_secondary_exposure_hashes(server_data[key][sub_key])
           sdk_value = rm_secondary_exposure_hashes(sdk_data[key][sub_key])
-          assert_equal(server_value, sdk_value, "Failed comparing #{key} -> #{sub_key}")
+          if server_value.nil?
+            assert_nil(sdk_value, "Failed comparing #{key} -> #{sub_key}")
+          else
+            assert_equal(server_value, sdk_value, "Failed comparing #{key} -> #{sub_key}")
+          end
         end
       elsif !%w[generator time].include?(key)
         assert_equal(sdk_data[key], server_data[key], "Failed comparing #{key}")

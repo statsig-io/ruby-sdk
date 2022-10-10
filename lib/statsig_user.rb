@@ -19,6 +19,16 @@ class StatsigUser
   end
 
   def initialize(user_hash)
+    @user_id = nil
+    @email = nil
+    @ip = nil
+    @user_agent = nil
+    @country = nil
+    @locale = nil
+    @app_version = nil
+    @custom = nil
+    @private_attributes = nil
+    @custom_ids = nil
     @statsig_environment = Hash.new
     if user_hash.is_a?(Hash)
       @user_id = user_hash['userID'] || user_hash['user_id']

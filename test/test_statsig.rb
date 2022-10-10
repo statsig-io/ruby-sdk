@@ -56,7 +56,7 @@ class TestStatsig < Minitest::Test
   def test_version
     spec = Gem::Specification::load("#{__dir__}/../statsig.gemspec")
     metadata = Statsig.get_statsig_metadata
-    assert_equal(spec.version, metadata["sdkVersion"])
+    assert_equal(spec.version.to_s, metadata["sdkVersion"])
   end
 
   def teardown
