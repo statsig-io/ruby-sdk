@@ -53,6 +53,12 @@ class TestStatsig < Minitest::Test
     assert_equal(Statsig.check_gate(StatsigUser.new({'userID' => 'jkw'}), 'always_on_gate'), true)
   end
 
+  def test_version
+    spec = Gem::Specification::load("#{__dir__}/../statsig.gemspec")
+    metadata = Statsig.get_statsig_metadata
+    assert_equal(spec.version, metadata["sdkVersion"])
+  end
+
   def teardown
     super
     Statsig.shutdown
