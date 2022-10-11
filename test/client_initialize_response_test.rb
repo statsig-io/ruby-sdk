@@ -111,16 +111,6 @@ class ClientInitializeResponseTest < Minitest::Test
   end
 
   def validate_consistency(server_data, sdk_data)
-    def rm_secondary_exposure_hashes(value)
-      if !value.is_a?(Hash) || value["secondary_exposures"].nil?
-        return
-      end
-
-      value["secondary_exposures"].each do |entry|
-        entry["gate"] = "__REMOVED_FOR_TEST__"
-      end
-      value
-    end
 
     server_data.keys.each do |key|
       if server_data[key].is_a? Hash
@@ -141,6 +131,17 @@ class ClientInitializeResponseTest < Minitest::Test
         assert_equal(sdk_data[key], server_data[key], "Failed comparing #{key}")
       end
     end
+  end
+
+  def rm_secondary_exposure_hashes(value)
+    if !value.is_a?(Hash) || value["secondary_exposures"].nil?
+      return
+    end
+
+    value["secondary_exposures"].each do |entry|
+      entry["gate"] = "__REMOVED_FOR_TEST__"
+    end
+    value
   end
 
   def mock_fetch_from_server
