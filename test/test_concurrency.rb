@@ -55,7 +55,7 @@ class TestConcurrency < Minitest::Test
   def test_calling_apis_concurrently
     Statsig.initialize('secret-testcase', StatsigOptions.new(rulesets_sync_interval: 0.01, idlists_sync_interval: 0.01))
     threads = []
-    20.times do
+    200.times do
       threads << Thread.new do
         50.times do |i|
           user = StatsigUser.new({'userID' => "user_id_#{i}", 'email' => 'testuser@statsig.com'})
@@ -77,11 +77,14 @@ class TestConcurrency < Minitest::Test
           end
         end
     end
-    
+
     threads.each(&:join)
     Statsig.shutdown
 
-    assert_equal(11000, @@flushed_event_count)
+    # 110000 total, some will be discarded due to max concurrency
+    # A single server running the server SDK is unlikely to post 100000+ events/exposures in a matter of seconds
+    # This test is primarily concerned with ensuring there are no deadlocks or exceptions from concurrent access
+    assert_operator 90000, :<, @@flushed_event_count
   end
 
   def teardown

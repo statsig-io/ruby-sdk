@@ -1,4 +1,5 @@
 require 'statsig_event'
+require 'concurrent-ruby'
 
 $gate_exposure_event = 'statsig::gate_exposure'
 $config_exposure_event = 'statsig::config_exposure'
@@ -9,14 +10,23 @@ module Statsig
     def initialize(network, options)
       @network = network
       @events = []
-      @background_flush = periodic_flush
       @options = options
+
+      @logging_pool = Concurrent::ThreadPoolExecutor.new(
+        min_threads: [2, Concurrent.processor_count].min,
+        max_threads: [2, Concurrent.processor_count].max,
+        # max jobs pending before we start dropping
+        max_queue:   [2, Concurrent.processor_count].max * 5,
+        fallback_policy: :discard,
+      )
+
+      @background_flush = periodic_flush
     end
 
     def log_event(event)
       @events.push(event)
       if @events.length >= @options.logging_max_buffer_size
-        flush
+        flush_async
       end
     end
 
@@ -83,10 +93,20 @@ module Statsig
       end
     end
 
-    def flush(closing = false)
-      if closing
-        @background_flush&.exit
+    def shutdown
+      @background_flush&.exit
+      @logging_pool.shutdown
+      @logging_pool.wait_for_termination(timeout = 3)
+      flush
+    end
+
+    def flush_async
+      @logging_pool.post do
+        flush
       end
+    end
+
+    def flush
       if @events.length == 0
         return
       end
@@ -94,19 +114,7 @@ module Statsig
       @events = []
       flush_events = events_clone.map { |e| e.serialize }
 
-      if closing
-        @network.post_logs(flush_events)
-      else
-        Thread.new do
-          @network.post_logs(flush_events)
-        end
-      end
-    end
-
-    def maybe_restart_background_threads
-      if @background_flush.nil? or !@background_flush.alive?
-        @background_flush = periodic_flush
-      end
+      @network.post_logs(flush_events)
     end
 
     private

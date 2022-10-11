@@ -94,7 +94,7 @@ class StatsigDriver
 
   def shutdown
     @shutdown = true
-    @logger.flush(true)
+    @logger.shutdown
     @evaluator.shutdown
   end
 
@@ -115,7 +115,6 @@ class StatsigDriver
 
   def maybe_restart_background_threads
     @evaluator.maybe_restart_background_threads
-    @logger.maybe_restart_background_threads
   end
 
   private
