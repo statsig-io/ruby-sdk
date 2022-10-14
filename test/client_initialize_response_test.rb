@@ -134,13 +134,22 @@ class ClientInitializeResponseTest < Minitest::Test
   end
 
   def rm_secondary_exposure_hashes(value)
-    if !value.is_a?(Hash) || value["secondary_exposures"].nil?
-      return
+    unless value.is_a?(Hash)
+      return value
     end
 
-    value["secondary_exposures"].each do |entry|
-      entry["gate"] = "__REMOVED_FOR_TEST__"
+    unless value["secondary_exposures"].nil?
+      value["secondary_exposures"].each do |entry|
+        entry["gate"] = "__REMOVED_FOR_TEST__"
+      end
     end
+
+    unless value["undelegated_secondary_exposures"].nil?
+      value["undelegated_secondary_exposures"].each do |entry|
+        entry["gate"] = "__REMOVED_FOR_TEST__"
+      end
+    end
+
     value
   end
 
