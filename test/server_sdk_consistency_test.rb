@@ -23,7 +23,7 @@ class ServerSDKConsistencyTest < Minitest::Test
   end
 
   def test_staging
-    validate_consistency('https://latest.statsigapi.net/v1')
+    validate_consistency('https://staging.statsigapi.net/v1')
   end
 
   def validate_consistency(apiOverride)

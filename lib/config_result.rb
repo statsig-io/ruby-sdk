@@ -17,7 +17,6 @@ module Statsig
       json_value = {},
       rule_id = '',
       secondary_exposures = [],
-      undelegated_sec_exps = [],
       config_delegate = '',
       explicit_parameters = [],
       is_experiment_group: false,
@@ -27,7 +26,7 @@ module Statsig
       @json_value = json_value
       @rule_id = rule_id
       @secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
-      @undelegated_sec_exps = undelegated_sec_exps.is_a?(Array) ? undelegated_sec_exps : []
+      @undelegated_sec_exps = @secondary_exposures
       @config_delegate = config_delegate
       @explicit_parameters = explicit_parameters
       @is_experiment_group = is_experiment_group
