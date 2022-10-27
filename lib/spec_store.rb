@@ -2,6 +2,7 @@ require 'net/http'
 require 'uri'
 require 'evaluation_details'
 require 'id_list'
+require 'concurrent-ruby'
 
 module Statsig
   class SpecStore
@@ -29,6 +30,12 @@ module Statsig
         :id_lists => {},
         :experiment_to_layer => {}
       }
+
+      @id_list_thread_pool = Concurrent::FixedThreadPool.new(
+        options.idlist_threadpool_size,
+        max_queue: 100,
+        fallback_policy: :discard,
+      )
 
       unless @options.bootstrap_values.nil?
         begin
@@ -62,6 +69,8 @@ module Statsig
     def shutdown
       @config_sync_thread&.exit
       @id_lists_sync_thread&.exit
+      @id_list_thread_pool.shutdown
+      @id_list_thread_pool.wait_for_termination(timeout = 3)
       unless @options.data_store.nil?
         @options.data_store.shutdown
       end
@@ -221,7 +230,7 @@ module Statsig
         if !server_id_lists.is_a?(Hash) || !local_id_lists.is_a?(Hash)
           return
         end
-        threads = []
+        tasks = []
 
         server_id_lists.each do |list_name, list|
           server_list = IDList.new(list)
@@ -250,11 +259,16 @@ module Statsig
             next
           end
 
-          threads << Thread.new do
+          tasks << Concurrent::Promise.execute(:executor => @id_list_thread_pool) do
             download_single_id_list(local_list)
           end
         end
-        threads.each(&:join)
+
+        result = Concurrent::Promise.all?(*tasks).execute.wait(@id_lists_sync_interval)
+        if result.state != :fulfilled
+          return # timed out
+        end
+
         delete_lists = []
         local_id_lists.each do |list_name, list|
           unless server_id_lists.key? list_name
