@@ -1,11 +1,18 @@
+# typed: true
+
 require 'http'
 require 'json'
 require 'securerandom'
+require 'sorbet-runtime'
 
 $retry_codes = [408, 500, 502, 503, 504, 522, 524, 599]
 
 module Statsig
   class Network
+    extend T::Sig
+
+    sig { params(server_secret: String, api: String, local_mode: T::Boolean, backoff_mult: Integer).void }
+
     def initialize(server_secret, api, local_mode, backoff_mult = 10)
       super()
       unless api.end_with?('/')
@@ -17,6 +24,10 @@ module Statsig
       @backoff_multiplier = backoff_mult
       @session_id = SecureRandom.uuid
     end
+
+
+    sig { params(endpoint: String, body: String, retries: Integer, backoff: Integer)
+      .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)]) }
 
     def post_helper(endpoint, body, retries = 0, backoff = 1)
       if @local_mode

@@ -1,3 +1,4 @@
+# typed: true
 module Statsig
   class IDList
     attr_accessor :name

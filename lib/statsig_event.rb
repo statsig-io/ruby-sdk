@@ -1,3 +1,4 @@
+# typed: true
 class StatsigEvent
   attr_accessor :value
   attr_accessor :metadata

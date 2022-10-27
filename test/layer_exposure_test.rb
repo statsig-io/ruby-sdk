@@ -1,3 +1,4 @@
+# typed: true
 require 'json'
 require 'minitest'
 require 'minitest/autorun'

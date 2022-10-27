@@ -1,3 +1,4 @@
+# typed: false
 require 'config_result'
 require 'country_lookup'
 require 'digest'

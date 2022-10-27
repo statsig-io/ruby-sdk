@@ -1,3 +1,4 @@
+# typed: true
 module Statsig
   class ConfigResult
     attr_accessor :name

@@ -1,3 +1,4 @@
+# typed: true
 require 'interfaces/data_store'
 
 class DummyDataAdapter < Statsig::Interfaces::IDataStore

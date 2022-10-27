@@ -1,3 +1,4 @@
+# typed: true
 require 'http'
 require 'json'
 require 'minitest'

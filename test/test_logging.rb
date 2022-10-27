@@ -1,3 +1,4 @@
+# typed: false
 require 'minitest'
 require 'minitest/autorun'
 require 'spy'
@@ -74,7 +75,7 @@ class TestLogging < Minitest::Test
     stub_request(:post, "https://statsigapi.net/v1/download_config_specs").to_return(status: 500)
     stub_request(:post, "https://statsigapi.net/v1/get_id_lists").to_return(status: 500)
 
-    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', 1)
+    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', true)
     spy = Spy.on(net, :post_logs).and_return
     @statsig_metadata = {
       'sdkType' => 'ruby-server',

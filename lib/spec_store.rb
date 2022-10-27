@@ -1,3 +1,4 @@
+# typed: false
 require 'net/http'
 require 'uri'
 require 'evaluation_details'

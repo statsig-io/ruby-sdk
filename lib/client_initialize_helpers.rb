@@ -1,3 +1,4 @@
+# typed: true
 $empty_eval_result = {
   :gate_value => false,
   :json_value => {},

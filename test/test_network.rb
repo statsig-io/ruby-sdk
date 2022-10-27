@@ -1,3 +1,4 @@
+# typed: false
 require 'minitest'
 require 'minitest/autorun'
 require 'spy'
@@ -30,7 +31,7 @@ class TestNetwork < Minitest::Test
     @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
-    res, _ = @net.post_helper('log_event', {}, 5, 1)
+    res, _ = @net.post_helper('log_event', "{}", 5, 1)
 
     assert(spy.calls.size == 3) ## 500, 500, 200
     res.status.success?
@@ -43,7 +44,7 @@ class TestNetwork < Minitest::Test
     @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
-    res, e = @net.post_helper('log_event', {}, 5, 1)
+    res, e = @net.post_helper('log_event', "{}", 5, 1)
     assert(res.nil?)
     assert(spy.calls.size == 6)
     assert(!e.nil?)

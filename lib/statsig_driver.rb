@@ -1,3 +1,5 @@
+# typed: true
+
 require 'config_result'
 require 'evaluator'
 require 'network'
@@ -8,11 +10,15 @@ require 'statsig_user'
 require 'spec_store'
 require 'dynamic_config'
 require 'layer'
+require 'sorbet-runtime'
 
 class StatsigDriver
+  extend T::Sig
+
+  sig { params(secret_key: String, options: T.any(StatsigOptions, NilClass), error_callback: T.any(Method, Proc, NilClass)).void }
+
   def initialize(secret_key, options = nil, error_callback = nil)
-    super()
-    if !secret_key.is_a?(String) || !secret_key.start_with?('secret-')
+    unless secret_key.start_with?('secret-')
       raise 'Invalid secret key provided. Provide your project secret key from the Statsig console'
     end
     if !options.nil? && !options.instance_of?(StatsigOptions)
@@ -26,6 +32,8 @@ class StatsigDriver
     @logger = Statsig::StatsigLogger.new(@net, @options)
     @evaluator = Statsig::Evaluator.new(@net, @options, error_callback)
   end
+
+  sig { params(user: StatsigUser, gate_name: String).returns(T::Boolean) }
 
   def check_gate(user, gate_name)
     user = verify_inputs(user, gate_name, "gate_name")
@@ -45,15 +53,21 @@ class StatsigDriver
     res.gate_value
   end
 
+  sig { params(user: StatsigUser, dynamic_config_name: String).returns(DynamicConfig) }
+
   def get_config(user, dynamic_config_name)
     user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
     get_config_impl(user, dynamic_config_name)
   end
 
+  sig { params(user: StatsigUser, experiment_name: String).returns(DynamicConfig) }
+
   def get_experiment(user, experiment_name)
     user = verify_inputs(user, experiment_name, "experiment_name")
     get_config_impl(user, experiment_name)
   end
+
+  sig { params(user: StatsigUser, layer_name: String).returns(Layer) }
 
   def get_layer(user, layer_name)
     user = verify_inputs(user, layer_name, "layer_name")

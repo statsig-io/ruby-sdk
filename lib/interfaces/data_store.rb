@@ -1,3 +1,4 @@
+# typed: true
 module Statsig
   module Interfaces
     class IDataStore
