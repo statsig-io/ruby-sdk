@@ -48,6 +48,7 @@ class StatsigUser
   attr_accessor :private_attributes
 
   sig { returns(T.any(T::Hash[String, T.untyped], NilClass)) }
+
   def custom
     @custom
   end
@@ -58,35 +59,20 @@ class StatsigUser
     @custom = value.is_a?(Hash) ? value : Hash.new
   end
 
-  sig { params(user_hash: T.any(T::Hash[String, T.untyped], NilClass)).void }
+  sig { params(user_hash: T.any(T::Hash[T.any(String, Symbol), T.untyped], NilClass)).void }
 
   def initialize(user_hash)
-    @user_id = nil
-    @email = nil
-    @ip = nil
-    @user_agent = nil
-    @country = nil
-    @locale = nil
-    @app_version = nil
-    @custom = nil
-    @private_attributes = nil
-    @custom_ids = nil
-    @statsig_environment = Hash.new
-    if user_hash.is_a?(Hash)
-      @user_id = user_hash['userID'] || user_hash['user_id']
-      @user_id = @user_id.to_s unless @user_id.nil?
-      @email = user_hash['email']
-      @ip = user_hash['ip']
-      @user_agent = user_hash['userAgent'] || user_hash['user_agent']
-      @country = user_hash['country']
-      @locale = user_hash['locale']
-      @app_version = user_hash['appVersion'] || user_hash['app_version']
-      @custom = user_hash['custom'] if user_hash['custom'].is_a? Hash
-      @statsig_environment = user_hash['statsigEnvironment']
-      @private_attributes = user_hash['privateAttributes'] if user_hash['privateAttributes'].is_a? Hash
-      custom_ids = user_hash['customIDs'] || user_hash['custom_ids']
-      @custom_ids = custom_ids if custom_ids.is_a? Hash
-    end
+    @user_id = from_hash(user_hash, [:user_id, :userID], String)
+    @email = from_hash(user_hash, [:email], String)
+    @ip = from_hash(user_hash, [:ip], String)
+    @user_agent = from_hash(user_hash, [:user_agent, :userAgent], String)
+    @country = from_hash(user_hash, [:country], String)
+    @locale = from_hash(user_hash, [:locale], String)
+    @app_version = from_hash(user_hash, [:app_version, :appVersion], String)
+    @custom = from_hash(user_hash, [:custom], Hash)
+    @private_attributes = from_hash(user_hash, [:private_attributes, :privateAttributes], Hash)
+    @custom_ids = from_hash(user_hash, [:custom_ids, :customIDs], Hash)
+    @statsig_environment = from_hash(user_hash, [:statsig_environment, :statsigEnvironment], Hash)
   end
 
   def serialize(for_logging)
@@ -128,4 +114,29 @@ class StatsigUser
       'privateAttributes' => @private_attributes,
     }
   end
+
+  private
+
+  sig {
+    params(user_hash: T.any(T::Hash[T.any(String, Symbol), T.untyped], NilClass),
+           keys: T::Array[Symbol],
+           type: T.untyped)
+      .returns(T.untyped)
+  }
+  # Pulls fields from the user hash via Symbols and Strings
+  def from_hash(user_hash, keys, type)
+    if user_hash.nil?
+      return nil
+    end
+
+    keys.each do |key|
+      val = user_hash[key] || user_hash[key.to_s]
+      if not val.nil? and val.is_a? type
+        return val
+      end
+    end
+
+    nil
+  end
+
 end

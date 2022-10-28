@@ -379,14 +379,14 @@ module Statsig
       user_custom = user_lookup_table['custom']
       if user_custom.is_a?(Hash)
         user_custom.each do |key, value|
-          return value if key.downcase.casecmp?(field.downcase) && !value.nil?
+          return value if key.to_s.downcase.casecmp?(field.downcase) && !value.nil?
         end
       end
 
       private_attributes = user_lookup_table['privateAttributes']
       if private_attributes.is_a?(Hash)
         private_attributes.each do |key, value|
-          return value if key.downcase.casecmp?(field.downcase) && !value.nil?
+          return value if key.to_s.downcase.casecmp?(field.downcase) && !value.nil?
         end
       end
 
@@ -398,7 +398,7 @@ module Statsig
       field = field.downcase
       return nil unless user.statsig_environment.is_a? Hash
       user.statsig_environment.each do |key, value|
-        return value if key.downcase == (field)
+        return value if key.to_s.downcase == (field)
       end
       nil
     end
