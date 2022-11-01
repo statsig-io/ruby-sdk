@@ -129,6 +129,7 @@ class StatsigDriver
 
   def maybe_restart_background_threads
     @evaluator.maybe_restart_background_threads
+    @logger.maybe_restart_background_threads
   end
 
   private

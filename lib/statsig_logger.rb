@@ -118,6 +118,12 @@ module Statsig
       @network.post_logs(flush_events)
     end
 
+    def maybe_restart_background_threads
+      if @background_flush.nil? or !@background_flush.alive?
+        @background_flush = periodic_flush
+      end
+    end
+
     private
 
     def safe_add_eval_details(eval_details, event)
