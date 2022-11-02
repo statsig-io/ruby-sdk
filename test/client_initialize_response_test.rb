@@ -99,6 +99,7 @@ class ClientInitializeResponseTest < Minitest::Test
     response = http.post(api + '/initialize', body: JSON.generate({ user: server_user_hash, statsigMetadata: $statsig_metadata }))
 
     options = StatsigOptions.new(environment, api)
+    Statsig.instance_variable_set("@shared_instance", nil)
     Statsig.initialize(@secret_key, options)
 
     if force_fetch_from_server
@@ -112,13 +113,13 @@ class ClientInitializeResponseTest < Minitest::Test
   end
 
   def validate_consistency(server_data, sdk_data)
+    assert server_data != nil, "Server data was nil"
+    assert sdk_data != nil, "SDK data was nil"
 
     server_data.keys.each do |key|
-      if server_data[key].is_a? Hash
-        assert_equal(server_data[key].keys.sort, sdk_data[key].keys.sort)
-      end
-
       if server_data[key].is_a?(Hash)
+        assert_equal(server_data[key].keys.sort, sdk_data[key].keys.sort)
+
         server_data[key].each do |sub_key, _|
           server_value = rm_secondary_exposure_hashes(server_data[key][sub_key])
           sdk_value = rm_secondary_exposure_hashes(sdk_data[key][sub_key])

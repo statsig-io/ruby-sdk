@@ -7,7 +7,6 @@ require 'statsig_errors'
 module Statsig
   extend T::Sig
 
-
   sig { params(secret_key: String, options: T.any(StatsigOptions, NilClass), error_callback: T.any(Method, Proc, NilClass)).void }
   ##
   # Initializes the Statsig SDK.
@@ -90,7 +89,7 @@ module Statsig
   ##
   # Stops all Statsig activity and flushes any pending events.
   def self.shutdown
-    unless @shared_instance.nil?
+    if defined? @shared_instance and !@shared_instance.nil?
       @shared_instance.shutdown
     end
     @shared_instance = nil
@@ -144,7 +143,7 @@ module Statsig
   private
 
   def self.ensure_initialized
-    if @shared_instance.nil?
+    if not defined? @shared_instance or @shared_instance.nil?
       raise Statsig::UninitializedError.new
     end
   end
