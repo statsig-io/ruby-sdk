@@ -2,6 +2,7 @@
 
 require 'statsig_driver'
 require 'sorbet-runtime'
+require 'statsig_errors'
 
 module Statsig
   extend T::Sig
@@ -144,7 +145,7 @@ module Statsig
 
   def self.ensure_initialized
     if @shared_instance.nil?
-      raise 'Must call initialize first.'
+      raise Statsig::UninitializedError.new
     end
   end
 

@@ -38,6 +38,18 @@ class TestNetwork < Minitest::Test
     assert(res.status.success?)
   end
 
+  def test_logs_statsig_headers
+    stub_request(:post, "https://statsigapi.net/v1/log_event").to_return(status: 200)
+    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false)
+    net.post_helper('log_event', "{}", 5, 1)
+    meta = Statsig.get_statsig_metadata
+    assert_requested(:post, 'https://statsigapi.net/v1/log_event', :headers => {
+      "statsig-api-key" => 'secret-abc',
+      "statsig-sdk-type" => meta['sdkType'],
+      "statsig-sdk-version" => meta['sdkVersion'],
+    }, :times => 1)
+  end
+
   def test_retry_until_out_of_retries
     stub_request(:post, "https://statsigapi.net/v1/log_event").to_raise(StandardError)
 

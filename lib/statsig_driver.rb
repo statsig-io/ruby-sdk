@@ -3,12 +3,14 @@
 require 'config_result'
 require 'evaluator'
 require 'network'
+require 'statsig_errors'
 require 'statsig_event'
 require 'statsig_logger'
 require 'statsig_options'
 require 'statsig_user'
 require 'spec_store'
 require 'dynamic_config'
+require 'error_boundary'
 require 'layer'
 require 'sorbet-runtime'
 
@@ -19,125 +21,154 @@ class StatsigDriver
 
   def initialize(secret_key, options = nil, error_callback = nil)
     unless secret_key.start_with?('secret-')
-      raise 'Invalid secret key provided. Provide your project secret key from the Statsig console'
-    end
-    if !options.nil? && !options.instance_of?(StatsigOptions)
-      raise 'Invalid options provided. Either provide a valid StatsigOptions object or nil'
+      raise Statsig::ValueError.new('Invalid secret key provided. Provide your project secret key from the Statsig console')
     end
 
-    @options = options || StatsigOptions.new
-    @shutdown = false
-    @secret_key = secret_key
-    @net = Statsig::Network.new(secret_key, @options.api_url_base, @options.local_mode)
-    @logger = Statsig::StatsigLogger.new(@net, @options)
-    @evaluator = Statsig::Evaluator.new(@net, @options, error_callback)
+    if !options.nil? && !options.instance_of?(StatsigOptions)
+      raise Statsig::ValueError.new('Invalid options provided. Either provide a valid StatsigOptions object or nil')
+    end
+
+    @err_boundary = Statsig::ErrorBoundary.new(secret_key)
+    @err_boundary.capture(-> {
+      @options = options || StatsigOptions.new
+      @shutdown = false
+      @secret_key = secret_key
+      @net = Statsig::Network.new(secret_key, @options.api_url_base, @options.local_mode)
+      @logger = Statsig::StatsigLogger.new(@net, @options)
+      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback)
+    })
   end
 
   sig { params(user: StatsigUser, gate_name: String).returns(T::Boolean) }
 
   def check_gate(user, gate_name)
-    user = verify_inputs(user, gate_name, "gate_name")
+    @err_boundary.capture(-> {
+      user = verify_inputs(user, gate_name, "gate_name")
 
-    res = @evaluator.check_gate(user, gate_name)
-    if res.nil?
-      res = Statsig::ConfigResult.new(gate_name)
-    end
+      res = @evaluator.check_gate(user, gate_name)
+      if res.nil?
+        res = Statsig::ConfigResult.new(gate_name)
+      end
 
-    if res == $fetch_from_server
-      res = check_gate_fallback(user, gate_name)
-      # exposure logged by the server
-    else
-      @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details)
-    end
+      if res == $fetch_from_server
+        res = check_gate_fallback(user, gate_name)
+        # exposure logged by the server
+      else
+        @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details)
+      end
 
-    res.gate_value
+      res.gate_value
+    }, -> { false })
+
   end
 
   sig { params(user: StatsigUser, dynamic_config_name: String).returns(DynamicConfig) }
 
   def get_config(user, dynamic_config_name)
-    user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
-    get_config_impl(user, dynamic_config_name)
+    @err_boundary.capture(-> {
+      user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
+      get_config_impl(user, dynamic_config_name)
+    }, -> { DynamicConfig.new(dynamic_config_name) })
   end
 
   sig { params(user: StatsigUser, experiment_name: String).returns(DynamicConfig) }
 
   def get_experiment(user, experiment_name)
-    user = verify_inputs(user, experiment_name, "experiment_name")
-    get_config_impl(user, experiment_name)
+    @err_boundary.capture(-> {
+      user = verify_inputs(user, experiment_name, "experiment_name")
+      get_config_impl(user, experiment_name)
+    }, -> { DynamicConfig.new(experiment_name) })
   end
 
   sig { params(user: StatsigUser, layer_name: String).returns(Layer) }
 
   def get_layer(user, layer_name)
-    user = verify_inputs(user, layer_name, "layer_name")
+    @err_boundary.capture(-> {
+      user = verify_inputs(user, layer_name, "layer_name")
 
-    res = @evaluator.get_layer(user, layer_name)
-    if res.nil?
-      res = Statsig::ConfigResult.new(layer_name)
-    end
-
-    if res == $fetch_from_server
-      if res.config_delegate.empty?
-        return Layer.new(layer_name)
+      res = @evaluator.get_layer(user, layer_name)
+      if res.nil?
+        res = Statsig::ConfigResult.new(layer_name)
       end
-      res = get_config_fallback(user, res.config_delegate)
-      # exposure logged by the server
-    end
 
-    Layer.new(res.name, res.json_value, res.rule_id, lambda { |layer, parameter_name|
-      @logger.log_layer_exposure(user, layer, parameter_name, res)
+      if res == $fetch_from_server
+        if res.config_delegate.empty?
+          return Layer.new(layer_name)
+        end
+        res = get_config_fallback(user, res.config_delegate)
+        # exposure logged by the server
+      end
+
+      Layer.new(res.name, res.json_value, res.rule_id, lambda { |layer, parameter_name|
+        @logger.log_layer_exposure(user, layer, parameter_name, res)
+      })
+    }, -> {
+      Layer.new(layer_name)
     })
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
-    if !user.nil? && !user.instance_of?(StatsigUser)
-      raise 'Must provide a valid StatsigUser or nil'
-    end
-    check_shutdown
+    @err_boundary.capture(-> {
+      if !user.nil? && !user.instance_of?(StatsigUser)
+        raise Statsig::ValueError.new('Must provide a valid StatsigUser or nil')
+      end
+      check_shutdown
 
-    user = normalize_user(user)
+      user = normalize_user(user)
 
-    event = StatsigEvent.new(event_name)
-    event.user = user
-    event.value = value
-    event.metadata = metadata
-    event.statsig_metadata = Statsig.get_statsig_metadata
-    @logger.log_event(event)
+      event = StatsigEvent.new(event_name)
+      event.user = user
+      event.value = value
+      event.metadata = metadata
+      event.statsig_metadata = Statsig.get_statsig_metadata
+      @logger.log_event(event)
+    })
   end
 
   def shutdown
-    @shutdown = true
-    @logger.shutdown
-    @evaluator.shutdown
+    @err_boundary.capture(-> {
+      @shutdown = true
+      @logger.shutdown
+      @evaluator.shutdown
+    })
   end
 
   def override_gate(gate_name, gate_value)
-    @evaluator.override_gate(gate_name, gate_value)
+    @err_boundary.capture(-> {
+      @evaluator.override_gate(gate_name, gate_value)
+    })
   end
 
   def override_config(config_name, config_value)
-    @evaluator.override_config(config_name, config_value)
+    @err_boundary.capture(-> {
+      @evaluator.override_config(config_name, config_value)
+    })
   end
 
   # @param [StatsigUser] user
   # @return [Hash]
   def get_client_initialize_response(user)
-    normalize_user(user)
-    @evaluator.get_client_initialize_response(user)
+    @err_boundary.capture(-> {
+      normalize_user(user)
+      @evaluator.get_client_initialize_response(user)
+    }, -> { nil })
   end
 
   def maybe_restart_background_threads
-    @evaluator.maybe_restart_background_threads
-    @logger.maybe_restart_background_threads
+    @err_boundary.capture(-> {
+      @evaluator.maybe_restart_background_threads
+      @logger.maybe_restart_background_threads
+    })
   end
 
   private
 
+  sig { params(user: StatsigUser, config_name: String, variable_name: String).returns(StatsigUser) }
+
   def verify_inputs(user, config_name, variable_name)
     validate_user(user)
     if !config_name.is_a?(String) || config_name.empty?
-      raise "Invalid #{variable_name} provided"
+      raise Statsig::ValueError.new("Invalid #{variable_name} provided")
     end
 
     check_shutdown
@@ -168,7 +199,7 @@ class StatsigDriver
         !user.user_id.is_a?(String) &&
           (!user.custom_ids.is_a?(Hash) || user.custom_ids.size == 0)
       )
-      raise 'Must provide a valid StatsigUser with a user_id or at least a custom ID. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.'
+      raise Statsig::ValueError.new('Must provide a valid StatsigUser with a user_id or at least a custom ID. See https://docs.statsig.com/messages/serverRequiredUserID/ for more details.')
     end
   end
 
