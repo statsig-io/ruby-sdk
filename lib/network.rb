@@ -25,19 +25,23 @@ module Statsig
       @session_id = SecureRandom.uuid
     end
 
-
     sig { params(endpoint: String, body: String, retries: Integer, backoff: Integer)
-      .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)]) }
+            .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)]) }
 
     def post_helper(endpoint, body, retries = 0, backoff = 1)
       if @local_mode
         return nil, nil
       end
+
+      meta = Statsig.get_statsig_metadata
       http = HTTP.headers(
-        {"STATSIG-API-KEY" => @server_secret,
-        "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_i.to_s,
-         "STATSIG-SERVER-SESSION-ID" => @session_id,
-        "Content-Type" => "application/json; charset=UTF-8"
+        {
+          "STATSIG-API-KEY" => @server_secret,
+          "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_i.to_s,
+          "STATSIG-SERVER-SESSION-ID" => @session_id,
+          "Content-Type" => "application/json; charset=UTF-8",
+          "STATSIG-SDK-TYPE" => meta['sdkType'],
+          "STATSIG-SDK-VERSION" => meta['sdkVersion'],
         }).accept(:json)
       begin
         res = http.post(@api + endpoint, body: body)
@@ -47,7 +51,7 @@ module Statsig
         sleep backoff
         return post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
       end
-      return res, nil unless !res.status.success?
+      return res, nil if res.status.success?
       return nil, StandardError.new("Got an exception when making request to #{@api + endpoint}: #{res.to_s}") unless retries > 0 && $retry_codes.include?(res.code)
       ## status code retry
       sleep backoff
@@ -56,7 +60,7 @@ module Statsig
 
     def check_gate(user, gate_name)
       begin
-        request_body = JSON.generate({'user' => user&.serialize(false), 'gateName' => gate_name})
+        request_body = JSON.generate({ 'user' => user&.serialize(false), 'gateName' => gate_name })
         response, _ = post_helper('check_gate', request_body)
         return JSON.parse(response.body) unless response.nil?
         false
@@ -67,7 +71,7 @@ module Statsig
 
     def get_config(user, dynamic_config_name)
       begin
-        request_body = JSON.generate({'user' => user&.serialize(false), 'configName' => dynamic_config_name})
+        request_body = JSON.generate({ 'user' => user&.serialize(false), 'configName' => dynamic_config_name })
         response, _ = post_helper('get_config', request_body)
         return JSON.parse(response.body) unless response.nil?
         nil
@@ -78,7 +82,7 @@ module Statsig
 
     def post_logs(events)
       begin
-        json_body = JSON.generate({'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata})
+        json_body = JSON.generate({ 'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata })
         post_helper('log_event', json_body, 5)
       rescue
       end
