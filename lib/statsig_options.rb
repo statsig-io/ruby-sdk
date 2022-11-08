@@ -64,6 +64,11 @@ class StatsigOptions
   # default: 3
   attr_accessor :idlist_threadpool_size
 
+  sig { returns(T::Boolean) }
+  # Should diagnostics be logged. These include performance metrics for initialize.
+  # default: false
+  attr_accessor :disable_diagnostics_logging
+
   sig do
     params(
       environment: T.any(T::Hash[String, String], NilClass),
@@ -76,7 +81,8 @@ class StatsigOptions
       bootstrap_values: T.any(String, NilClass),
       rules_updated_callback: T.any(Method, Proc, NilClass),
       data_store: T.any(Statsig::Interfaces::IDataStore, NilClass),
-      idlist_threadpool_size: Integer
+      idlist_threadpool_size: Integer,
+      disable_diagnostics_logging: T::Boolean
     ).void
   end
 
@@ -91,7 +97,8 @@ class StatsigOptions
     bootstrap_values: nil,
     rules_updated_callback: nil,
     data_store: nil,
-    idlist_threadpool_size: 3)
+    idlist_threadpool_size: 3,
+    disable_diagnostics_logging: false)
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
     @rulesets_sync_interval = rulesets_sync_interval
@@ -103,5 +110,6 @@ class StatsigOptions
     @rules_updated_callback = rules_updated_callback
     @data_store = data_store
     @idlist_threadpool_size = idlist_threadpool_size
+    @disable_diagnostics_logging = disable_diagnostics_logging
   end
 end

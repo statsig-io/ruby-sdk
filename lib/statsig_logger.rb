@@ -5,6 +5,7 @@ require 'concurrent-ruby'
 $gate_exposure_event = 'statsig::gate_exposure'
 $config_exposure_event = 'statsig::config_exposure'
 $layer_exposure_event = 'statsig::layer_exposure'
+$diagnostics_event = 'statsig::diagnostics'
 
 module Statsig
   class StatsigLogger
@@ -82,6 +83,13 @@ module Statsig
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
 
       safe_add_eval_details(config_evaluation.evaluation_details, event)
+      log_event(event)
+    end
+
+    def log_diagnostics_event(diagnostics, user = nil)
+      event = StatsigEvent.new($diagnostics_event)
+      event.user = user
+      event.metadata = diagnostics.serialize
       log_event(event)
     end
 

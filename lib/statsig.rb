@@ -149,19 +149,19 @@ module Statsig
   end
 
   T::Configuration.call_validation_error_handler = lambda do |signature, opts|
-    puts opts[:pretty_message]
+    puts "[Type Error] " + opts[:pretty_message]
   end
 
   T::Configuration.inline_type_error_handler = lambda do |error, opts|
-    puts error.message
+    puts "[Type Error] " + error.message
   end
 
   T::Configuration.sig_builder_error_handler = lambda do |error, location|
-    puts error.message
+    puts "[Type Error] " + error.message
   end
 
   T::Configuration.sig_validation_error_handler = lambda do |error, opts|
-    puts error.message
+    puts "[Type Error] " + error.message
   end
 
 end
