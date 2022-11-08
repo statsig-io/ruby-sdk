@@ -18,6 +18,8 @@ class TestConcurrency < Minitest::Test
   def setup
     super
     WebMock.enable!
+    Statsig.instance_variable_set("@shared_instance", nil)
+
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda {|request|
         @@flushed_event_count += JSON.parse(request.body)["events"].length

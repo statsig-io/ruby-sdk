@@ -26,8 +26,8 @@ class StatsigE2ETest < Minitest::Test
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
-    @statsig_user = StatsigUser.new({'userID' => '123', 'email' => 'testuser@statsig.com'})
-    @random_user = StatsigUser.new({'userID' => 'random'})
+    @statsig_user = StatsigUser.new({ 'userID' => '123', 'email' => 'testuser@statsig.com' })
+    @random_user = StatsigUser.new({ 'userID' => 'random' })
   end
 
   def setup
@@ -50,6 +50,7 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
+          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'statsig::gate_exposure',
             'user' => {
@@ -117,6 +118,7 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
+          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'statsig::config_exposure',
             'metadata' => hash_including(
@@ -148,6 +150,7 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
+          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'statsig::config_exposure',
             'metadata' => hash_including(
@@ -174,6 +177,7 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
+          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'add_to_cart',
             'value' => 'SKU_12345',
@@ -193,8 +197,8 @@ class StatsigE2ETest < Minitest::Test
     # in local mode (without network), bootstrap_values makes evaluation work
     options = StatsigOptions.new(bootstrap_values: @@json_file, local_mode: true)
     driver = StatsigDriver.new('secret-testcase', options)
-    assert_equal(driver.check_gate(StatsigUser.new({'userID' => 'jkw'}), 'always_on_gate'), true)
-    
+    assert_equal(driver.check_gate(StatsigUser.new({ 'userID' => 'jkw' }), 'always_on_gate'), true)
+
     # with network, rules_updated_callback gets called when there are updated rulesets coming back from server
     callback_validated = false
     options = StatsigOptions.new(rulesets_sync_interval: 0.1, rules_updated_callback: ->(rules, time) {
@@ -203,7 +207,7 @@ class StatsigE2ETest < Minitest::Test
       end
     })
     driver = StatsigDriver.new('secret-testcase', options)
-    assert_equal(driver.check_gate(StatsigUser.new({'userID' => 'jkw'}), 'always_on_gate'), true)
+    assert_equal(driver.check_gate(StatsigUser.new({ 'userID' => 'jkw' }), 'always_on_gate'), true)
     assert_equal(true, callback_validated)
     driver.shutdown
   end

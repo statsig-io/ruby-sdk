@@ -8,6 +8,15 @@ require 'sorbet-runtime'
 $retry_codes = [408, 500, 502, 503, 504, 522, 524, 599]
 
 module Statsig
+  class NetworkError < StandardError
+    attr_reader :http_code
+
+    def initialize(msg = nil, http_code = nil)
+      super(msg)
+      @http_code = http_code
+    end
+  end
+
   class Network
     extend T::Sig
 
@@ -52,7 +61,7 @@ module Statsig
         return post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
       end
       return res, nil if res.status.success?
-      return nil, StandardError.new("Got an exception when making request to #{@api + endpoint}: #{res.to_s}") unless retries > 0 && $retry_codes.include?(res.code)
+      return nil, NetworkError.new("Got an exception when making request to #{@api + endpoint}: #{res.to_s}", res.status.to_i) unless retries > 0 && $retry_codes.include?(res.code)
       ## status code retry
       sleep backoff
       post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)

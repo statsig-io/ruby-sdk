@@ -13,6 +13,7 @@ require 'dynamic_config'
 require 'error_boundary'
 require 'layer'
 require 'sorbet-runtime'
+require 'diagnostics'
 
 class StatsigDriver
   extend T::Sig
@@ -30,12 +31,17 @@ class StatsigDriver
 
     @err_boundary = Statsig::ErrorBoundary.new(secret_key)
     @err_boundary.capture(-> {
+      @init_diagnostics = Statsig::Diagnostics.new("initialize")
+      @init_diagnostics.mark("overall", "start")
       @options = options || StatsigOptions.new
       @shutdown = false
       @secret_key = secret_key
       @net = Statsig::Network.new(secret_key, @options.api_url_base, @options.local_mode)
       @logger = Statsig::StatsigLogger.new(@net, @options)
-      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback)
+      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @init_diagnostics)
+      @init_diagnostics.mark("overall", "end")
+
+      log_init_diagnostics
     })
   end
 
@@ -244,5 +250,13 @@ class StatsigDriver
       network_result['value'],
       network_result['rule_id'],
     )
+  end
+
+  def log_init_diagnostics
+    if @options.disable_diagnostics_logging
+      return
+    end
+
+    @logger.log_diagnostics_event(@init_diagnostics)
   end
 end

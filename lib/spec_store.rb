@@ -14,7 +14,7 @@ module Statsig
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
 
-    def initialize(network, options, error_callback)
+    def initialize(network, options, error_callback, init_diagnostics = nil)
       @init_reason = EvaluationReason::UNINITIALIZED
       @network = network
       @options = options
@@ -42,8 +42,12 @@ module Statsig
         begin
           if !@options.data_store.nil?
             puts 'data_store gets priority over bootstrap_values. bootstrap_values will be ignored'
-          elsif process(options.bootstrap_values)
-            @init_reason = EvaluationReason::BOOTSTRAP
+          else
+            init_diagnostics&.mark("bootstrap", "start", "load")
+            if process(options.bootstrap_values)
+              @init_reason = EvaluationReason::BOOTSTRAP
+            end
+            init_diagnostics&.mark("bootstrap", "end", "load", @init_reason == EvaluationReason::BOOTSTRAP)
           end
         rescue
           puts 'the provided bootstrapValues is not a valid JSON string'
@@ -51,13 +55,18 @@ module Statsig
       end
 
       unless @options.data_store.nil?
+        init_diagnostics&.mark("data_store", "start", "load")
         @options.data_store.init
         load_from_storage_adapter
+        init_diagnostics&.mark("data_store", "end", "load", @init_reason == EvaluationReason::DATA_ADAPTER)
       end
 
-      download_config_specs
+      if @init_reason == EvaluationReason::UNINITIALIZED
+        download_config_specs(init_diagnostics)
+      end
+
       @initial_config_sync_time = @last_config_sync_time == 0 ? -1 : @last_config_sync_time
-      get_id_lists
+      get_id_lists(init_diagnostics)
 
       @config_sync_thread = sync_config_specs
       @id_lists_sync_thread = sync_id_lists
@@ -157,26 +166,39 @@ module Statsig
       end
     end
 
-    def download_config_specs
-      e = get_config_specs_from_network
-      @error_callback.call(e) unless e.nil? or @error_callback.nil?
-    end
+    def download_config_specs(init_diagnostics = nil)
+      init_diagnostics&.mark("download_config_specs", "start", "network_request")
 
-    def get_config_specs_from_network
+      error = nil
       begin
         response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_config_sync_time }))
+        code = response&.status.to_i
+        if e.is_a? NetworkError
+          code = e.http_code
+        end
+        init_diagnostics&.mark("download_config_specs", "end", "network_request", code)
+
         if e.nil?
-          if !response.nil? and process(response.body)
-            @init_reason = EvaluationReason::NETWORK
-            @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
+          unless response.nil?
+            init_diagnostics&.mark("download_config_specs", "start", "process")
+
+            if process(response.body)
+              @init_reason = EvaluationReason::NETWORK
+              @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
+            end
+
+            init_diagnostics&.mark("download_config_specs", "end", "process", @init_reason == EvaluationReason::NETWORK)
           end
+
           nil
         else
-          e
+          error = e
         end
       rescue StandardError => e
-        e
+        error = e
       end
+
+      @error_callback.call(error) unless error.nil? or @error_callback.nil?
     end
 
     def process(specs_string, from_adapter = false)
@@ -219,11 +241,13 @@ module Statsig
       true
     end
 
-    def get_id_lists
+    def get_id_lists(init_diagnostics = nil)
+      init_diagnostics&.mark("get_id_lists", "start", "network_request")
       response, e = @network.post_helper('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
       if !e.nil? || response.nil?
         return
       end
+      init_diagnostics&.mark("get_id_lists", "end", "network_request", response.status.to_i)
 
       begin
         server_id_lists = JSON.parse(response)
@@ -232,6 +256,12 @@ module Statsig
           return
         end
         tasks = []
+
+        if server_id_lists.length == 0
+          return
+        end
+
+        init_diagnostics&.mark("get_id_lists", "start", "process", server_id_lists.length)
 
         server_id_lists.each do |list_name, list|
           server_list = IDList.new(list)
@@ -267,6 +297,7 @@ module Statsig
 
         result = Concurrent::Promise.all?(*tasks).execute.wait(@id_lists_sync_interval)
         if result.state != :fulfilled
+          init_diagnostics&.mark("get_id_lists", "end", "process", false)
           return # timed out
         end
 
@@ -279,6 +310,7 @@ module Statsig
         delete_lists.each do |list_name|
           local_id_lists.delete list_name
         end
+        init_diagnostics&.mark("get_id_lists", "end", "process", true)
       rescue
         # Ignored, will try again
       end
