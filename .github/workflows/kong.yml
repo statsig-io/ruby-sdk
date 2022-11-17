@@ -28,7 +28,7 @@ jobs:
           sdk_branch="${GITHUB_HEAD_REF:-main}"; bundle install
           cd ../..
           npm install
-          FORCE_COLOR=true npm run kong -- test ruby -v
+          FORCE_COLOR=true npm run kong -- test ruby -w -r
         env:
           sdk_branch: ${{ github.head_ref }}
           test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
