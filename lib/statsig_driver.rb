@@ -161,6 +161,10 @@ class StatsigDriver
   end
 
   def maybe_restart_background_threads
+    if @options.local_mode
+      return
+    end
+
     @err_boundary.capture(-> {
       @evaluator.maybe_restart_background_threads
       @logger.maybe_restart_background_threads
@@ -178,6 +182,7 @@ class StatsigDriver
     end
 
     check_shutdown
+    maybe_restart_background_threads
     normalize_user(user)
   end
 

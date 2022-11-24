@@ -17,8 +17,14 @@ class StatsigErrorBoundaryUsageTest < Minitest::Test
     @driver = StatsigDriver.new("secret-key")
     @user = StatsigUser.new({ "userID" => "dloomb" })
 
-    @driver.instance_variable_set('@evaluator', 1)
-    @driver.instance_variable_set('@logger', 1)
+    fake_with_restart_method = Class.new do
+      def maybe_restart_background_threads
+        #  noop
+      end
+    end
+
+    @driver.instance_variable_set('@evaluator', fake_with_restart_method.new)
+    @driver.instance_variable_set('@logger', fake_with_restart_method.new)
   end
 
   def teardown
@@ -70,7 +76,7 @@ class StatsigErrorBoundaryUsageTest < Minitest::Test
 
   def test_errors_with_shutdown
     @driver.shutdown
-    assert_exception("NoMethodError", "undefined method `shutdown' for 1:Integer")
+    assert_exception("NoMethodError", "undefined method `shutdown'")
   end
 
   private
@@ -79,7 +85,7 @@ class StatsigErrorBoundaryUsageTest < Minitest::Test
     assert_requested(:post, 'https://statsigapi.net/v1/sdk_exception', :times => 1) do |req|
       body = JSON.parse(req.body)
       assert_equal(type, body["exception"])
-      assert(body["info"].include?(trace))
+      assert(body["info"].include?(trace), "#{body["info"]} did not include #{trace}")
     end
   end
 
