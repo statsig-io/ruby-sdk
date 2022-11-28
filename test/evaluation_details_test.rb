@@ -19,7 +19,7 @@ class EvaluationDetailsTest < Minitest::Test
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)
     driver = StatsigDriver.new('secret-key')
-    puts "FOOOOO " + driver.to_s
+
     @evaluator = driver.instance_variable_get('@evaluator')
     @store = @evaluator.instance_variable_get('@spec_store')
   end
