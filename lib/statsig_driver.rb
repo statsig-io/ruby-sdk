@@ -45,9 +45,9 @@ class StatsigDriver
     })
   end
 
-  sig { params(user: StatsigUser, gate_name: String).returns(T::Boolean) }
+  sig { params(user: StatsigUser, gate_name: String, log_exposure: T::Boolean).returns(T::Boolean) }
 
-  def check_gate(user, gate_name)
+  def check_gate(user, gate_name, log_exposure = true)
     @err_boundary.capture(-> {
       user = verify_inputs(user, gate_name, "gate_name")
 
@@ -60,7 +60,9 @@ class StatsigDriver
         res = check_gate_fallback(user, gate_name)
         # exposure logged by the server
       else
-        @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details)
+        if log_exposure
+          @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details)
+        end
       end
 
       res.gate_value
@@ -68,27 +70,41 @@ class StatsigDriver
 
   end
 
-  sig { params(user: StatsigUser, dynamic_config_name: String).returns(DynamicConfig) }
+  sig { params(user: StatsigUser, gate_name: String).void }
 
-  def get_config(user, dynamic_config_name)
+  def manually_log_gate_exposure(user, gate_name)
+    res = @evaluator.check_gate(user, gate_name)
+    @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, true)
+  end
+
+  sig { params(user: StatsigUser, dynamic_config_name: String, log_exposure: T::Boolean).returns(DynamicConfig) }
+
+  def get_config(user, dynamic_config_name, log_exposure = true)
     @err_boundary.capture(-> {
       user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
-      get_config_impl(user, dynamic_config_name)
+      get_config_impl(user, dynamic_config_name, log_exposure)
     }, -> { DynamicConfig.new(dynamic_config_name) })
   end
 
-  sig { params(user: StatsigUser, experiment_name: String).returns(DynamicConfig) }
+  sig { params(user: StatsigUser, experiment_name: String, log_exposure: T::Boolean).returns(DynamicConfig) }
 
-  def get_experiment(user, experiment_name)
+  def get_experiment(user, experiment_name, log_exposure = true)
     @err_boundary.capture(-> {
       user = verify_inputs(user, experiment_name, "experiment_name")
-      get_config_impl(user, experiment_name)
+      get_config_impl(user, experiment_name, log_exposure)
     }, -> { DynamicConfig.new(experiment_name) })
   end
 
-  sig { params(user: StatsigUser, layer_name: String).returns(Layer) }
+  sig { params(user: StatsigUser, config_name: String).void }
 
-  def get_layer(user, layer_name)
+  def manually_log_config_exposure(user, config_name)
+    res = @evaluator.get_config(user, config_name)
+    @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, true)
+  end
+
+  sig { params(user: StatsigUser, layer_name: String, log_exposure: T::Boolean).returns(Layer) }
+
+  def get_layer(user, layer_name, log_exposure = true)
     @err_boundary.capture(-> {
       user = verify_inputs(user, layer_name, "layer_name")
 
@@ -105,12 +121,21 @@ class StatsigDriver
         # exposure logged by the server
       end
 
-      Layer.new(res.name, res.json_value, res.rule_id, lambda { |layer, parameter_name|
+      exposure_log_func = log_exposure ? lambda { |layer, parameter_name|
         @logger.log_layer_exposure(user, layer, parameter_name, res)
-      })
+      } : nil
+      Layer.new(res.name, res.json_value, res.rule_id, exposure_log_func)
     }, -> {
       Layer.new(layer_name)
     })
+  end
+
+  sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
+
+  def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
+    res = @evaluator.get_layer(user, layer_name)
+    layer = Layer.new(layer_name, res.json_value, res.rule_id)
+    @logger.log_layer_exposure(user, layer, parameter_name, res, true)
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
@@ -186,7 +211,7 @@ class StatsigDriver
     normalize_user(user)
   end
 
-  def get_config_impl(user, config_name)
+  def get_config_impl(user, config_name, log_exposure)
     res = @evaluator.get_config(user, config_name)
     if res.nil?
       res = Statsig::ConfigResult.new(config_name)
@@ -196,7 +221,9 @@ class StatsigDriver
       res = get_config_fallback(user, config_name)
       # exposure logged by the server
     else
-      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
+      if log_exposure
+        @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
+      end
     end
 
     DynamicConfig.new(res.name, res.json_value, res.rule_id)

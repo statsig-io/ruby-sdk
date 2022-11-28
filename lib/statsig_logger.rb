@@ -32,13 +32,14 @@ module Statsig
       end
     end
 
-    def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures, eval_details)
+    def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures, eval_details, is_manual_exposure = false)
       event = StatsigEvent.new($gate_exposure_event)
       event.user = user
       event.metadata = {
         'gate' => gate_name,
         'gateValue' => value.to_s,
         'ruleID' => rule_id,
+        'isManualExposure' => is_manual_exposure,
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
@@ -47,12 +48,13 @@ module Statsig
       log_event(event)
     end
 
-    def log_config_exposure(user, config_name, rule_id, secondary_exposures, eval_details)
+    def log_config_exposure(user, config_name, rule_id, secondary_exposures, eval_details, is_manual_exposure = false)
       event = StatsigEvent.new($config_exposure_event)
       event.user = user
       event.metadata = {
         'config' => config_name,
         'ruleID' => rule_id,
+        'isManualExposure' => is_manual_exposure,
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
@@ -61,7 +63,7 @@ module Statsig
       log_event(event)
     end
 
-    def log_layer_exposure(user, layer, parameter_name, config_evaluation)
+    def log_layer_exposure(user, layer, parameter_name, config_evaluation, is_manual_exposure = false)
       exposures = config_evaluation.undelegated_sec_exps
       allocated_experiment = ''
       is_explicit = (config_evaluation.explicit_parameters&.include? parameter_name) || false
@@ -78,6 +80,7 @@ module Statsig
         'allocatedExperiment' => allocated_experiment,
         'parameterName' => parameter_name,
         'isExplicitParameter' => String(is_explicit),
+        'isManualExposure' => is_manual_exposure,
       }
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
