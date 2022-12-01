@@ -97,7 +97,8 @@ class TestLogging < Minitest::Test
          "gateValue" => "true",
          "ruleID" => 'another_rule_id'
        }],
-      unrecognized_eval
+      unrecognized_eval,
+      {'is_manual_exposure' => true},
     )
 
     logger.log_config_exposure(
@@ -109,7 +110,8 @@ class TestLogging < Minitest::Test
          "gateValue" => "false",
          "ruleID" => 'another_rule_id_2'
        }],
-      override_eval
+      override_eval,
+      {'is_manual_exposure' => false},
     )
 
     logger.log_layer_exposure(
@@ -140,6 +142,7 @@ class TestLogging < Minitest::Test
         "configSyncTime" => unrecognized_eval.config_sync_time,
         'initTime' => unrecognized_eval.init_time,
         'serverTime' => unrecognized_eval.server_time,
+        'isManualExposure' => 'true',
       }, gate_exposure['metadata'])
     assert(gate_exposure['user']['userID'] == '123')
     assert(gate_exposure['user']['privateAttributes'] == nil)
@@ -158,7 +161,7 @@ class TestLogging < Minitest::Test
         "reason" => "LocalOverride",
         "configSyncTime" => override_eval.config_sync_time,
         'initTime' => override_eval.init_time,
-        'serverTime' => override_eval.server_time
+        'serverTime' => override_eval.server_time,
       }, config_exposure['metadata'])
     assert(config_exposure['user']['userID'] == '123')
     assert(config_exposure['user']['privateAttributes'] == nil)

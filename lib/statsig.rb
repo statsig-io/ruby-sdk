@@ -35,6 +35,28 @@ module Statsig
     @shared_instance&.check_gate(user, gate_name)
   end
 
+  sig { params(user: StatsigUser, gate_name: String).returns(T::Boolean) }
+  ##
+  # Gets the boolean result of a gate, evaluated against the given user.
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param gate_name The name of the gate being checked
+  def self.check_gate_with_exposure_logging_disabled(user, gate_name)
+    ensure_initialized
+    @shared_instance&.check_gate(user, gate_name, StatsigDriver::CheckGateOptions.new(log_exposure: false))
+  end
+
+  sig { params(user: StatsigUser, gate_name: String).void }
+  ##
+  # Logs an exposure event for the gate
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param gate_name The name of the gate being checked
+  def self.manually_log_gate_exposure(user, gate_name)
+    ensure_initialized
+    @shared_instance&.manually_log_gate_exposure(user, gate_name)
+  end
+
   sig { params(user: StatsigUser, dynamic_config_name: String).returns(DynamicConfig) }
   ##
   # Get the values of a dynamic config, evaluated against the given user. An exposure event will automatically be logged for the dynamic config.
@@ -44,6 +66,28 @@ module Statsig
   def self.get_config(user, dynamic_config_name)
     ensure_initialized
     @shared_instance&.get_config(user, dynamic_config_name)
+  end
+
+  sig { params(user: StatsigUser, dynamic_config_name: String).returns(DynamicConfig) }
+  ##
+  # Get the values of a dynamic config, evaluated against the given user.
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param dynamic_config_name The name of the dynamic config
+  def self.get_config_with_exposure_logging_disabled(user, dynamic_config_name)
+    ensure_initialized
+    @shared_instance&.get_config(user, dynamic_config_name, StatsigDriver::GetConfigOptions.new(log_exposure: false))
+  end
+
+  sig { params(user: StatsigUser, dynamic_config: String).void }
+  ##
+  # Logs an exposure event for the dynamic config
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param dynamic_config_name The name of the dynamic config
+  def self.manually_log_config_exposure(user, dynamic_config)
+    ensure_initialized
+    @shared_instance&.manually_log_config_exposure(user, dynamic_config)
   end
 
   sig { params(user: StatsigUser, experiment_name: String).returns(DynamicConfig) }
@@ -57,6 +101,28 @@ module Statsig
     @shared_instance&.get_experiment(user, experiment_name)
   end
 
+  sig { params(user: StatsigUser, experiment_name: String).returns(DynamicConfig) }
+  ##
+  # Get the values of an experiment, evaluated against the given user.
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param experiment_name The name of the experiment
+  def self.get_experiment_with_exposure_logging_disabled(user, experiment_name)
+    ensure_initialized
+    @shared_instance&.get_experiment(user, experiment_name, StatsigDriver::GetExperimentOptions.new(log_exposure: false))
+  end
+
+  sig { params(user: StatsigUser, experiment_name: String).void }
+  ##
+  # Logs an exposure event for the experiment
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param experiment_name The name of the experiment
+  def self.manually_log_experiment_exposure(user, experiment_name)
+    ensure_initialized
+    @shared_instance&.manually_log_config_exposure(user, experiment_name)
+  end
+
   sig { params(user: StatsigUser, layer_name: String).returns(Layer) }
   ##
   # Get the values of a layer, evaluated against the given user.
@@ -67,6 +133,29 @@ module Statsig
   def self.get_layer(user, layer_name)
     ensure_initialized
     @shared_instance&.get_layer(user, layer_name)
+  end
+
+  sig { params(user: StatsigUser, layer_name: String).returns(Layer) }
+  ##
+  # Get the values of a layer, evaluated against the given user.
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param layer_name The name of the layer
+  def self.get_layer_with_exposure_logging_disabled(user, layer_name)
+    ensure_initialized
+    @shared_instance&.get_layer(user, layer_name, StatsigDriver::GetLayerOptions.new(log_exposure: false))
+  end
+
+  sig { params(user: StatsigUser, layer_name: String, parameter_name: String).returns(Layer) }
+  ##
+  # Logs an exposure event for the parameter in the given layer
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param layer_name The name of the layer
+  # @param parameter_name The name of the parameter in the layer
+  def self.manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
+    ensure_initialized
+    @shared_instance&.manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
   end
 
   sig { params(user: StatsigUser,

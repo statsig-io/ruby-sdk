@@ -32,7 +32,7 @@ module Statsig
       end
     end
 
-    def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures, eval_details)
+    def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures, eval_details, context = nil)
       event = StatsigEvent.new($gate_exposure_event)
       event.user = user
       event.metadata = {
@@ -44,10 +44,11 @@ module Statsig
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
 
       safe_add_eval_details(eval_details, event)
+      safe_add_exposure_context(context, event)
       log_event(event)
     end
 
-    def log_config_exposure(user, config_name, rule_id, secondary_exposures, eval_details)
+    def log_config_exposure(user, config_name, rule_id, secondary_exposures, eval_details, context = nil)
       event = StatsigEvent.new($config_exposure_event)
       event.user = user
       event.metadata = {
@@ -58,10 +59,11 @@ module Statsig
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
 
       safe_add_eval_details(eval_details, event)
+      safe_add_exposure_context(context, event)
       log_event(event)
     end
 
-    def log_layer_exposure(user, layer, parameter_name, config_evaluation)
+    def log_layer_exposure(user, layer, parameter_name, config_evaluation, context = nil)
       exposures = config_evaluation.undelegated_sec_exps
       allocated_experiment = ''
       is_explicit = (config_evaluation.explicit_parameters&.include? parameter_name) || false
@@ -83,6 +85,7 @@ module Statsig
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
 
       safe_add_eval_details(config_evaluation.evaluation_details, event)
+      safe_add_exposure_context(context, event)
       log_event(event)
     end
 
@@ -143,6 +146,16 @@ module Statsig
       event.metadata['configSyncTime'] = eval_details.config_sync_time
       event.metadata['initTime'] = eval_details.init_time
       event.metadata['serverTime'] = eval_details.server_time
+    end
+
+    def safe_add_exposure_context(context, event)
+      if context.nil?
+        return
+      end
+
+      if context['is_manual_exposure']
+        event.metadata['isManualExposure'] = 'true'
+      end
     end
   end
 end
