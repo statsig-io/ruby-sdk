@@ -49,19 +49,15 @@ class StatsigDriver
     prop :log_exposure, T::Boolean, default: true
   end
 
-  sig { params(user: StatsigUser, gate_name: String, options: T.nilable(CheckGateOptions)).returns(T::Boolean) }
+  sig { params(user: StatsigUser, gate_name: String, options: CheckGateOptions).returns(T::Boolean) }
 
-  def check_gate(user, gate_name, options = nil)
+  def check_gate(user, gate_name, options = CheckGateOptions.new)
     @err_boundary.capture(-> {
       user = verify_inputs(user, gate_name, "gate_name")
 
       res = @evaluator.check_gate(user, gate_name)
       if res.nil?
         res = Statsig::ConfigResult.new(gate_name)
-      end
-      
-      if options.nil?
-        options = CheckGateOptions.new
       end
 
       if res == $fetch_from_server
@@ -90,14 +86,11 @@ class StatsigDriver
     prop :log_exposure, T::Boolean, default: true
   end
 
-  sig { params(user: StatsigUser, dynamic_config_name: String, options: T.nilable(GetConfigOptions)).returns(DynamicConfig) }
+  sig { params(user: StatsigUser, dynamic_config_name: String, options: GetConfigOptions).returns(DynamicConfig) }
 
-  def get_config(user, dynamic_config_name, options = nil)
+  def get_config(user, dynamic_config_name, options = GetConfigOptions.new)
     @err_boundary.capture(-> {
       user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
-      if options.nil?
-        options = GetConfigOptions.new
-      end
       get_config_impl(user, dynamic_config_name, options)
     }, -> { DynamicConfig.new(dynamic_config_name) })
   end
@@ -106,14 +99,11 @@ class StatsigDriver
     prop :log_exposure, T::Boolean, default: true
   end
 
-  sig { params(user: StatsigUser, experiment_name: String, options: T.nilable(GetExperimentOptions)).returns(DynamicConfig) }
+  sig { params(user: StatsigUser, experiment_name: String, options: GetExperimentOptions).returns(DynamicConfig) }
 
-  def get_experiment(user, experiment_name, options = nil)
+  def get_experiment(user, experiment_name, options = GetExperimentOptions.new)
     @err_boundary.capture(-> {
       user = verify_inputs(user, experiment_name, "experiment_name")
-      if options.nil?
-        options = GetExperimentOptions.new
-      end
       get_config_impl(user, experiment_name, options)
     }, -> { DynamicConfig.new(experiment_name) })
   end
@@ -130,9 +120,9 @@ class StatsigDriver
     prop :log_exposure, T::Boolean, default: true
   end
 
-  sig { params(user: StatsigUser, layer_name: String, options: T.nilable(GetLayerOptions)).returns(Layer) }
+  sig { params(user: StatsigUser, layer_name: String, options: GetLayerOptions).returns(Layer) }
 
-  def get_layer(user, layer_name, options = nil)
+  def get_layer(user, layer_name, options = GetLayerOptions.new)
     @err_boundary.capture(-> {
       user = verify_inputs(user, layer_name, "layer_name")
 
@@ -149,9 +139,6 @@ class StatsigDriver
         # exposure logged by the server
       end
       
-      if options.nil?
-        options = GetLayerOptions.new
-      end
       exposure_log_func = options.log_exposure ? lambda { |layer, parameter_name|
         @logger.log_layer_exposure(user, layer, parameter_name, res)
       } : nil
