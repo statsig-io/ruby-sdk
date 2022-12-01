@@ -74,7 +74,8 @@ class StatsigDriver
 
   def manually_log_gate_exposure(user, gate_name)
     res = @evaluator.check_gate(user, gate_name)
-    @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, true)
+    context = {'is_manual_exposure' => true}
+    @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
   end
 
   sig { params(user: StatsigUser, dynamic_config_name: String, log_exposure: T::Boolean).returns(DynamicConfig) }
@@ -99,7 +100,8 @@ class StatsigDriver
 
   def manually_log_config_exposure(user, config_name)
     res = @evaluator.get_config(user, config_name)
-    @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, true)
+    context = {'is_manual_exposure' => true}
+    @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
   end
 
   sig { params(user: StatsigUser, layer_name: String, log_exposure: T::Boolean).returns(Layer) }
@@ -135,7 +137,8 @@ class StatsigDriver
   def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
     res = @evaluator.get_layer(user, layer_name)
     layer = Layer.new(layer_name, res.json_value, res.rule_id)
-    @logger.log_layer_exposure(user, layer, parameter_name, res, true)
+    context = {'is_manual_exposure' => true}
+    @logger.log_layer_exposure(user, layer, parameter_name, res, context)
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
