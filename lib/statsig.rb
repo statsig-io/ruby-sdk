@@ -43,7 +43,7 @@ module Statsig
   # @param gate_name The name of the gate being checked
   def self.check_gate_with_exposure_logging_disabled(user, gate_name)
     ensure_initialized
-    @shared_instance&.check_gate(user, gate_name, false)
+    @shared_instance&.check_gate(user, gate_name, StatsigDriver::CheckGateOptions.new(log_exposure: false))
   end
 
   sig { params(user: StatsigUser, gate_name: String).void }
@@ -76,7 +76,7 @@ module Statsig
   # @param dynamic_config_name The name of the dynamic config
   def self.get_config_with_exposure_logging_disabled(user, dynamic_config_name)
     ensure_initialized
-    @shared_instance&.get_config(user, dynamic_config_name, false)
+    @shared_instance&.get_config(user, dynamic_config_name, StatsigDriver::GetConfigOptions.new(log_exposure: false))
   end
 
   sig { params(user: StatsigUser, dynamic_config: String).void }
@@ -109,7 +109,7 @@ module Statsig
   # @param experiment_name The name of the experiment
   def self.get_experiment_with_exposure_logging_disabled(user, experiment_name)
     ensure_initialized
-    @shared_instance&.get_experiment(user, experiment_name, false)
+    @shared_instance&.get_experiment(user, experiment_name, StatsigDriver::GetExperimentOptions.new(log_exposure: false))
   end
 
   sig { params(user: StatsigUser, experiment_name: String).void }
@@ -143,7 +143,7 @@ module Statsig
   # @param layer_name The name of the layer
   def self.get_layer_with_exposure_logging_disabled(user, layer_name)
     ensure_initialized
-    @shared_instance&.get_layer(user, layer_name, false)
+    @shared_instance&.get_layer(user, layer_name, StatsigDriver::GetLayerOptions.new(log_exposure: false))
   end
 
   sig { params(user: StatsigUser, layer_name: String, parameter_name: String).returns(Layer) }
