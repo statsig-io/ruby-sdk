@@ -76,7 +76,6 @@ class TestConcurrency < Minitest::Test
           layer = Statsig.get_layer(user, 'a_layer')
           assert(layer.get('layer_param', false) == true)
           assert(%w[control test].include?(layer.get('experiment_param', 'default')))
-          sleep 0.01
           end
         end
     end
@@ -84,10 +83,12 @@ class TestConcurrency < Minitest::Test
     threads.each(&:join)
     Statsig.shutdown
 
+    sleep 0.01
+
     # 110000 total, some will be discarded due to max concurrency
     # A single server running the server SDK is unlikely to post 100000+ events/exposures in a matter of seconds
     # This test is primarily concerned with ensuring there are no deadlocks or exceptions from concurrent access
-    assert_operator 90000, :<, @@flushed_event_count
+    assert_operator @@flushed_event_count, :>, 90000
   end
 
   def teardown
