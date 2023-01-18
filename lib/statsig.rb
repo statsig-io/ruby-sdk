@@ -21,6 +21,8 @@ module Statsig
       return @shared_instance
     end
 
+    self.bind_sorbet_loggers(options)
+
     @shared_instance = StatsigDriver.new(secret_key, options, error_callback)
   end
 
@@ -237,20 +239,30 @@ module Statsig
     end
   end
 
-  T::Configuration.call_validation_error_handler = lambda do |signature, opts|
-    puts "[Type Error] " + opts[:pretty_message]
-  end
+  sig { params(options: T.any(StatsigOptions, NilClass)).void }
 
-  T::Configuration.inline_type_error_handler = lambda do |error, opts|
-    puts "[Type Error] " + error.message
-  end
+  def self.bind_sorbet_loggers(options)
+    if options&.disable_sorbet_logging_handlers == true
+      return
+    end
 
-  T::Configuration.sig_builder_error_handler = lambda do |error, location|
-    puts "[Type Error] " + error.message
-  end
+    T::Configuration.call_validation_error_handler = lambda do |signature, opts|
+      puts "[Type Error] " + opts[:pretty_message]
+    end
 
-  T::Configuration.sig_validation_error_handler = lambda do |error, opts|
-    puts "[Type Error] " + error.message
+    T::Configuration.inline_type_error_handler = lambda do |error, opts|
+      puts "[Type Error] " + error.message
+    end
+
+    T::Configuration.sig_builder_error_handler = lambda do |error, location|
+      puts "[Type Error] " + error.message
+    end
+
+    T::Configuration.sig_validation_error_handler = lambda do |error, opts|
+      puts "[Type Error] " + error.message
+    end
+
+    return
   end
 
 end
