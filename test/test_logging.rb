@@ -34,7 +34,8 @@ class TestLogging < Minitest::Test
       end
     end
 
-    net = Statsig::Network.new('secret-abc', 'https://test_retrying_failed_logs.net/v1/', false)
+    options = StatsigOptions.new(nil, 'https://test_retrying_failed_logs.net/v1/', local_mode: false)
+    net = Statsig::Network.new('secret-abc', options)
     logger = Statsig::StatsigLogger.new(net, StatsigOptions.new)
     logger.log_event(StatsigEvent.new("my_event"))
 
@@ -51,7 +52,8 @@ class TestLogging < Minitest::Test
   def test_non_blocking_log
     stub_request(:post, "https://test_non_blocking_log.net/v1/log_event").to_return(status: 500)
 
-    net = Statsig::Network.new('secret-abc', 'https://test_non_blocking_log.net/v1/', false)
+    options = StatsigOptions.new(nil, 'https://test_non_blocking_log.net/v1/', local_mode: false)
+    net = Statsig::Network.new('secret-abc', options)
     logger = Statsig::StatsigLogger.new(net, StatsigOptions.new(logging_max_buffer_size: 2))
 
     called = false
@@ -75,7 +77,8 @@ class TestLogging < Minitest::Test
     stub_request(:post, "https://statsigapi.net/v1/download_config_specs").to_return(status: 500)
     stub_request(:post, "https://statsigapi.net/v1/get_id_lists").to_return(status: 500)
 
-    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', true)
+    options = StatsigOptions.new(nil, 'https://statsigapi.net/v1/', local_mode: true)
+    net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_logs).and_return
     @statsig_metadata = {
       'sdkType' => 'ruby-server',

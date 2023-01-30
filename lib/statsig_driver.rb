@@ -36,7 +36,7 @@ class StatsigDriver
       @options = options || StatsigOptions.new
       @shutdown = false
       @secret_key = secret_key
-      @net = Statsig::Network.new(secret_key, @options.api_url_base, @options.local_mode)
+      @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options)
       @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @init_diagnostics)
       @init_diagnostics.mark("overall", "end")
