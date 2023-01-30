@@ -12,7 +12,7 @@ class InitDiagnosticsTest < Minitest::Test
   def setup
     super
     WebMock.enable!
-    json_file = File.read("#{__dir__}/download_config_specs.json")
+    json_file = File.read("#{__dir__}/data/download_config_specs.json")
     @mock_response = JSON.parse(json_file).to_json
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)

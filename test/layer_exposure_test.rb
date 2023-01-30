@@ -13,7 +13,7 @@ class LayerExposureTest < Minitest::Test
   def before_setup
     super
 
-    json_file = File.read("#{__dir__}/layer_exposure_download_config_specs.json")
+    json_file = File.read("#{__dir__}/data/layer_exposure_download_config_specs.json")
     @mock_response = JSON.parse(json_file).to_json
     @options = StatsigOptions.new(disable_diagnostics_logging: true)
 
@@ -25,6 +25,11 @@ class LayerExposureTest < Minitest::Test
 
   def setup
     WebMock.enable!
+  end
+
+  def teardown
+    super
+    WebMock.disable!
   end
 
   def test_does_not_log_on_get_layer
@@ -144,10 +149,5 @@ class LayerExposureTest < Minitest::Test
           ),
         ]),
       :times => 1)
-  end
-
-  def teardown
-    super
-    WebMock.disable!
   end
 end

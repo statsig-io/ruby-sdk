@@ -1,0 +1,137 @@
+{
+  "dynamic_configs": [],
+  "feature_gates": [
+    {
+      "name": "a_gate",
+      "type": "feature_gate",
+      "salt": "86e45749-156e-4cec-a3dc-23e38116668a",
+      "enabled": true,
+      "defaultValue": false,
+      "rules": [
+        {
+          "name": "6Gmxd96BHfQ7bEeG6aHuGK",
+          "groupName": "Statsig Employee",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": [
+                "@statsig"
+              ],
+              "operator": "str_contains_any",
+              "field": "email",
+              "additionalValues": {},
+              "isDeviceBased": true,
+              "idType": "stableID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6Gmxd96BHfQ7bEeG6aHuGK",
+          "salt": "44effbc9-bc90-4cd2-8f45-a4b3ccef495d",
+          "isDeviceBased": true,
+          "idType": "stableID"
+        },
+        {
+          "name": "6GmxdcqGBQ95OtkxiqyLiO",
+          "groupName": "Plays",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": [
+                "yes"
+              ],
+              "operator": "any",
+              "field": "plays_league",
+              "additionalValues": {
+                "custom_field": "plays_league"
+              },
+              "isDeviceBased": true,
+              "idType": "stableID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6GmxdcqGBQ95OtkxiqyLiO",
+          "salt": "4df8199c-f5c1-46e1-9691-1fa2416a2ada",
+          "isDeviceBased": true,
+          "idType": "stableID"
+        },
+        {
+          "name": "6GmxdfKLwqs4riqouGq1US",
+          "groupName": "Is Hax",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "environment_field",
+              "targetValue": [
+                "hax"
+              ],
+              "operator": "any",
+              "field": "tier",
+              "additionalValues": {},
+              "isDeviceBased": true,
+              "idType": "stableID"
+            }
+          ],
+          "returnValue": true,
+          "id": "6GmxdfKLwqs4riqouGq1US",
+          "salt": "392d7074-d1e7-4669-bcd2-f5b9e67f35d9",
+          "isDeviceBased": true,
+          "idType": "stableID"
+        },
+        {
+          "name": "4pWt5f90wUKOS0g6riAYTK",
+          "groupName": "Not This User",
+          "passPercentage": 0,
+          "conditions": [
+            {
+              "type": "user_field",
+              "targetValue": [
+                "this_user_fails"
+              ],
+              "operator": "any",
+              "field": "userID",
+              "additionalValues": {},
+              "isDeviceBased": true,
+              "idType": "stableID"
+            }
+          ],
+          "returnValue": true,
+          "id": "4pWt5f90wUKOS0g6riAYTK",
+          "salt": "e6be41c2-7abf-47a2-acef-27381693ab04",
+          "isDeviceBased": true,
+          "idType": "stableID"
+        },
+        {
+          "name": "1Vd874zYXhzzeBCKygFmNp:50.00:2",
+          "groupName": "10 Percent",
+          "passPercentage": 10,
+          "conditions": [
+            {
+              "type": "public",
+              "targetValue": null,
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": true,
+              "idType": "stableID"
+            }
+          ],
+          "returnValue": true,
+          "id": "1Vd874zYXhzzeBCKygFmNp:50.00:2",
+          "salt": "22f13341-8a7d-42ba-bea9-fc79fd529445",
+          "isDeviceBased": true,
+          "idType": "stableID"
+        }
+      ],
+      "isDeviceBased": true,
+      "idType": "stableID",
+      "entity": "feature_gate"
+    }
+  ],
+  "id_lists": {},
+  "layers": {},
+  "layer_configs": [],
+  "has_updates": true,
+  "time": 1675097746668
+}

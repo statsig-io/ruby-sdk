@@ -1,6 +1,7 @@
 # typed: true
 
 require 'sorbet-runtime'
+require 'json'
 
 ##
 #  The user object to be evaluated against your Statsig configurations (gates/experiments/dynamic configs).
@@ -62,17 +63,24 @@ class StatsigUser
   sig { params(user_hash: T.any(T::Hash[T.any(String, Symbol), T.untyped], NilClass)).void }
 
   def initialize(user_hash)
-    @user_id = from_hash(user_hash, [:user_id, :userID], String)
-    @email = from_hash(user_hash, [:email], String)
-    @ip = from_hash(user_hash, [:ip], String)
-    @user_agent = from_hash(user_hash, [:user_agent, :userAgent], String)
-    @country = from_hash(user_hash, [:country], String)
-    @locale = from_hash(user_hash, [:locale], String)
-    @app_version = from_hash(user_hash, [:app_version, :appVersion], String)
-    @custom = from_hash(user_hash, [:custom], Hash)
-    @private_attributes = from_hash(user_hash, [:private_attributes, :privateAttributes], Hash)
-    @custom_ids = from_hash(user_hash, [:custom_ids, :customIDs], Hash)
-    @statsig_environment = from_hash(user_hash, [:statsig_environment, :statsigEnvironment], Hash)
+    the_hash = user_hash
+    begin
+      the_hash = JSON.parse(user_hash&.to_json || "")
+    rescue
+      puts 'Failed to clone user hash'
+    end
+
+    @user_id = from_hash(the_hash, [:user_id, :userID], String)
+    @email = from_hash(the_hash, [:email], String)
+    @ip = from_hash(the_hash, [:ip], String)
+    @user_agent = from_hash(the_hash, [:user_agent, :userAgent], String)
+    @country = from_hash(the_hash, [:country], String)
+    @locale = from_hash(the_hash, [:locale], String)
+    @app_version = from_hash(the_hash, [:app_version, :appVersion], String)
+    @custom = from_hash(the_hash, [:custom], Hash)
+    @private_attributes = from_hash(the_hash, [:private_attributes, :privateAttributes], Hash)
+    @custom_ids = from_hash(the_hash, [:custom_ids, :customIDs], Hash)
+    @statsig_environment = from_hash(the_hash, [:statsig_environment, :statsigEnvironment], Hash)
   end
 
   def serialize(for_logging)

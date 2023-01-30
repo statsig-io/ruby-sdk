@@ -35,7 +35,7 @@ class UserFieldsTest < Minitest::Test
         country: 'NZ',
         locale: 'en_US',
         app_version: '3.2.1',
-        custom: { is_new: false },
+        custom: { is_new: false, level: 2 },
         private_attributes: { secret_info: "shh" },
         custom_ids: { work_id: 'an-employee' },
         statsig_environment: { tier: 'production' }
@@ -48,7 +48,7 @@ class UserFieldsTest < Minitest::Test
         :country => 'NZ',
         :locale => 'en_US',
         :app_version => '3.2.1',
-        :custom => { :is_new => false },
+        :custom => { :is_new => false, :level => 2 },
         :private_attributes => { :secret_info => "shh" },
         :custom_ids => { :work_id => 'an-employee' },
         :statsig_environment => { :tier => 'production' }
@@ -61,7 +61,7 @@ class UserFieldsTest < Minitest::Test
         :country => 'NZ',
         :locale => 'en_US',
         :appVersion => '3.2.1',
-        :custom => { :is_new => false },
+        :custom => { :is_new => false, :level => 2 },
         :privateAttributes => { :secret_info => "shh" },
         :customIDs => { :work_id => 'an-employee' },
         :statsigEnvironment => { :tier => 'production' }
@@ -74,7 +74,7 @@ class UserFieldsTest < Minitest::Test
         "country" => 'NZ',
         "locale" => 'en_US',
         "appVersion" => '3.2.1',
-        "custom" => { :is_new => false },
+        "custom" => { :is_new => false, :level => 2 },
         "privateAttributes" => { :secret_info => "shh" },
         "customIDs" => { :work_id => 'an-employee' },
         "statsigEnvironment" => { :tier => 'production' }
@@ -92,10 +92,10 @@ class UserFieldsTest < Minitest::Test
       assert_equal("NZ", user.country)
       assert_equal("en_US", user.locale)
       assert_equal("3.2.1", user.app_version)
-      assert_equal({ is_new: false }, user.custom)
-      assert_equal({ secret_info: "shh" }, user.private_attributes)
-      assert_equal({ work_id: 'an-employee' }, user.custom_ids)
-      assert_equal({ tier: 'production' }, user.statsig_environment)
+      assert_equal({ "is_new" => false, "level" => 2 }, user.custom)
+      assert_equal({ "secret_info" => "shh" }, user.private_attributes)
+      assert_equal({ "work_id" => 'an-employee' }, user.custom_ids)
+      assert_equal({ "tier" => 'production' }, user.statsig_environment)
     end
 
     assert_equal(hashes.length, runs)
@@ -128,6 +128,31 @@ class UserFieldsTest < Minitest::Test
     assert_nil(user.private_attributes)
     assert_nil(user.custom_ids)
     assert_nil(user.statsig_environment)
+  end
+
+  def test_various_primitives_from_hash
+    user = StatsigUser.new(
+      {
+        userID: "a-user",
+        custom:
+          {
+            a_string: "a_string_value",
+            a_bool: true,
+            an_int: 123,
+            a_double: 4.56,
+            an_array: [1, 2, 3],
+            an_object: { key: "value" }
+          }
+      })
+
+    custom = T.must(user.custom)
+
+    assert_equal("a_string_value", custom["a_string"])
+    assert_equal(true, custom["a_bool"])
+    assert_equal(123, custom["an_int"])
+    assert_equal(4.56, custom["a_double"])
+    assert_equal([1, 2, 3], custom["an_array"])
+    assert_equal({ "key" => "value" }, custom["an_object"])
   end
 
   def test_serializing

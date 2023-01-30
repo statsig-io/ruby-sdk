@@ -12,7 +12,7 @@ class EvaluationDetailsTest < Minitest::Test
   def setup
     super
     WebMock.enable!
-    @json_file = File.read("#{__dir__}/download_config_specs.json")
+    @json_file = File.read("#{__dir__}/data/download_config_specs.json")
     @mock_response = JSON.parse(@json_file).to_json
     @user = StatsigUser.new({ 'user_id' => 'a-user' })
 

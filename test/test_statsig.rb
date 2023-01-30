@@ -5,7 +5,7 @@ require 'statsig'
 require 'webmock/minitest'
 
 class TestStatsig < Minitest::Test
-  @@json_file = File.read("#{__dir__}/download_config_specs.json")
+  @@json_file = File.read("#{__dir__}/data/download_config_specs.json")
 
   def before_setup
     super

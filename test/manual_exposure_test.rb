@@ -13,7 +13,7 @@ class ManualExposureTest < Minitest::Test
   def before_setup
     super
 
-    json_file = File.read("#{__dir__}/download_config_specs.json")
+    json_file = File.read("#{__dir__}/data/download_config_specs.json")
     @mock_response = JSON.parse(json_file).to_json
 
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)

@@ -8,7 +8,7 @@ require 'dynamic_config'
 require 'layer'
 
 class TestConcurrency < Minitest::Test
-  json_file = File.read("#{__dir__}/download_config_specs.json")
+  json_file = File.read("#{__dir__}/data/download_config_specs.json")
   @@mock_response = JSON.parse(json_file).to_json
 
   @@flushed_event_count = 0

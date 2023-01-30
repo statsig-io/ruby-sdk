@@ -18,7 +18,7 @@ require 'layer'
 $expected_sync_time = 1631638014811
 
 class StatsigE2ETest < Minitest::Test
-  @@json_file = File.read("#{__dir__}/download_config_specs.json")
+  @@json_file = File.read("#{__dir__}/data/download_config_specs.json")
   @@mock_response = JSON.parse(@@json_file).to_json
 
   def before_setup

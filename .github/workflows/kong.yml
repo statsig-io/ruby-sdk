@@ -13,10 +13,13 @@ jobs:
   KONG:
     timeout-minutes: 5
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [ 2.5.0, 3.2.0 ]
     steps:
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 2.5.0
+          ruby-version: ${{ matrix.version }}
 
       - name: Get KONG
         run: |
