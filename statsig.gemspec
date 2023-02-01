@@ -21,5 +21,5 @@ Gem::Specification.new do |s|
     s.add_runtime_dependency 'ip3country', '0.1.1'
     s.add_runtime_dependency 'sorbet-runtime', '~> 0.5.10461'
     s.add_runtime_dependency 'concurrent-ruby', '~> 1.1'
-    s.add_runtime_dependency 'sinatra', '~> 3.0'
+    s.add_runtime_dependency 'sinatra', '~> 2.2'
 end
