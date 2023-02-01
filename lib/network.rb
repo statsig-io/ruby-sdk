@@ -20,7 +20,7 @@ module Statsig
   class Network
     extend T::Sig
 
-    sig { params(server_secret: String, options: T.any(StatsigOptions, NilClass), backoff_mult: Integer).void }
+    sig { params(server_secret: String, options: StatsigOptions, backoff_mult: Integer).void }
 
     def initialize(server_secret, options, backoff_mult = 10)
       super()

@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 require 'minitest'
 require 'minitest/autorun'
 require 'spy'
