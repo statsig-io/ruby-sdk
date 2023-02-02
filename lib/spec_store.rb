@@ -8,8 +8,6 @@ require 'concurrent-ruby'
 module Statsig
   class SpecStore
 
-    CONFIG_SPECS_KEY = "statsig.cache"
-
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
@@ -133,7 +131,7 @@ module Statsig
     private
 
     def load_from_storage_adapter
-      cached_values = @options.data_store.get(CONFIG_SPECS_KEY)
+      cached_values = @options.data_store.get(Interfaces::IDataStore::CONFIG_SPECS_KEY)
       if cached_values.nil?
         return
       end
@@ -145,14 +143,18 @@ module Statsig
       if @options.data_store.nil?
         return
       end
-      @options.data_store.set(CONFIG_SPECS_KEY, specs_string)
+      @options.data_store.set(Interfaces::IDataStore::CONFIG_SPECS_KEY, specs_string)
     end
 
     def sync_config_specs
       Thread.new do
         loop do
           sleep @options.rulesets_sync_interval
-          download_config_specs
+          if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
+            load_from_storage_adapter
+          else
+            download_config_specs
+          end
         end
       end
     end

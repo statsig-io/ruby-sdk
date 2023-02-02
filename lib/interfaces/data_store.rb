@@ -2,6 +2,8 @@
 module Statsig
   module Interfaces
     class IDataStore
+      CONFIG_SPECS_KEY = "statsig.cache"
+
       def init
       end
 
@@ -13,6 +15,14 @@ module Statsig
       end
 
       def shutdown
+      end
+
+      ##
+      # Determines whether the SDK should poll for updates from
+      # the data adapter (instead of Statsig network) for the given key
+      #
+      # @param key Key of stored item to poll from data adapter
+      def should_be_used_for_querying_updates(key)
       end
     end
   end

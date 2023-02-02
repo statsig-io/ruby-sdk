@@ -70,4 +70,21 @@ class StatsigDataAdapterTest < Minitest::Test
     result = driver.check_gate(@user, "always_on_gate")
     assert(result == false)
   end
+
+  def test_datastore_used_for_polling
+    options = StatsigOptions.new(rulesets_sync_interval: 1, local_mode: true)
+    options.data_store = DummyDataAdapter.new(poll_config_specs: true)
+    driver = StatsigDriver.new('secret-testcase', options)
+
+    result = driver.check_gate(@user, "gate_from_adapter")
+    assert(result == true)
+    
+    options.data_store.clear_store()
+
+    sleep 1
+    
+    result = driver.check_gate(@user, "gate_from_adapter")
+    assert(result == false)
+  end
+
 end

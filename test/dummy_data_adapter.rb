@@ -3,6 +3,12 @@ require 'interfaces/data_store'
 
 class DummyDataAdapter < Statsig::Interfaces::IDataStore
   attr_accessor :store
+  attr_accessor :poll_config_specs
+
+  def initialize(poll_config_specs: false)
+    @poll_config_specs = poll_config_specs
+  end
+
   def init
     @store = {
       'statsig.cache' => {
@@ -41,5 +47,24 @@ class DummyDataAdapter < Statsig::Interfaces::IDataStore
 
   def shutdown
     @store = {}
+  end
+
+  def should_be_used_for_querying_updates(key)
+    if key == Statsig::Interfaces::IDataStore::CONFIG_SPECS_KEY
+      return @poll_config_specs
+    end
+    return false
+  end
+
+  def clear_store
+    @store = {
+      'statsig.cache' => {
+        'feature_gates' => [],
+        'dynamic_configs' => [],
+        'layer_configs' => [],
+        'has_updates' => true,
+        'last_update_time' => 1,
+      }.to_json
+    }
   end
 end
