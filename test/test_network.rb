@@ -25,10 +25,16 @@ class TestNetwork < Minitest::Test
     WebMock.enable!
   end
 
+  def teardown
+    super
+    WebMock.disable!
+  end
+  
   def test_retries_succeed
     stub_request(:post, "https://statsigapi.net/v1/log_event").to_return(status: lambda { |req| status_lambda(req) }, body: "hello")
 
-    @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
+    options = StatsigOptions.new(local_mode: false)
+    @net = Statsig::Network.new('secret-abc', options, 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
     res, _ = @net.post_helper('log_event', "{}", 5, 1)
@@ -40,7 +46,8 @@ class TestNetwork < Minitest::Test
 
   def test_logs_statsig_headers
     stub_request(:post, "https://statsigapi.net/v1/log_event").to_return(status: 200)
-    net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false)
+    options = StatsigOptions.new(local_mode: false)
+    net = Statsig::Network.new('secret-abc', options)
     net.post_helper('log_event', "{}", 5, 1)
     meta = Statsig.get_statsig_metadata
     assert_requested(:post, 'https://statsigapi.net/v1/log_event', :headers => {
@@ -53,17 +60,13 @@ class TestNetwork < Minitest::Test
   def test_retry_until_out_of_retries
     stub_request(:post, "https://statsigapi.net/v1/log_event").to_raise(StandardError)
 
-    @net = Statsig::Network.new('secret-abc', 'https://statsigapi.net/v1/', false, 1)
+    options = StatsigOptions.new(local_mode: false)
+    @net = Statsig::Network.new('secret-abc', options, 1)
     spy = Spy.on(@net, :post_helper).and_call_through
 
     res, e = @net.post_helper('log_event', "{}", 5, 1)
     assert(res.nil?)
     assert(spy.calls.size == 6)
     assert(!e.nil?)
-  end
-
-  def teardown
-    super
-    WebMock.disable!
   end
 end

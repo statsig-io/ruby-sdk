@@ -75,6 +75,10 @@ class StatsigOptions
   # default: false
   attr_accessor :disable_sorbet_logging_handlers
 
+  sig { returns(T.any(Integer, NilClass)) }
+  # Number of seconds before a network call is timed out
+  attr_accessor :network_timeout
+
   sig do
     params(
       environment: T.any(T::Hash[String, String], NilClass),
@@ -89,7 +93,8 @@ class StatsigOptions
       data_store: T.any(Statsig::Interfaces::IDataStore, NilClass),
       idlist_threadpool_size: Integer,
       disable_diagnostics_logging: T::Boolean,
-      disable_sorbet_logging_handlers: T::Boolean
+      disable_sorbet_logging_handlers: T::Boolean,
+      network_timeout: T.any(Integer, NilClass)
     ).void
   end
 
@@ -106,7 +111,8 @@ class StatsigOptions
     data_store: nil,
     idlist_threadpool_size: 3,
     disable_diagnostics_logging: false,
-    disable_sorbet_logging_handlers: false)
+    disable_sorbet_logging_handlers: false,
+    network_timeout: nil)
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
     @rulesets_sync_interval = rulesets_sync_interval
@@ -120,5 +126,6 @@ class StatsigOptions
     @idlist_threadpool_size = idlist_threadpool_size
     @disable_diagnostics_logging = disable_diagnostics_logging
     @disable_sorbet_logging_handlers = disable_sorbet_logging_handlers
+    @network_timeout = network_timeout
   end
 end

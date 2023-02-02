@@ -20,16 +20,18 @@ module Statsig
   class Network
     extend T::Sig
 
-    sig { params(server_secret: String, api: String, local_mode: T::Boolean, backoff_mult: Integer).void }
+    sig { params(server_secret: String, options: StatsigOptions, backoff_mult: Integer).void }
 
-    def initialize(server_secret, api, local_mode, backoff_mult = 10)
+    def initialize(server_secret, options, backoff_mult = 10)
       super()
+      api = options.api_url_base
       unless api.end_with?('/')
         api += '/'
       end
       @server_secret = server_secret
       @api = api
-      @local_mode = local_mode
+      @local_mode = options.local_mode
+      @timeout = options.network_timeout
       @backoff_multiplier = backoff_mult
       @session_id = SecureRandom.uuid
     end
@@ -52,6 +54,9 @@ module Statsig
           "STATSIG-SDK-TYPE" => meta['sdkType'],
           "STATSIG-SDK-VERSION" => meta['sdkVersion'],
         }).accept(:json)
+      if @timeout
+        http = http.timeout(@timeout)
+      end
       begin
         res = http.post(@api + endpoint, body: body)
       rescue StandardError => e
