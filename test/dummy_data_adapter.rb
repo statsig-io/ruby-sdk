@@ -49,7 +49,7 @@ class DummyDataAdapter < Statsig::Interfaces::IDataStore
     @store = {}
   end
 
-  def should_be_used_for_polling(key)
+  def should_be_used_for_querying_updates(key)
     if key == Statsig::Interfaces::IDataStore::CONFIG_SPECS_KEY
       return @poll_config_specs
     end

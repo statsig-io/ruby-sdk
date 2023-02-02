@@ -150,7 +150,7 @@ module Statsig
       Thread.new do
         loop do
           sleep @options.rulesets_sync_interval
-          if @options.data_store&.should_be_used_for_polling(Interfaces::IDataStore::CONFIG_SPECS_KEY)
+          if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
             load_from_storage_adapter
           else
             download_config_specs
