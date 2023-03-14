@@ -3,6 +3,7 @@ module Statsig
   module Interfaces
     class IDataStore
       CONFIG_SPECS_KEY = "statsig.cache"
+      ID_LISTS_KEY = "statsig.id_lists"
 
       def init
       end

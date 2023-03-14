@@ -139,11 +139,17 @@ class InitDiagnosticsTest < Minitest::Test
     markers = metadata['markers']
     assert_marker_equal(markers[0], "overall", "start")
     assert_marker_equal(markers[1], "data_store", "start", "load")
-    assert_marker_equal(markers[2], "data_store", "end", "load", true)
-    assert_marker_equal(markers[3], "get_id_lists", "start", "network_request")
-    assert_marker_equal(markers[4], "get_id_lists", "end", "network_request", 200)
-    assert_marker_equal(markers[5], "overall", "end")
-    assert_equal(6, markers.length)
+    assert_marker_equal(markers[2], "download_config_specs", "start", "fetch_from_adapter")
+    assert_marker_equal(markers[3], "download_config_specs", "end", "fetch_from_adapter", true)
+    assert_marker_equal(markers[4], "download_config_specs", "start", "process")
+    assert_marker_equal(markers[5], "download_config_specs", "end", "process", "DataAdapter")
+    assert_marker_equal(markers[6], "data_store", "end", "load", true)
+    assert_marker_equal(markers[7], "get_id_lists", "start", "fetch_from_adapter")
+    assert_marker_equal(markers[8], "get_id_lists", "end", "fetch_from_adapter", true)
+    assert_marker_equal(markers[9], "get_id_lists", "start", "process", 1)
+    assert_marker_equal(markers[10], "get_id_lists", "end", "process", true)
+    assert_marker_equal(markers[11], "overall", "end")
+    assert_equal(12, markers.length)
   end
 
   private
