@@ -393,7 +393,7 @@ module Statsig
     end
 
     def process_single_id_list(list, content, content_length = nil)
-      nil unless list.is_a? IDList
+      false unless list.is_a? IDList
       begin
         unless content.is_a?(String) && (content[0] == '-' || content[0] == '+')
           @specs[:id_lists].delete(list.name)
@@ -418,9 +418,9 @@ module Statsig
                     else
                       list.size + content_length
                     end
-        true
+        return true
       rescue
-        nil
+        return false
       end
     end
   end
