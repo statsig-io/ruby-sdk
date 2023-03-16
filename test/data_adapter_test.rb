@@ -1,4 +1,5 @@
 # typed: false
+
 require 'minitest'
 require 'minitest/autorun'
 require 'statsig'
@@ -7,8 +8,6 @@ require 'statsig_user'
 require_relative './dummy_data_adapter'
 
 class StatsigDataAdapterTest < Minitest::Test
-
-
   def setup
     super
     WebMock.enable!
@@ -18,7 +17,10 @@ class StatsigDataAdapterTest < Minitest::Test
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
-    @user = StatsigUser.new({'userID' => 'a_user'})
+    @user = StatsigUser.new({ 'userID' => 'a_user' })
+    @user_in_idlist_1 = StatsigUser.new({ 'userID' => 'a-user' })
+    @user_in_idlist_2 = StatsigUser.new({ 'userID' => 'b-user' })
+    @user_not_in_idlist = StatsigUser.new({ 'userID' => 'c-user' })
   end
 
   def teardown
@@ -72,19 +74,53 @@ class StatsigDataAdapterTest < Minitest::Test
   end
 
   def test_datastore_used_for_polling
-    options = StatsigOptions.new(rulesets_sync_interval: 1, local_mode: true)
-    options.data_store = DummyDataAdapter.new(poll_config_specs: true)
+    options = StatsigOptions.new(rulesets_sync_interval: 1, idlists_sync_interval: 1, local_mode: true)
+    options.data_store = DummyDataAdapter.new(poll_config_specs: true, poll_id_lists: true)
     driver = StatsigDriver.new('secret-testcase', options)
 
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == true)
-    
-    options.data_store.clear_store()
+    result = driver.check_gate(@user_in_idlist_1, "test_id_list")
+    assert(result == true)
+    result = driver.check_gate(@user_in_idlist_2, "test_id_list")
+    assert(result == true)
+    result = driver.check_gate(@user_not_in_idlist, "test_id_list")
+    assert(result == false)
+
+    options.data_store.remove_feature_gate("gate_from_adapter")
+    options.data_store.update_id_lists
 
     sleep 1
-    
+
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == false)
+    result = driver.check_gate(@user_in_idlist_1, "test_id_list")
+    assert(result == false)
+    result = driver.check_gate(@user_in_idlist_2, "test_id_list")
+    assert(result == false)
+    result = driver.check_gate(@user_not_in_idlist, "test_id_list")
+    assert(result == true)
   end
 
+  def test_datastore_fallback_to_network
+    options = StatsigOptions.new(rulesets_sync_interval: 1, idlists_sync_interval: 1)
+    options.data_store = DummyDataAdapter.new(poll_config_specs: true, poll_id_lists: true)
+    driver = StatsigDriver.new('secret-testcase', options)
+
+    result = driver.check_gate(@user, "gate_from_adapter")
+    assert(result == true)
+    result = driver.check_gate(@user_in_idlist_1, "test_id_list")
+    assert(result == true)
+
+    options.data_store.corrupt_store
+
+    sleep 1
+
+    result = driver.check_gate(@user, "gate_from_adapter")
+    assert(result == false)
+    result = driver.check_gate(@user_in_idlist_1, "test_id_list")
+    assert(result == false)
+    result = driver.check_gate(@user, "always_on_gate")
+    assert(result == true)
+  end
 end
