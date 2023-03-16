@@ -42,7 +42,7 @@ module Statsig
             puts 'data_store gets priority over bootstrap_values. bootstrap_values will be ignored'
           else
             init_diagnostics&.mark("bootstrap", "start", "load")
-            if process(options.bootstrap_values)
+            if process_specs(options.bootstrap_values)
               @init_reason = EvaluationReason::BOOTSTRAP
             end
             init_diagnostics&.mark("bootstrap", "end", "load", @init_reason == EvaluationReason::BOOTSTRAP)
@@ -55,7 +55,7 @@ module Statsig
       unless @options.data_store.nil?
         init_diagnostics&.mark("data_store", "start", "load")
         @options.data_store.init
-        load_from_storage_adapter
+        load_config_specs_from_storage_adapter(init_diagnostics: init_diagnostics)
         init_diagnostics&.mark("data_store", "end", "load", @init_reason == EvaluationReason::DATA_ADAPTER)
       end
 
@@ -64,7 +64,11 @@ module Statsig
       end
 
       @initial_config_sync_time = @last_config_sync_time == 0 ? -1 : @last_config_sync_time
-      get_id_lists(init_diagnostics)
+      if !@options.data_store.nil?
+        get_id_lists_from_adapter(init_diagnostics)
+      else
+        get_id_lists_from_network(init_diagnostics)
+      end
 
       @config_sync_thread = sync_config_specs
       @id_lists_sync_thread = sync_id_lists
@@ -130,16 +134,23 @@ module Statsig
 
     private
 
-    def load_from_storage_adapter
+    def load_config_specs_from_storage_adapter(init_diagnostics: nil)
+      init_diagnostics&.mark("download_config_specs", "start", "fetch_from_adapter")
       cached_values = @options.data_store.get(Interfaces::IDataStore::CONFIG_SPECS_KEY)
-      if cached_values.nil?
-        return
-      end
-      process(cached_values, true)
+      init_diagnostics&.mark("download_config_specs", "end", "fetch_from_adapter", true)
+      return if cached_values.nil?
+
+      init_diagnostics&.mark("download_config_specs", "start", "process")
+      process_specs(cached_values, from_adapter: true)
       @init_reason = EvaluationReason::DATA_ADAPTER
+      init_diagnostics&.mark("download_config_specs", "end", "process", @init_reason)
+    rescue StandardError
+      # Fallback to network
+      init_diagnostics&.mark("download_config_specs", "end", "fetch_from_adapter", false)
+      download_config_specs(init_diagnostics)
     end
 
-    def save_to_storage_adapter(specs_string)
+    def save_config_specs_to_storage_adapter(specs_string)
       if @options.data_store.nil?
         return
       end
@@ -151,7 +162,7 @@ module Statsig
         loop do
           sleep @options.rulesets_sync_interval
           if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
-            load_from_storage_adapter
+            load_config_specs_from_storage_adapter
           else
             download_config_specs
           end
@@ -163,7 +174,11 @@ module Statsig
       Thread.new do
         loop do
           sleep @id_lists_sync_interval
-          get_id_lists
+          if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::ID_LISTS_KEY)
+            get_id_lists_from_adapter
+          else
+            get_id_lists_from_network
+          end
         end
       end
     end
@@ -184,7 +199,7 @@ module Statsig
           unless response.nil?
             init_diagnostics&.mark("download_config_specs", "start", "process")
 
-            if process(response.body)
+            if process_specs(response.body)
               @init_reason = EvaluationReason::NETWORK
               @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
             end
@@ -203,7 +218,7 @@ module Statsig
       @error_callback.call(error) unless error.nil? or @error_callback.nil?
     end
 
-    def process(specs_string, from_adapter = false)
+    def process_specs(specs_string, from_adapter: false)
       if specs_string.nil?
         return false
       end
@@ -238,12 +253,33 @@ module Statsig
       @specs[:experiment_to_layer] = new_exp_to_layer
 
       unless from_adapter
-        save_to_storage_adapter(specs_string)
+        save_config_specs_to_storage_adapter(specs_string)
       end
       true
     end
 
-    def get_id_lists(init_diagnostics = nil)
+    def get_id_lists_from_adapter(init_diagnostics = nil)
+      init_diagnostics&.mark("get_id_lists", "start", "fetch_from_adapter")
+      cached_values = @options.data_store.get(Interfaces::IDataStore::ID_LISTS_KEY)
+      return if cached_values.nil?
+
+      init_diagnostics&.mark("get_id_lists", "end", "fetch_from_adapter", true)
+      id_lists = JSON.parse(cached_values)
+      process_id_lists(id_lists, init_diagnostics, from_adapter: true)
+    rescue StandardError
+      # Fallback to network
+      init_diagnostics&.mark("get_id_lists", "end", "fetch_from_adapter", false)
+      get_id_lists_from_network(init_diagnostics)
+    end
+
+    def save_id_lists_to_adapter(id_lists)
+      if @options.data_store.nil?
+        return
+      end
+      @options.data_store.set(Interfaces::IDataStore::CONFIG_SPECS_KEY, JSON.generate(id_lists))
+    end
+
+    def get_id_lists_from_network(init_diagnostics = nil)
       init_diagnostics&.mark("get_id_lists", "start", "network_request")
       response, e = @network.post_helper('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
       if !e.nil? || response.nil?
@@ -253,69 +289,91 @@ module Statsig
 
       begin
         server_id_lists = JSON.parse(response)
-        local_id_lists = @specs[:id_lists]
-        if !server_id_lists.is_a?(Hash) || !local_id_lists.is_a?(Hash)
-          return
-        end
-        tasks = []
-
-        if server_id_lists.length == 0
-          return
-        end
-
-        init_diagnostics&.mark("get_id_lists", "start", "process", server_id_lists.length)
-
-        server_id_lists.each do |list_name, list|
-          server_list = IDList.new(list)
-          local_list = get_id_list(list_name)
-
-          unless local_list.is_a? IDList
-            local_list = IDList.new(list)
-            local_list.size = 0
-            local_id_lists[list_name] = local_list
-          end
-
-          # skip if server list is invalid
-          if server_list.url.nil? || server_list.creation_time < local_list.creation_time || server_list.file_id.nil?
-            next
-          end
-
-          # reset local list if server list returns a newer file
-          if server_list.file_id != local_list.file_id && server_list.creation_time >= local_list.creation_time
-            local_list = IDList.new(list)
-            local_list.size = 0
-            local_id_lists[list_name] = local_list
-          end
-
-          # skip if server list is no bigger than local list, which means nothing new to read
-          if server_list.size <= local_list.size
-            next
-          end
-
-          tasks << Concurrent::Promise.execute(:executor => @id_list_thread_pool) do
-            download_single_id_list(local_list)
-          end
-        end
-
-        result = Concurrent::Promise.all?(*tasks).execute.wait(@id_lists_sync_interval)
-        if result.state != :fulfilled
-          init_diagnostics&.mark("get_id_lists", "end", "process", false)
-          return # timed out
-        end
-
-        delete_lists = []
-        local_id_lists.each do |list_name, list|
-          unless server_id_lists.key? list_name
-            delete_lists.push list_name
-          end
-        end
-        delete_lists.each do |list_name|
-          local_id_lists.delete list_name
-        end
-        init_diagnostics&.mark("get_id_lists", "end", "process", true)
+        process_id_lists(server_id_lists, init_diagnostics)
       rescue
         # Ignored, will try again
       end
+    end
+
+    def process_id_lists(new_id_lists, init_diagnostics, from_adapter: false)
+      local_id_lists = @specs[:id_lists]
+      if !new_id_lists.is_a?(Hash) || !local_id_lists.is_a?(Hash)
+        return
+      end
+      tasks = []
+
+      if new_id_lists.length == 0
+        return
+      end
+
+      init_diagnostics&.mark("get_id_lists", "start", "process", new_id_lists.length)
+
+      new_id_lists.each do |list_name, list|
+        new_list = IDList.new(list)
+        local_list = get_id_list(list_name)
+
+        unless local_list.is_a? IDList
+          local_list = IDList.new(list)
+          local_list.size = 0
+          local_id_lists[list_name] = local_list
+        end
+
+        # skip if server list is invalid
+        if new_list.url.nil? || new_list.creation_time < local_list.creation_time || new_list.file_id.nil?
+          next
+        end
+
+        # reset local list if server list returns a newer file
+        if new_list.file_id != local_list.file_id && new_list.creation_time >= local_list.creation_time
+          local_list = IDList.new(list)
+          local_list.size = 0
+          local_id_lists[list_name] = local_list
+        end
+
+        # skip if server list is no bigger than local list, which means nothing new to read
+        if new_list.size <= local_list.size
+          next
+        end
+
+        tasks << Concurrent::Promise.execute(:executor => @id_list_thread_pool) do
+          if from_adapter
+            get_single_id_list_from_adapter(local_list)
+          else
+            download_single_id_list(local_list)
+          end
+        end
+      end
+
+      result = Concurrent::Promise.all?(*tasks).execute.wait(@id_lists_sync_interval)
+      if result.state != :fulfilled
+        init_diagnostics&.mark("get_id_lists", "end", "process", false)
+        return # timed out
+      end
+
+      delete_lists = []
+      local_id_lists.each do |list_name, list|
+        unless new_id_lists.key? list_name
+          delete_lists.push list_name
+        end
+      end
+      delete_lists.each do |list_name|
+        local_id_lists.delete list_name
+      end
+      init_diagnostics&.mark("get_id_lists", "end", "process", true)
+    end
+
+    def get_single_id_list_from_adapter(list)
+      cached_values = @options.data_store.get("#{Interfaces::IDataStore::ID_LISTS_KEY}::#{list.name}")
+      content = cached_values.to_s
+      process_single_id_list(list, content)
+    rescue StandardError
+      nil
+    end
+
+    def save_single_id_list_to_adapter(name, content)
+      return if @options.data_store.nil?
+
+      @options.data_store.set("#{Interfaces::IDataStore::ID_LISTS_KEY}::#{name}", content)
     end
 
     def download_single_id_list(list)
@@ -327,9 +385,19 @@ module Statsig
         content_length = Integer(res['content-length'])
         nil if content_length.nil? || content_length <= 0
         content = res.body.to_s
+        success = process_single_id_list(list, content, content_length)
+        save_single_id_list_to_adapter(list.name, content) unless success.nil? || !success
+      rescue
+        nil
+      end
+    end
+
+    def process_single_id_list(list, content, content_length = nil)
+      false unless list.is_a? IDList
+      begin
         unless content.is_a?(String) && (content[0] == '-' || content[0] == '+')
           @specs[:id_lists].delete(list.name)
-          return
+          return false
         end
         ids_clone = list.ids # clone the list, operate on the new list, and swap out the old list, so the operation is thread-safe
         lines = content.split(/\r?\n/)
@@ -345,9 +413,14 @@ module Statsig
           end
         end
         list.ids = ids_clone
-        list.size = list.size + content_length
+        list.size = if content_length.nil?
+                      list.size + content.bytesize
+                    else
+                      list.size + content_length
+                    end
+        return true
       rescue
-        nil
+        return false
       end
     end
   end
