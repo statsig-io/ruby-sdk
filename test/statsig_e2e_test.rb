@@ -109,7 +109,7 @@ class StatsigE2ETest < Minitest::Test
     assert(config.get('boolean', true) == false)
 
     config = driver.get_config(@random_user, 'test_config')
-    assert(config.group_name == 'default')
+    assert(config.group_name.nil?)
     assert(config.get('number', 0) == 4)
     assert(config.get('string', '') == 'default')
     assert(config.get('boolean', false) == true)

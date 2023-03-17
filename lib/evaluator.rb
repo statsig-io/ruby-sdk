@@ -64,7 +64,6 @@ module Statsig
             @spec_store.last_config_sync_time,
             @spec_store.initial_config_sync_time
           ),
-          group_name: 'local_override'
         )
       end
 
@@ -149,7 +148,6 @@ module Statsig
 
     def eval_spec(user, config)
       default_rule_id = 'default'
-      default_group_name = 'default'
       exposures = []
       if config['enabled']
         i = 0
@@ -185,7 +183,6 @@ module Statsig
         end
       else
         default_rule_id = 'disabled'
-        default_group_name = 'disabled'
       end
 
       Statsig::ConfigResult.new(
@@ -199,7 +196,7 @@ module Statsig
           @spec_store.initial_config_sync_time,
           @spec_store.init_reason
         ),
-        group_name: default_group_name
+        group_name: nil
       )
     end
 

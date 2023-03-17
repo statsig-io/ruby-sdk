@@ -23,7 +23,7 @@ module Statsig
       explicit_parameters = [],
       is_experiment_group: false,
       evaluation_details: nil,
-      group_name: '')
+      group_name: nil)
       @name = name
       @gate_value = gate_value
       @json_value = json_value
