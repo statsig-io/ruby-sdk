@@ -153,8 +153,6 @@ module Statsig
       default_rule_id = 'default'
       default_group_name = 'default'
       exposures = []
-      # puts 'config', config
-      # puts 'config idType', config['idType']
       if config['enabled']
         i = 0
         until i >= config['rules'].length do

@@ -18,16 +18,16 @@
               "operator": "str_contains_any",
               "field": "email",
               "additionalValues": {},
-              "idType": "userID"
+              "idType": "anonymousID"
             }
           ],
           "returnValue": { "number": 7, "string": "statsig", "boolean": false },
           "id": "1kNmlB23wylPFZi1M0Divl",
           "salt": "f2ac6975-174d-497e-be7f-599fea626132",
-          "idType": "userID"
+          "idType": "anonymousID"
         }
       ],
-      "idType": "userID"
+      "idType": "anonymousID"
     },
     {
       "name": "sample_experiment",
