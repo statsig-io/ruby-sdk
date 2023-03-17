@@ -17,14 +17,17 @@
               "targetValue": ["@statsig.com"],
               "operator": "str_contains_any",
               "field": "email",
-              "additionalValues": {}
+              "additionalValues": {},
+              "idType": "userID"
             }
           ],
           "returnValue": { "number": 7, "string": "statsig", "boolean": false },
           "id": "1kNmlB23wylPFZi1M0Divl",
-          "salt": "f2ac6975-174d-497e-be7f-599fea626132"
+          "salt": "f2ac6975-174d-497e-be7f-599fea626132",
+          "idType": "userID"
         }
-      ]
+      ],
+      "idType": "userID"
     },
     {
       "name": "sample_experiment",
@@ -122,7 +125,8 @@
               "field": null,
               "additionalValues": {
                 "salt": "00cddb4b-69f5-47c6-aeaa-5bac43cf45a4"
-              }
+              },
+              "idType": "userID"
             }
           ],
           "returnValue": {
@@ -130,7 +134,8 @@
             "second_layer_param": false
           },
           "id": "",
-          "salt": ""
+          "salt": "",
+          "idType": "userID"
         },
         {
           "name": "2RamGsERWbWMIMnSfOlQuX",
@@ -144,7 +149,8 @@
               "field": null,
               "additionalValues": {
                 "salt": "f8aeba58-18fb-4f36-9bbd-4c611447a912"
-              }
+              },
+              "idType": "userID"
             }
           ],
           "returnValue": {
@@ -153,7 +159,8 @@
             "second_layer_param": false
           },
           "id": "2RamGsERWbWMIMnSfOlQuX",
-          "salt": "2RamGsERWbWMIMnSfOlQuX"
+          "salt": "2RamGsERWbWMIMnSfOlQuX",
+          "idType": "userID"
         },
         {
           "name": "2RamGujUou6h2bVNQWhtNZ",
@@ -167,7 +174,8 @@
               "field": null,
               "additionalValues": {
                 "salt": "f8aeba58-18fb-4f36-9bbd-4c611447a912"
-              }
+              },
+              "idType": "userID"
             }
           ],
           "returnValue": {
@@ -176,9 +184,11 @@
             "second_layer_param": true
           },
           "id": "2RamGujUou6h2bVNQWhtNZ",
-          "salt": "2RamGujUou6h2bVNQWhtNZ"
+          "salt": "2RamGujUou6h2bVNQWhtNZ",
+          "idType": "userID"
         }
-      ]
+      ],
+      "idType": "userID"
     }
   ],
   "feature_gates": [
@@ -204,9 +214,11 @@
           ],
           "returnValue": true,
           "id": "7w9rbTSffLT89pxqpyhuqK",
-          "salt": "e452510f-bd5b-42cb-a71e-00498a7903fc"
+          "salt": "e452510f-bd5b-42cb-a71e-00498a7903fc",
+          "idType": "userID"
         }
-      ]
+      ],
+      "idType": "userID"
     },
     {
       "name": "always_on_gate",
@@ -230,9 +242,11 @@
           ],
           "returnValue": true,
           "id": "6N6Z8ODekNYZ7F8gFdoLP5",
-          "salt": "14862979-1468-4e49-9b2a-c8bb100eed8f"
+          "salt": "14862979-1468-4e49-9b2a-c8bb100eed8f",
+          "idType": "userID"
         }
-      ]
+      ],
+      "idType": "userID"
     },
     {
       "name": "on_for_statsig_email",
@@ -251,14 +265,17 @@
               "targetValue": ["@statsig.com"],
               "operator": "str_contains_any",
               "field": "email",
-              "additionalValues": {}
+              "additionalValues": {},
+              "idType": "userID"
             }
           ],
           "returnValue": true,
           "id": "7w9rbTSffLT89pxqpyhuqK",
-          "salt": "e452510f-bd5b-42cb-a71e-00498a7903fc"
+          "salt": "e452510f-bd5b-42cb-a71e-00498a7903fc",
+          "idType": "userID"
         }
-      ]
+      ],
+      "idType": "userID"
     },
     {
       "name": "on_for_id_list",
@@ -277,14 +294,17 @@
               "targetValue": "list_1",
               "operator": "in_segment_list",
               "field": "userID",
-              "additionalValues": {}
+              "additionalValues": {},
+              "idType": "userID"
             }
           ],
           "returnValue": true,
           "id": "7w9rbTSffLT89pxqpyhuqA",
-          "salt": "e452510f-bd5b-42cb-a71e-00498a7903fD"
+          "salt": "e452510f-bd5b-42cb-a71e-00498a7903fD",
+          "idType": "userID"
         }
-      ]
+      ],
+      "idType": "userID"
     }
   ],
   "layer_configs": [
