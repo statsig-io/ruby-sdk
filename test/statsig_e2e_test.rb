@@ -103,11 +103,13 @@ class StatsigE2ETest < Minitest::Test
   def test_dynamic_config
     driver = StatsigDriver.new('secret-testcase')
     config = driver.get_config(@statsig_user, 'test_config')
+    assert(config.group_name == 'statsig email')
     assert(config.get('number', 0) == 7)
     assert(config.get('string', '') == 'statsig')
     assert(config.get('boolean', true) == false)
 
     config = driver.get_config(@random_user, 'test_config')
+    assert(config.group_name == 'default')
     assert(config.get('number', 0) == 4)
     assert(config.get('string', '') == 'default')
     assert(config.get('boolean', false) == true)
@@ -139,9 +141,11 @@ class StatsigE2ETest < Minitest::Test
     driver = StatsigDriver.new('secret-testcase')
     experiment = driver.get_experiment(@random_user, 'sample_experiment')
     assert(experiment.get('experiment_param', '') == 'control')
+    assert(experiment.group_name == 'Control')
 
     experiment = driver.get_experiment(@statsig_user, 'sample_experiment')
     assert(experiment.get('experiment_param', '') == 'test')
+    assert(experiment.group_name == 'Test')
 
     driver.shutdown
 

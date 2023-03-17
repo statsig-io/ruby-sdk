@@ -41,18 +41,22 @@ class StatsigLocalOverridesTest < Minitest::Test
 
   def test_configs
     val = Statsig.get_config(StatsigUser.new({'userID' => 'some_user_id'}), "override_me")
+    assert(val.group_name == '')
     assert(val.value == {})
 
     Statsig.override_config("override_me", { "hello" => "its me" })
     val = Statsig.get_config(StatsigUser.new({'userID' => 'some_user_id'}), "override_me")
+    assert(val.group_name == 'local_override')
     assert(val.value == { "hello" => "its me" })
 
     Statsig.override_config("override_me", { "hello" => "its no longer me" })
     val = Statsig.get_config(StatsigUser.new({'userID' => '123'}), "override_me")
+    assert(val.group_name == 'local_override')
     assert(val.value == { "hello" => "its no longer me" })
 
     Statsig.override_config("override_me", {})
     val = Statsig.get_config(StatsigUser.new({'userID' => '123'}), "override_me")
+    assert(val.group_name == 'local_override')
     assert(val.value == {})
   end
 end

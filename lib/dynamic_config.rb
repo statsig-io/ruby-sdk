@@ -20,11 +20,15 @@ class DynamicConfig
   sig { returns(String) }
   attr_accessor :rule_id
 
-  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String).void }
-  def initialize(name, value = {}, rule_id = '')
+  sig { returns(String) }
+  attr_accessor :group_name
+
+  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String, group_name: String).void }
+  def initialize(name, value = {}, rule_id = '', group_name = '')
     @name = name
     @value = value
     @rule_id = rule_id
+    @group_name = group_name
   end
 
   sig { params(index: String, default_value: T.untyped).returns(T.untyped) }

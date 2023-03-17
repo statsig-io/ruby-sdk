@@ -11,6 +11,7 @@ module Statsig
     attr_accessor :explicit_parameters
     attr_accessor :is_experiment_group
     attr_accessor :evaluation_details
+    attr_accessor :group_name
 
     def initialize(
       name,
@@ -21,7 +22,8 @@ module Statsig
       config_delegate = '',
       explicit_parameters = [],
       is_experiment_group: false,
-      evaluation_details: nil)
+      evaluation_details: nil,
+      group_name: '')
       @name = name
       @gate_value = gate_value
       @json_value = json_value
@@ -32,6 +34,7 @@ module Statsig
       @explicit_parameters = explicit_parameters
       @is_experiment_group = is_experiment_group
       @evaluation_details = evaluation_details
+      @group_name = group_name
     end
   end
 end
