@@ -26,7 +26,7 @@ class DynamicConfig
   sig { returns(String) }
   attr_accessor :id_type
 
-  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String, group_name: String, id_type: String).void }
+  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String, group_name: T.nilable(String), id_type: String).void }
   def initialize(name, value = {}, rule_id = '', group_name = nil, id_type = '')
     @name = name
     @value = value
