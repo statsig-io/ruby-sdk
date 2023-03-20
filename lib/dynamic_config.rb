@@ -23,12 +23,16 @@ class DynamicConfig
   sig { returns(T.nilable(String)) }
   attr_accessor :group_name
 
-  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String, group_name: T.nilable(String)).void }
-  def initialize(name, value = {}, rule_id = '', group_name = nil)
+  sig { returns(String) }
+  attr_accessor :id_type
+
+  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String, group_name: T.nilable(String), id_type: String).void }
+  def initialize(name, value = {}, rule_id = '', group_name = nil, id_type = '')
     @name = name
     @value = value
     @rule_id = rule_id
     @group_name = group_name
+    @id_type = id_type
   end
 
   sig { params(index: String, default_value: T.untyped).returns(T.untyped) }

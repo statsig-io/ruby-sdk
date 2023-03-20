@@ -54,6 +54,7 @@ module Statsig
 
     def get_config(user, config_name)
       if @config_overrides.key?(config_name)
+        id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)['idType'] : ''
         return Statsig::ConfigResult.new(
           config_name,
           false,
@@ -64,6 +65,7 @@ module Statsig
             @spec_store.last_config_sync_time,
             @spec_store.initial_config_sync_time
           ),
+          id_type: id_type
         )
       end
 
@@ -175,7 +177,8 @@ module Statsig
                 @spec_store.init_reason
               ),
               is_experiment_group: result.is_experiment_group,
-              group_name: result.group_name
+              group_name: result.group_name,
+              id_type: config['idType']
             )
           end
 
@@ -196,7 +199,8 @@ module Statsig
           @spec_store.initial_config_sync_time,
           @spec_store.init_reason
         ),
-        group_name: nil
+        group_name: nil,
+        id_type: config['idType']
       )
     end
 
