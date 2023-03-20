@@ -53,14 +53,18 @@ module Statsig
     end
 
     def get_config(user, config_name)
-      if @config_overrides.has_key?(config_name)
+      if @config_overrides.key?(config_name)
         return Statsig::ConfigResult.new(
           config_name,
           false,
           @config_overrides[config_name],
           'override',
           [],
-          evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+          evaluation_details: EvaluationDetails.local_override(
+            @spec_store.last_config_sync_time,
+            @spec_store.initial_config_sync_time
+          ),
+        )
       end
 
       if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
@@ -68,7 +72,13 @@ module Statsig
       end
 
       unless @spec_store.has_config?(config_name)
-        return Statsig::ConfigResult.new(config_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+        return Statsig::ConfigResult.new(
+          config_name,
+          evaluation_details: EvaluationDetails.unrecognized(
+            @spec_store.last_config_sync_time,
+            @spec_store.initial_config_sync_time
+          )
+        )
       end
 
       eval_spec(user, @spec_store.get_config(config_name))
@@ -159,8 +169,13 @@ module Statsig
               pass ? result.json_value : config['defaultValue'],
               result.rule_id,
               exposures,
-              evaluation_details: EvaluationDetails.new(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time, @spec_store.init_reason),
+              evaluation_details: EvaluationDetails.new(
+                @spec_store.last_config_sync_time,
+                @spec_store.initial_config_sync_time,
+                @spec_store.init_reason
+              ),
               is_experiment_group: result.is_experiment_group,
+              group_name: result.group_name
             )
           end
 
@@ -176,7 +191,13 @@ module Statsig
         config['defaultValue'],
         default_rule_id,
         exposures,
-        evaluation_details: EvaluationDetails.new(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time, @spec_store.init_reason))
+        evaluation_details: EvaluationDetails.new(
+          @spec_store.last_config_sync_time,
+          @spec_store.initial_config_sync_time,
+          @spec_store.init_reason
+        ),
+        group_name: nil
+      )
     end
 
     private
@@ -206,8 +227,14 @@ module Statsig
         rule['returnValue'],
         rule['id'],
         exposures,
-        evaluation_details: EvaluationDetails.new(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time, @spec_store.init_reason),
-        is_experiment_group: rule["isExperimentGroup"] == true)
+        evaluation_details: EvaluationDetails.new(
+          @spec_store.last_config_sync_time,
+          @spec_store.initial_config_sync_time,
+          @spec_store.init_reason
+        ),
+        is_experiment_group: rule["isExperimentGroup"] == true,
+        group_name: rule['groupName']
+      )
     end
 
     def eval_delegate(name, user, rule, exposures)

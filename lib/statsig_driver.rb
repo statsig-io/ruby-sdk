@@ -245,7 +245,7 @@ class StatsigDriver
       end
     end
 
-    DynamicConfig.new(res.name, res.json_value, res.rule_id)
+    DynamicConfig.new(res.name, res.json_value, res.rule_id, res.group_name)
   end
 
   def validate_user(user)
