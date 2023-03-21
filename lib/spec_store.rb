@@ -199,7 +199,7 @@ module Statsig
           unless response.nil?
             init_diagnostics&.mark("download_config_specs", "start", "process")
 
-            if process_specs(response.body)
+            if process_specs(response.body.to_s)
               @init_reason = EvaluationReason::NETWORK
               @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
             end
