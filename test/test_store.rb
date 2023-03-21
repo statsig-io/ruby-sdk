@@ -17,8 +17,12 @@ class TestStore < Minitest::Test
 
   def await_next_id_sync(check)
     @id_list_syncing_enabled = true
+    start = Time.now
 
     while check.call != true
+      if Time.now - start > 5
+        raise "Waited too long here. Timeout #{timeout} sec"
+      end
     end
 
     sleep 0.1 # dont return immediately
