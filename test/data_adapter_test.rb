@@ -11,12 +11,12 @@ class StatsigDataAdapterTest < Minitest::Test
   def setup
     super
     WebMock.enable!
-    @json_file = File.read("#{__dir__}/data/download_config_specs.json")
-    @mock_response = JSON.parse(@json_file).to_json
+    @mock_dcs = JSON.parse(File.read("#{__dir__}/data/download_config_specs.json")).to_json
+    @mock_get_id_lists = JSON.parse(File.read("#{__dir__}/data/get_id_lists.json")).to_json
 
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)
+    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_dcs)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
-    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200, body: @mock_get_id_lists)
     @user = StatsigUser.new({ 'userID' => 'a_user' })
     @user_in_idlist_1 = StatsigUser.new({ 'userID' => 'a-user' })
     @user_in_idlist_2 = StatsigUser.new({ 'userID' => 'b-user' })
@@ -38,17 +38,24 @@ class StatsigDataAdapterTest < Minitest::Test
   end
 
   def test_datastore_overwritten_by_network
-    options = StatsigOptions.new(rulesets_sync_interval: 1)
+    options = StatsigOptions.new(rulesets_sync_interval: 1, idlists_sync_interval: 1)
     options.data_store = DummyDataAdapter.new
     driver = StatsigDriver.new('secret-testcase', options)
 
     sleep 2
 
-    adapter = options.data_store&.get("statsig.cache")
-    adapter_json = JSON.parse(adapter)
-    assert(adapter_json == JSON.parse(@mock_response))
-    assert(adapter_json["feature_gates"].size === 4)
-    assert(adapter_json["feature_gates"][0]["name"] === "email_not_null")
+    adapter_specs = options.data_store&.get(Statsig::Interfaces::IDataStore::CONFIG_SPECS_KEY)
+    specs_json = JSON.parse(adapter_specs)
+    assert(specs_json == JSON.parse(@mock_dcs))
+    assert(specs_json["feature_gates"].size === 4)
+    assert(specs_json["feature_gates"][0]["name"] === "email_not_null")
+
+    adapter_idlists = options.data_store&.get(Statsig::Interfaces::IDataStore::ID_LISTS_KEY)
+    idlists_json = JSON.parse(adapter_idlists)
+    assert(idlists_json = JSON.parse(@mock_get_id_lists))
+    assert(idlists_json.size === 1)
+    assert(idlists_json["idlist1"]["size"] === 12)
+    assert(idlists_json["idlist1"]["fileID"] === "123")
 
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == false)
