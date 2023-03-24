@@ -272,11 +272,11 @@ module Statsig
       get_id_lists_from_network(init_diagnostics)
     end
 
-    def save_id_lists_to_adapter(id_lists)
+    def save_id_lists_to_adapter(id_lists_raw_json)
       if @options.data_store.nil?
         return
       end
-      @options.data_store.set(Interfaces::IDataStore::CONFIG_SPECS_KEY, JSON.generate(id_lists))
+      @options.data_store.set(Interfaces::IDataStore::ID_LISTS_KEY, id_lists_raw_json)
     end
 
     def get_id_lists_from_network(init_diagnostics = nil)
@@ -290,6 +290,7 @@ module Statsig
       begin
         server_id_lists = JSON.parse(response)
         process_id_lists(server_id_lists, init_diagnostics)
+        save_id_lists_to_adapter(response)
       rescue
         # Ignored, will try again
       end
