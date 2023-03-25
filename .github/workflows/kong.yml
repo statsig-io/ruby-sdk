@@ -13,27 +13,29 @@ jobs:
   KONG:
     timeout-minutes: 5
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        version: [ 2.5.0, 3.2.0 ]
     steps:
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.version }}
-
       - name: Get KONG
         run: |
           git clone https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/kong.git
 
-      - name: Setup Ruby and Run Tests
+      - name: Install Deps
         run: |
-          cd kong/bridges/ruby-server
-          sdk_branch="${GITHUB_HEAD_REF:-main}"; bundle install
-          cd ../..
+          cd kong
           npm install
-          FORCE_COLOR=true npm run kong -- test ruby -w -r
+
+      - name: Build Bridge
+        run: |
+          cd kong
+          FORCE_COLOR=true npm run kong -- build ruby -v
         env:
           sdk_branch: ${{ github.head_ref }}
+          repo_pat: ${{ secrets.KONG_REPO_PAT }}
+
+      - name: Run Tests
+        run: |
+          cd kong
+          FORCE_COLOR=true npm run kong -- test ruby -v -r
+        env:
           test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
           repo_pat: ${{ secrets.KONG_REPO_PAT }}
