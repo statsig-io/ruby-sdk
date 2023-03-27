@@ -47,6 +47,12 @@ class TestConcurrency < Minitest::Test
     })
   end
 
+  def teardown
+    super
+    WebMock.disable!
+    Statsig.shutdown
+  end
+
   def get_id_list_response
     if @@download_idlist_count == 0
       "+7/rrkvF6\n"
@@ -60,12 +66,14 @@ class TestConcurrency < Minitest::Test
     threads = []
     10.times do
       threads << Thread.new do
+        thread_id = rand(10000000000)
         100.times do |i|
-          user = StatsigUser.new({'userID' => "user_id_#{i}", 'email' => 'testuser@statsig.com'})
+          user = StatsigUser.new({'userID' => "user_id_#{i}", 'email' => 'testuser@statsig.com', customIDs: {'threadID' => "thread_id_#{thread_id}"}})
 
           Statsig.log_event(user, "test_event", 1, { 'price' => '9.99', 'item_name' => 'diet_coke_48_pack' })
           assert(Statsig.check_gate(user, 'always_on_gate') == true)
           assert(Statsig.check_gate(user, 'on_for_statsig_email') == true)
+          # this check will get deduped across all threads
           assert(Statsig.check_gate(StatsigUser.new({'userID' => 'regular_user_id'}), 'on_for_id_list') == true)
           assert(Statsig.check_gate(user, 'on_for_id_list') == false)
           Statsig.log_event(user, "test_event_2")
@@ -85,12 +93,7 @@ class TestConcurrency < Minitest::Test
 
     sleep 0.01
 
-    assert_equal(11001, @@flushed_event_count)
+    assert_equal(10002, @@flushed_event_count)
   end
 
-  def teardown
-    super
-    WebMock.disable!
-    Statsig.shutdown
-  end
 end

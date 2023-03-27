@@ -6,6 +6,7 @@ require 'statsig'
 require 'webmock/minitest'
 require 'dynamic_config'
 require 'layer'
+require 'spy'
 
 class ManualExposureTest < Minitest::Test
 
@@ -30,6 +31,7 @@ class ManualExposureTest < Minitest::Test
   def teardown
     super
     Statsig.shutdown
+    WebMock.disable!
   end
 
   def test_api_with_exposure_logging_disabled
