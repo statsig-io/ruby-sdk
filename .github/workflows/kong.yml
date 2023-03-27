@@ -9,6 +9,12 @@ on:
   push:
     branches: [main]
 
+env:
+  test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
+  test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
+  repo_pat: ${{ secrets.KONG_FINE_GRAINED_REPO_PAT }}
+  sdk_branch: ${{ github.head_ref }}
+
 jobs:
   KONG:
     timeout-minutes: 5
@@ -16,7 +22,7 @@ jobs:
     steps:
       - name: Get KONG
         run: |
-          git clone https://${{ secrets.KONG_REPO_PAT }}@github.com/statsig-io/kong.git
+          git clone https://oauth2:$repo_pat@github.com/statsig-io/kong.git
 
       - name: Install Deps
         run: |
@@ -27,15 +33,8 @@ jobs:
         run: |
           cd kong
           FORCE_COLOR=true npm run kong -- build ruby -v
-        env:
-          sdk_branch: ${{ github.head_ref }}
-          repo_pat: ${{ secrets.KONG_REPO_PAT }}
 
       - name: Run Tests
         run: |
           cd kong
           FORCE_COLOR=true npm run kong -- test ruby -v -r
-        env:
-          test_api_key: ${{ secrets.KONG_SERVER_SDK_KEY }}
-          test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
-          repo_pat: ${{ secrets.KONG_REPO_PAT }}
