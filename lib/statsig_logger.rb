@@ -6,7 +6,7 @@ $gate_exposure_event = 'statsig::gate_exposure'
 $config_exposure_event = 'statsig::config_exposure'
 $layer_exposure_event = 'statsig::layer_exposure'
 $diagnostics_event = 'statsig::diagnostics'
-
+$ignored_metadata_keys = ['serverTime', 'configSyncTime', 'initTime', 'reason']
 module Statsig
   class StatsigLogger
     def initialize(network, options)
@@ -23,6 +23,8 @@ module Statsig
       )
 
       @background_flush = periodic_flush
+      @deduper = Concurrent::Set.new()
+      @interval = 0
     end
 
     def log_event(event)
@@ -35,12 +37,15 @@ module Statsig
     def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures, eval_details, context = nil)
       event = StatsigEvent.new($gate_exposure_event)
       event.user = user
-      event.metadata = {
+      metadata = {
         'gate' => gate_name,
         'gateValue' => value.to_s,
         'ruleID' => rule_id,
       }
+      return false if not is_unique_exposure(user, $gate_exposure_event, metadata)
+      event.metadata = metadata
       event.statsig_metadata = Statsig.get_statsig_metadata
+
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
 
       safe_add_eval_details(eval_details, event)
@@ -51,10 +56,12 @@ module Statsig
     def log_config_exposure(user, config_name, rule_id, secondary_exposures, eval_details, context = nil)
       event = StatsigEvent.new($config_exposure_event)
       event.user = user
-      event.metadata = {
+      metadata = {
         'config' => config_name,
         'ruleID' => rule_id,
       }
+      return false if not is_unique_exposure(user, $config_exposure_event, metadata)
+      event.metadata = metadata
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
 
@@ -74,13 +81,15 @@ module Statsig
 
       event = StatsigEvent.new($layer_exposure_event)
       event.user = user
-      event.metadata = {
+      metadata = {
         'config' => layer.name,
         'ruleID' => layer.rule_id,
         'allocatedExperiment' => allocated_experiment,
         'parameterName' => parameter_name,
         'isExplicitParameter' => String(is_explicit),
       }
+      return false if not is_unique_exposure(user, $layer_exposure_event, metadata)
+      event.metadata = metadata
       event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
 
@@ -101,6 +110,8 @@ module Statsig
         loop do
           sleep @options.logging_interval_seconds
           flush
+          @interval++
+          @deduper.clear if @interval % 2 == 0
         end
       end
     end
@@ -156,6 +167,30 @@ module Statsig
       if context['is_manual_exposure']
         event.metadata['isManualExposure'] = 'true'
       end
+    end
+
+    def is_unique_exposure(user, event_name, metadata)
+      return true if user.nil?
+      @deduper.clear if @deduper.size > 10000
+      custom_id_key = ''
+      if user.custom_ids.is_a?(Hash)
+        custom_id_key = user.custom_ids.values.join(',')
+      end
+
+      metadata_key = ''
+      if metadata.is_a?(Hash)
+        metadata_key = metadata.reject { |key, _| $ignored_metadata_keys.include?(key) }.values.join(',')
+      end
+
+      user_id_key = ''
+      unless user.user_id.nil?
+        user_id_key = user.user_id
+      end
+      key = [user_id_key, custom_id_key, event_name, metadata_key].join(',')
+
+      return false if @deduper.include?(key)
+      @deduper.add(key)
+      true
     end
   end
 end

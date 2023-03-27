@@ -63,5 +63,6 @@ class TestStatsig < Minitest::Test
   def teardown
     super
     Statsig.shutdown
+    WebMock.disallow_net_connect!
   end
 end

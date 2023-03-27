@@ -34,6 +34,11 @@ class StatsigE2ETest < Minitest::Test
     WebMock.enable!
   end
 
+  def teardown
+    super
+    WebMock.disable!
+  end
+
   def test_feature_gate
     driver = StatsigDriver.new('secret-testcase', nil, (-> (e) {
       # error callback should not be called on successful initialize
@@ -220,8 +225,4 @@ class StatsigE2ETest < Minitest::Test
     driver.shutdown
   end
 
-  def teardown
-    super
-    WebMock.disable!
-  end
 end
