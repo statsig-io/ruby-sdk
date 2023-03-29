@@ -290,7 +290,7 @@ module Statsig
       begin
         server_id_lists = JSON.parse(response)
         process_id_lists(server_id_lists, init_diagnostics)
-        save_id_lists_to_adapter(response)
+        save_id_lists_to_adapter(response.body.to_s)
       rescue
         # Ignored, will try again
       end
