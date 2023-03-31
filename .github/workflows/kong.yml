@@ -14,6 +14,7 @@ env:
   test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
   repo_pat: ${{ secrets.KONG_FINE_GRAINED_REPO_PAT }}
   sdk_branch: ${{ github.head_ref }}
+  FORCE_COLOR: true
 
 jobs:
   KONG:
@@ -22,19 +23,16 @@ jobs:
     steps:
       - name: Get KONG
         run: |
-          git clone https://oauth2:$repo_pat@github.com/statsig-io/kong.git
+          git clone https://oauth2:$repo_pat@github.com/statsig-io/kong.git .
 
       - name: Install Deps
-        run: |
-          cd kong
-          npm install
+        run: npm install
+
+      - name: Setup Ruby SDK
+        run: npm run kong -- setup ruby -v
 
       - name: Build Bridge
-        run: |
-          cd kong
-          FORCE_COLOR=true npm run kong -- build ruby -v
+        run: npm run kong -- build ruby -v
 
       - name: Run Tests
-        run: |
-          cd kong
-          FORCE_COLOR=true npm run kong -- test ruby -v -r
+        run: npm run kong -- test ruby -v -r
