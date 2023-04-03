@@ -110,7 +110,7 @@ module Statsig
         loop do
           sleep @options.logging_interval_seconds
           flush
-          @interval++
+          @interval += 1
           @deduper.clear if @interval % 2 == 0
         end
       end
