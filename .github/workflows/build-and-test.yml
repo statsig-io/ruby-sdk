@@ -22,7 +22,9 @@ jobs:
           ruby-version: ${{ matrix.version }}
 
       - name: Install dependencies
-        run: bundle install
+        run: |
+          bundle config set --local without 'rubocop'
+          bundle install
 
       # If you add a new dependency, be sure to run `bundle exec srb rbi update`
       - name: Typecheck
