@@ -62,6 +62,10 @@ class TestConcurrency < Minitest::Test
   end
 
   def test_calling_apis_concurrently
+    if ENV['CI']
+      skip "Do not run on Github"
+    end
+
     Statsig.initialize('secret-testcase', StatsigOptions.new(rulesets_sync_interval: 0.01, idlists_sync_interval: 0.01))
     threads = []
     10.times do

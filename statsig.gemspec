@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'sinatra', '~> 2.2'
   s.add_development_dependency 'puma', '~> 6.0'
   s.add_development_dependency 'rubocop', '~> 1.28.2'
-  s.add_runtime_dependency 'user_agent_parser', '~> 2.7'
+  s.add_runtime_dependency 'user_agent_parser', '~> 2.15.0'
   s.add_runtime_dependency 'http', '>= 4.4', '< 6.0'
   s.add_runtime_dependency 'ip3country', '0.1.1'
   s.add_runtime_dependency 'sorbet-runtime', '~> 0.5.10461'
