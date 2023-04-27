@@ -1,4 +1,5 @@
 require 'rake/testtask'
+require 'parallel_tests/tasks'
 
 desc 'Run unit tests'
 Rake::TestTask.new(:test) do |t|
