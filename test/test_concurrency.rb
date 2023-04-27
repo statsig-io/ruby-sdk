@@ -12,8 +12,11 @@ class TestConcurrency < Minitest::Test
   @@mock_response = JSON.parse(json_file).to_json
 
   @@flushed_event_count = 0
+  @@flushed_event_count_mutex = Mutex.new
   @@idlist_sync_count = 0
+  @@idlist_sync_count_mutex = Mutex.new
   @@download_idlist_count = 0
+  @@download_idlist_count_mutex = Mutex.new
 
   def setup
     super
@@ -22,28 +25,34 @@ class TestConcurrency < Minitest::Test
 
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda {|request|
+      @@flushed_event_count_mutex.synchronize do
         @@flushed_event_count += JSON.parse(request.body)["events"].length
         return ''
+      end
     })
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200, body: lambda {|get_id_lists_count|
-        size = 10 + 3 * @@idlist_sync_count
-        @@idlist_sync_count += 1
-        return JSON.generate({
-            'list_1' => {
-                'name' => 'list_1',
-                'size' => size,
-                'url' => 'https://statsigapi.net/list_1',
-                'creationTime' => 1,
-                'fileID' => 'file_id_1',
-            }
-        })
+        @@idlist_sync_count_mutex.synchronize do
+          size = 10 + 3 * @@idlist_sync_count
+          @@idlist_sync_count += 1
+          return JSON.generate({
+              'list_1' => {
+                  'name' => 'list_1',
+                  'size' => size,
+                  'url' => 'https://statsigapi.net/list_1',
+                  'creationTime' => 1,
+                  'fileID' => 'file_id_1',
+              }
+          })
+        end
     })
     stub_request(:get, 'https://statsigapi.net/list_1').to_return(status: 200,
       headers: { 'Content-Length' => get_id_list_response.length },
       body: lambda {|request|
-        res = get_id_list_response
-        @@download_idlist_count += 1
-        return res
+        @@download_idlist_count_mutex.synchronize do
+          res = get_id_list_response
+          @@download_idlist_count += 1
+          return res
+        end
     })
   end
 
