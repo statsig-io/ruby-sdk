@@ -29,7 +29,6 @@ class StatsigErrorBoundaryUsageTest < Minitest::Test
 
   def teardown
     super
-    Statsig.shutdown
     WebMock.disable!
   end
 
