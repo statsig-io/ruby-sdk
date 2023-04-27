@@ -54,7 +54,9 @@ class TestStore < Minitest::Test
   def test_1_store_sync
     dcs_calls = 0
     get_id_lists_calls = 0
+    get_id_lists_calls_mutex = Mutex.new
     id_list_1_calls = 0
+    id_list_1_calls_mutex = Mutex.new
 
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return { |req|
       dcs_calls += 1
@@ -162,34 +164,38 @@ class TestStore < Minitest::Test
     ]
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return { |req|
-      index = [get_id_lists_calls, 4].min
-      response = JSON.generate(get_id_lists_responses[index])
-      get_id_lists_calls += 1
+      get_id_lists_calls_mutex.synchronize do
+        index = [get_id_lists_calls, 4].min
+        response = JSON.generate(get_id_lists_responses[index])
+        get_id_lists_calls += 1
 
-      until can_sync_id_lists
+        until can_sync_id_lists
+        end
+
+        disable_id_list_syncing
+
+        puts "get_id_lists x" + get_id_lists_calls.to_s + " Res:" + response
+        { body: response }
       end
-
-      disable_id_list_syncing
-
-      puts "get_id_lists x" + get_id_lists_calls.to_s + " Res:" + response
-      { body: response }
     }
 
     stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_1').to_return { |req|
-      id_list_1_calls += 1
-      list_1_responses = [
-        "+1\n",
-        "-1\n+2\n",
-        "+3\n",
-        "3", # corrupted
-        "+3\n+4\n+5\n+4\n-4\n+6\n"
-      ]
-      index = [id_list_1_calls, 5].min
-      entry = list_1_responses[index - 1]
+      id_list_1_calls_mutex.synchronize do
+        id_list_1_calls += 1
+        list_1_responses = [
+          "+1\n",
+          "-1\n+2\n",
+          "+3\n",
+          "3", # corrupted
+          "+3\n+4\n+5\n+4\n-4\n+6\n"
+        ]
+        index = [id_list_1_calls, 5].min
+        entry = list_1_responses[index - 1]
 
-      puts "sync_list_1 x" + id_list_1_calls.to_s + " Res:" + entry.gsub("\n", " ")
+        puts "sync_list_1 x" + id_list_1_calls.to_s + " Res:" + entry.gsub("\n", " ")
 
-      { body: entry, headers: { 'Content-Length' => entry.length } }
+        { body: entry, headers: { 'Content-Length' => entry.length } }
+      end
     }
 
     stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_2').
