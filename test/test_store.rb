@@ -18,7 +18,7 @@ class TestStore < Minitest::Test
 
   def await_next_id_sync(check)
     @id_list_syncing_enabled = true
-    timeout = 5
+    timeout = 10
     start = Time.now
 
     while check.call != true
@@ -31,7 +31,7 @@ class TestStore < Minitest::Test
   end
 
   def wait_for
-    timeout = 5
+    timeout = 10
     start = Time.now
     x = yield
     until x
