@@ -113,7 +113,7 @@ class DummyDataAdapter < Statsig::Interfaces::IDataStore
   end
 
   def get(key)
-    return nil unless @store.key?(key)
+    return nil unless @store&.key?(key)
 
     @store[key]
   end
