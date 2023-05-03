@@ -9,7 +9,7 @@ on:
     - cron: '0 0,15 * * *'
 
 env:
-  CODE_COVERAGE: true
+  COVERAGE: true
   LCOV: true
 
 jobs:
