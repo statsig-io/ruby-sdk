@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 0,15 * * *'
 
+env:
+  CODE_COVERAGE: true
+  LCOV: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -41,3 +45,9 @@ jobs:
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
+
+      - name: Add code coverage comment
+        uses: romeovs/lcov-reporter-action@v0.2.16
+        with:
+          lcov-file: ./coverage/lcov/ruby-sdk.lcov
+          github-token: ${{ secrets.GITHUB_TOKEN }}
