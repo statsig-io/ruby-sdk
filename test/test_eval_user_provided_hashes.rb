@@ -1,5 +1,6 @@
 # typed: true
 
+require_relative 'test_helper'
 require 'minitest'
 require 'minitest/autorun'
 require 'webmock/minitest'

@@ -1,4 +1,6 @@
 # typed: false
+
+require_relative 'test_helper'
 require 'minitest/autorun'
 require 'spy'
 require 'statsig'
