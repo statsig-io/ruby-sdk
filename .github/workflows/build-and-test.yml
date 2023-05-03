@@ -49,5 +49,5 @@ jobs:
       - name: Add code coverage comment
         uses: romeovs/lcov-reporter-action@v0.2.16
         with:
-          lcov-file: ./coverage/lcov/ruby-sdk.lcov
+          lcov-file: './coverage/lcov/${{ github.event.repository.name }}.lcov'
           github-token: ${{ secrets.GITHUB_TOKEN }}
