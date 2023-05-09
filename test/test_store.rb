@@ -50,7 +50,7 @@ class TestStore < Minitest::Test
   end
 
   def disable_id_list_syncing
-    @id_list_syncing_enabled = true
+    @id_list_syncing_enabled = false
   end
 
   def test_1_store_sync
