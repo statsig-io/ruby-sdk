@@ -40,6 +40,7 @@ class TestStore < Minitest::Test
       if Time.now - start > timeout
         raise "Waited too long here. Timeout #{timeout} sec"
       end
+
       sleep(0.1)
       x = yield
     end
@@ -166,13 +167,12 @@ class TestStore < Minitest::Test
     ]
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return { |req|
+      return unless can_sync_id_lists
+
       get_id_lists_calls_mutex.synchronize do
         index = [get_id_lists_calls, 4].min
         response = JSON.generate(get_id_lists_responses[index])
         get_id_lists_calls += 1
-
-        until can_sync_id_lists
-        end
 
         disable_id_list_syncing
 
