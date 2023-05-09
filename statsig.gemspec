@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.rubygems_version = '>= 2.5.0'
   s.add_development_dependency 'bundler', '~> 2.0'
   s.add_development_dependency 'webmock', '~> 3.13'
-  s.add_development_dependency 'minitest', '~> 5.14'
+  s.add_development_dependency 'minitest', '~> 5.14.0'
   s.add_development_dependency 'spy', '~> 1.0'
   s.add_development_dependency 'sorbet', '0.5.10461'
   s.add_development_dependency 'tapioca', '~> 0.4.27'
