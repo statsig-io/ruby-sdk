@@ -170,7 +170,6 @@ class StatsigDriver
       event.user = user
       event.value = value
       event.metadata = metadata
-      event.statsig_metadata = Statsig.get_statsig_metadata
       @logger.log_event(event)
     })
   end
