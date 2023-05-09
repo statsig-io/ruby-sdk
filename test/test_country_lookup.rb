@@ -23,4 +23,12 @@ class CountryLookupTest < Minitest::Test
     CountryLookup.initialize
     assert(!bg_thread2.alive?)
   end
+
+  def test_early_access
+    bg_thread = CountryLookup.initialize_async
+    assert(CountryLookup.is_ready_for_lookup == false)
+    CountryLookup.lookup_ip_string('12345')
+    assert(CountryLookup.is_ready_for_lookup == true)
+    assert(!bg_thread.alive?)
+  end
 end
