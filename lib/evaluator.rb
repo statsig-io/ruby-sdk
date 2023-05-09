@@ -20,7 +20,7 @@ module Statsig
     def initialize(network, options, error_callback, init_diagnostics = nil)
       @spec_store = Statsig::SpecStore.new(network, options, error_callback, init_diagnostics)
       @ua_parser = UserAgentParser::Parser.new
-      CountryLookup.initializeAsync
+      CountryLookup.initialize_async
 
       @gate_overrides = {}
       @config_overrides = {}
