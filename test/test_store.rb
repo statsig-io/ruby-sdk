@@ -298,7 +298,7 @@ class TestStore < Minitest::Test
                                      }, Set.new(["0"])), store.get_id_list('list_3'))
 
     puts ('await 6')
-    await_next_id_sync(lambda { return get_id_lists_calls == 6 })
+    await_next_id_sync(lambda { return get_id_lists_calls == 6 && id_list_1_calls == 5 })
 
     assert_equal(Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])),
                  store.get_id_list('list_1'))
