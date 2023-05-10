@@ -40,6 +40,7 @@ class TestStore < Minitest::Test
       if Time.now - start > timeout
         raise "Waited too long here. Timeout #{timeout} sec"
       end
+
       sleep(0.1)
       x = yield
     end
@@ -50,7 +51,7 @@ class TestStore < Minitest::Test
   end
 
   def disable_id_list_syncing
-    @id_list_syncing_enabled = true
+    @id_list_syncing_enabled = false
   end
 
   def test_1_store_sync
@@ -59,6 +60,10 @@ class TestStore < Minitest::Test
     get_id_lists_calls_mutex = Mutex.new
     id_list_1_calls = 0
     id_list_1_calls_mutex = Mutex.new
+    id_list_2_calls = 0
+    id_list_2_calls_mutex = Mutex.new
+    id_list_3_calls = 0
+    id_list_3_calls_mutex = Mutex.new
 
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return { |req|
       dcs_calls += 1
@@ -166,17 +171,16 @@ class TestStore < Minitest::Test
     ]
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return { |req|
+      return unless can_sync_id_lists
+
       get_id_lists_calls_mutex.synchronize do
         index = [get_id_lists_calls, 4].min
         response = JSON.generate(get_id_lists_responses[index])
         get_id_lists_calls += 1
 
-        until can_sync_id_lists
-        end
-
         disable_id_list_syncing
 
-        puts "get_id_lists x" + get_id_lists_calls.to_s + " Res:" + response
+        puts "get_id_lists x#{get_id_lists_calls.to_s} Res:#{response}"
         { body: response }
       end
     }
@@ -194,19 +198,43 @@ class TestStore < Minitest::Test
         index = [id_list_1_calls, 5].min
         entry = list_1_responses[index - 1]
 
-        puts "sync_list_1 x" + id_list_1_calls.to_s + " Res:" + entry.gsub("\n", " ")
+        puts "sync_list_1 x#{id_list_1_calls.to_s} Res:#{entry.gsub("\n", " ")}"
 
         { body: entry, headers: { 'Content-Length' => entry.length } }
       end
     }
 
-    stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_2').
-      to_return(status: 200, body: "+a\n", headers: { 'Content-Length' => 3 }).times(1).then.
-      to_return(status: 200, body: "", headers: { 'Content-Length' => 0 })
+    stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_2').to_return { |req|
+      id_list_2_calls_mutex.synchronize do
+        id_list_2_calls += 1
+        list_2_responses = [
+          "+a\n",
+          "",
+        ]
+        index = [id_list_2_calls, 2].min
+        entry = list_2_responses[index - 1]
 
-    stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_3').
-      to_return(status: 200, body: "+0\n", headers: { 'Content-Length' => 3 }).times(1).then.
-      to_return(status: 200, body: "", headers: { 'Content-Length' => 0 })
+        puts "sync_list_2 x#{id_list_2_calls.to_s} Res:#{entry.gsub("\n", " ")}"
+
+        { status: 200, body: entry, headers: { 'Content-Length' => entry.length } }
+      end
+    }
+
+    stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_3').to_return { |req|
+      id_list_3_calls_mutex.synchronize do
+        id_list_3_calls += 1
+        list_3_responses = [
+          "+0\n",
+          "",
+        ]
+        index = [id_list_3_calls, 2].min
+        entry = list_3_responses[index - 1]
+
+        puts "sync_list_3 x#{id_list_3_calls.to_s} Res:#{entry.gsub("\n", " ")}"
+
+        { status: 200, body: entry, headers: { 'Content-Length' => entry.length } }
+      end
+    }
 
     @id_list_syncing_enabled = true
     options = StatsigOptions.new(local_mode: false)
