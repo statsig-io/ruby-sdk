@@ -198,6 +198,7 @@ class StatsigDriver
   # @return [Hash]
   def get_client_initialize_response(user)
     @err_boundary.capture(-> {
+      validate_user(user)
       normalize_user(user)
       @evaluator.get_client_initialize_response(user)
     }, -> { nil })
