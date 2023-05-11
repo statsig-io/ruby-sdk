@@ -33,7 +33,7 @@ module Statsig
       @local_mode = options.local_mode
       @timeout = options.network_timeout
       @backoff_multiplier = backoff_mult
-      @post_logs_retry_limit = options.post_logs_retry_limit.nil? ? 3 : options.post_logs_retry_limit
+      @post_logs_retry_limit = options.post_logs_retry_limit
       @session_id = SecureRandom.uuid
     end
 
