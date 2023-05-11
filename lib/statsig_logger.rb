@@ -16,10 +16,10 @@ module Statsig
 
       @logging_pool = Concurrent::ThreadPoolExecutor.new(
         min_threads: [2, Concurrent.processor_count].min,
-        max_threads: [2, Concurrent.processor_count].max,
+        max_threads: [5, Concurrent.processor_count].min,
         # max jobs pending before we start dropping
-        max_queue:   [2, Concurrent.processor_count].max * 5,
-        fallback_policy: :discard,
+        max_queue: [5, Concurrent.processor_count].min * 5,
+        fallback_policy: :discard
       )
 
       @background_flush = periodic_flush
@@ -44,7 +44,6 @@ module Statsig
       }
       return false if not is_unique_exposure(user, $gate_exposure_event, metadata)
       event.metadata = metadata
-      event.statsig_metadata = Statsig.get_statsig_metadata
 
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
 
@@ -62,7 +61,6 @@ module Statsig
       }
       return false if not is_unique_exposure(user, $config_exposure_event, metadata)
       event.metadata = metadata
-      event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
 
       safe_add_eval_details(eval_details, event)
@@ -90,7 +88,6 @@ module Statsig
       }
       return false if not is_unique_exposure(user, $layer_exposure_event, metadata)
       event.metadata = metadata
-      event.statsig_metadata = Statsig.get_statsig_metadata
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
 
       safe_add_eval_details(config_evaluation.evaluation_details, event)

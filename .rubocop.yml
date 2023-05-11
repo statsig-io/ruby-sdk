@@ -1,0 +1,18 @@
+Metrics/ClassLength:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/BlockLength:
+  Enabled: false
+Metrics/AbcSize:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+Style/FrozenStringLiteralComment:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
+Style/IfUnlessModifier:
+  Enabled: false

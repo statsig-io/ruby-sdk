@@ -447,16 +447,18 @@ module Statsig
       ua = get_value_from_user(user, 'userAgent')
       return nil unless ua.is_a?(String)
 
-      parsed = @ua_parser.parse ua
-      os = parsed.os
       case field.downcase
       when 'os_name', 'osname'
+        os = @ua_parser.parse_os(ua)
         return os&.family
       when 'os_version', 'osversion'
+        os = @ua_parser.parse_os(ua)
         return os&.version unless os&.version.nil?
       when 'browser_name', 'browsername'
+        parsed = @ua_parser.parse_ua(ua)
         return parsed.family
       when 'browser_version', 'browserversion'
+        parsed = @ua_parser.parse_ua(ua)
         return parsed.version.to_s
       else
         nil

@@ -33,6 +33,7 @@ module Statsig
       @local_mode = options.local_mode
       @timeout = options.network_timeout
       @backoff_multiplier = backoff_mult
+      @post_logs_retry_limit = options.post_logs_retry_limit
       @session_id = SecureRandom.uuid
     end
 
@@ -57,18 +58,19 @@ module Statsig
       if @timeout
         http = http.timeout(@timeout)
       end
+      backoff_adjusted = backoff > 10 ? backoff += Random.rand(10) : backoff # to deter overlap
       begin
         res = http.post(@api + endpoint, body: body)
       rescue StandardError => e
         ## network error retry
         return nil, e unless retries > 0
-        sleep backoff
+        sleep backoff_adjusted
         return post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
       end
       return res, nil if res.status.success?
       return nil, NetworkError.new("Got an exception when making request to #{@api + endpoint}: #{res.to_s}", res.status.to_i) unless retries > 0 && $retry_codes.include?(res.code)
       ## status code retry
-      sleep backoff
+      sleep backoff_adjusted
       post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
     end
 
@@ -97,7 +99,7 @@ module Statsig
     def post_logs(events)
       begin
         json_body = JSON.generate({ 'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata })
-        post_helper('log_event', json_body, 5)
+        post_helper('log_event', json_body, @post_logs_retry_limit)
       rescue
       end
     end

@@ -148,7 +148,7 @@ module Statsig
     @shared_instance&.get_layer(user, layer_name, StatsigDriver::GetLayerOptions.new(log_exposure: false))
   end
 
-  sig { params(user: StatsigUser, layer_name: String, parameter_name: String).returns(Layer) }
+  sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
   ##
   # Logs an exposure event for the parameter in the given layer
   #
@@ -227,7 +227,7 @@ module Statsig
   def self.get_statsig_metadata
     {
       'sdkType' => 'ruby-server',
-      'sdkVersion' => '1.24.5',
+      'sdkVersion' => '1.24.6',
     }
   end
 

@@ -1,9 +1,6 @@
 # typed: true
 class StatsigEvent
-  attr_accessor :value
-  attr_accessor :metadata
-  attr_accessor :statsig_metadata
-  attr_accessor :secondary_exposures
+  attr_accessor :value, :metadata, :statsig_metadata, :secondary_exposures
   attr_reader :user
 
   def initialize(event_name)
@@ -13,6 +10,7 @@ class StatsigEvent
     @secondary_exposures = nil
     @user = nil
     @time = (Time.now.to_f * 1000).to_i
+    @statsig_metadata = Statsig.get_statsig_metadata
   end
 
   def user=(value)

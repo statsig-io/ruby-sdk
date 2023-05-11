@@ -170,7 +170,6 @@ class StatsigDriver
       event.user = user
       event.value = value
       event.metadata = metadata
-      event.statsig_metadata = Statsig.get_statsig_metadata
       @logger.log_event(event)
     })
   end
@@ -199,6 +198,7 @@ class StatsigDriver
   # @return [Hash]
   def get_client_initialize_response(user)
     @err_boundary.capture(-> {
+      validate_user(user)
       normalize_user(user)
       @evaluator.get_client_initialize_response(user)
     }, -> { nil })

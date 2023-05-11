@@ -1,4 +1,6 @@
 # typed: true
+
+require_relative 'test_helper'
 require 'json'
 require 'minitest'
 require 'minitest/autorun'
@@ -28,6 +30,7 @@ class TestSymbolHashes < Minitest::Test
   end
 
   def teardown
+    Statsig.shutdown
     WebMock.disable!
   end
 

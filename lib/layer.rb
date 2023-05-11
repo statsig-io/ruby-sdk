@@ -1,5 +1,6 @@
 # typed: false
 
+require 'sorbet-runtime'
 ##
 # Contains the current values from Statsig.
 # Will contain layer default values for all shared parameters in that layer.

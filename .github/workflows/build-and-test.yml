@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 0,15 * * *'
 
+env:
+  COVERAGE: true
+  COVERAGE_FORMAT: 'cobertura'
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -22,7 +26,9 @@ jobs:
           ruby-version: ${{ matrix.version }}
 
       - name: Install dependencies
-        run: bundle install
+        run: |
+          bundle config set --local without 'rubocop'
+          bundle install
 
       # If you add a new dependency, be sure to run `bundle exec srb rbi update`
       - name: Typecheck
@@ -33,3 +39,29 @@ jobs:
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
+
+      - name: Run tests in parallel
+        run: bundle exec rake parallel:test
+        env:
+          test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
+          test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
+
+      - name: Code Coverage Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/coverage.xml
+          badge: true
+          fail_below_min: true
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: true
+          indicators: true
+          output: both
+          thresholds: '80 90'
+
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
