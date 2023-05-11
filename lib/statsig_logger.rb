@@ -16,10 +16,10 @@ module Statsig
 
       @logging_pool = Concurrent::ThreadPoolExecutor.new(
         min_threads: [2, Concurrent.processor_count].min,
-        max_threads: [2, Concurrent.processor_count].max,
+        max_threads: [5, Concurrent.processor_count].min,
         # max jobs pending before we start dropping
-        max_queue:   [2, Concurrent.processor_count].max * 5,
-        fallback_policy: :discard,
+        max_queue: [5, Concurrent.processor_count].min * 5,
+        fallback_policy: :discard
       )
 
       @background_flush = periodic_flush
