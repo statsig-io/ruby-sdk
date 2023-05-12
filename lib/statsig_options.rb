@@ -64,6 +64,11 @@ class StatsigOptions
   # default: 3
   attr_accessor :idlist_threadpool_size
 
+  sig { returns(Integer) }
+  # The number of threads allocated to posting event logs.
+  # default: 3
+  attr_accessor :logger_threadpool_size
+
   sig { returns(T::Boolean) }
   # Should diagnostics be logged. These include performance metrics for initialize.
   # default: false
@@ -83,6 +88,11 @@ class StatsigOptions
   # Number of times to retry sending a batch of failed log events
   attr_accessor :post_logs_retry_limit
 
+  sig { returns(T.any(Method, Proc, Integer, NilClass)) }
+  # An integer or function that returns an integer which overrides the default backoff time between retries
+  # The function is passed a single integer indicating the remaining number retries
+  attr_accessor :post_logs_retry_backoff
+
   sig do
     params(
       environment: T.any(T::Hash[String, String], NilClass),
@@ -96,10 +106,12 @@ class StatsigOptions
       rules_updated_callback: T.any(Method, Proc, NilClass),
       data_store: T.any(Statsig::Interfaces::IDataStore, NilClass),
       idlist_threadpool_size: Integer,
+      logger_threadpool_size: Integer,
       disable_diagnostics_logging: T::Boolean,
       disable_sorbet_logging_handlers: T::Boolean,
       network_timeout: T.any(Integer, NilClass),
-      post_logs_retry_limit: Integer
+      post_logs_retry_limit: Integer,
+      post_logs_retry_backoff: T.any(Method, Proc, Integer, NilClass)
     ).void
   end
 
@@ -115,10 +127,12 @@ class StatsigOptions
     rules_updated_callback: nil,
     data_store: nil,
     idlist_threadpool_size: 3,
+    logger_threadpool_size: 3,
     disable_diagnostics_logging: false,
     disable_sorbet_logging_handlers: false,
     network_timeout: nil,
-    post_logs_retry_limit: 3)
+    post_logs_retry_limit: 3,
+    post_logs_retry_backoff: nil)
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
     @rulesets_sync_interval = rulesets_sync_interval
@@ -130,9 +144,11 @@ class StatsigOptions
     @rules_updated_callback = rules_updated_callback
     @data_store = data_store
     @idlist_threadpool_size = idlist_threadpool_size
+    @logger_threadpool_size = logger_threadpool_size
     @disable_diagnostics_logging = disable_diagnostics_logging
     @disable_sorbet_logging_handlers = disable_sorbet_logging_handlers
     @network_timeout = network_timeout
     @post_logs_retry_limit = post_logs_retry_limit
+    @post_logs_retry_backoff = post_logs_retry_backoff
   end
 end

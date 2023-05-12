@@ -32,6 +32,7 @@ module Statsig
 
       @id_list_thread_pool = Concurrent::FixedThreadPool.new(
         options.idlist_threadpool_size,
+        name: 'statsig-idlist',
         max_queue: 100,
         fallback_policy: :discard,
       )
