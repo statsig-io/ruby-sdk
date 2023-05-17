@@ -242,7 +242,7 @@ class TestStore < Minitest::Test
     store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2), nil)
 
     puts ('await 1 across the board')
-    await_next_id_sync(lambda { return dcs_calls == 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
+    await_next_id_sync(-> { return dcs_calls == 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
 
     assert(!store.get_config('config_1').nil?)
     assert(!store.get_config('config_2').nil?)
@@ -259,23 +259,25 @@ class TestStore < Minitest::Test
                                      }, Set.new(["a"])), store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
-    await_next_id_sync(lambda { return get_id_lists_calls == 2 && id_list_1_calls == 2 })
-
-    assert_equal(Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])),
-                 store.get_id_list('list_1'))
+    assert_nothing_raised do
+      await_next_id_sync(-> { Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])) == store.get_id_list('list_1') })
+    end
+    assert_equal(get_id_lists_calls, 2)
+    assert_equal(id_list_1_calls, 2)
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
     puts ('await 3 across the board')
-    await_next_id_sync(lambda { return get_id_lists_calls == 3 && id_list_1_calls == 3 })
-
-    assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),
-                 store.get_id_list('list_1'))
+    assert_nothing_raised do
+      await_next_id_sync(-> { Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1') })
+    end
+    assert_equal(get_id_lists_calls, 3)
+    assert_equal(id_list_1_calls, 3)
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
     puts ('await 4')
-    await_next_id_sync(lambda { return get_id_lists_calls == 4 })
+    await_next_id_sync(-> { return get_id_lists_calls == 4 })
 
     # list_1 not changed because response was pointing to the older url
     assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),
@@ -284,33 +286,39 @@ class TestStore < Minitest::Test
     assert_nil(store.get_id_list('list_3'))
 
     puts ('await 5')
-    await_next_id_sync(lambda { return get_id_lists_calls == 5 && id_list_1_calls == 4 })
-
     # list_1 is reset to nil because response gave an invalid string
+    assert_nothing_raised do
+      await_next_id_sync(lambda {
+        Statsig::IDList.new({
+                              'name' => 'list_3',
+                              'size' => 3,
+                              'url' => 'https://statsigapi.net/ruby-test-idlist/list_3',
+                              'creationTime' => 5,
+                              'fileID' => 'file_id_3',
+                            }, Set.new(["0"])) == store.get_id_list('list_3') })
+    end
+
+    assert_equal(get_id_lists_calls, 5)
+    assert_equal(id_list_1_calls, 4)
     assert_nil(store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
-    assert_equal(Statsig::IDList.new({
-                                       'name' => 'list_3',
-                                       'size' => 3,
-                                       'url' => 'https://statsigapi.net/ruby-test-idlist/list_3',
-                                       'creationTime' => 5,
-                                       'fileID' => 'file_id_3',
-                                     }, Set.new(["0"])), store.get_id_list('list_3'))
 
     puts ('await 6')
-    await_next_id_sync(lambda { return get_id_lists_calls == 6 && id_list_1_calls == 5 })
-
-    assert_equal(Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])),
-                 store.get_id_list('list_1'))
+    assert_nothing_raised do
+      await_next_id_sync(lambda {
+        Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])) == store.get_id_list('list_1') &&
+        Statsig::IDList.new({
+                              'name' => 'list_3',
+                              'size' => 3,
+                              'url' => 'https://statsigapi.net/ruby-test-idlist/list_3',
+                              'creationTime' => 5,
+                              'fileID' => 'file_id_3',
+                            }, Set.new(["0"])) == store.get_id_list('list_3')
+      })
+    end
+    assert_equal(get_id_lists_calls, 6)
+    assert_equal(id_list_1_calls, 5)
     assert_nil(store.get_id_list('list_2'))
-    assert_equal(Statsig::IDList.new({
-                                       'name' => 'list_3',
-                                       'size' => 3,
-                                       'url' => 'https://statsigapi.net/ruby-test-idlist/list_3',
-                                       'creationTime' => 5,
-                                       'fileID' => 'file_id_3',
-                                     }, Set.new(["0"])), store.get_id_list('list_3'))
-
     assert(!store.get_config('config_1').nil?)
     assert(store.get_config('config_2').nil?)
     assert(!store.get_gate('gate_1').nil?)
