@@ -345,12 +345,6 @@ module Statsig
         end
       end
 
-      result = Concurrent::Promise.all?(*tasks).execute.wait(@id_lists_sync_interval)
-      if result.state != :fulfilled
-        init_diagnostics&.mark("get_id_lists", "end", "process", false)
-        return # timed out
-      end
-
       delete_lists = []
       local_id_lists.each do |list_name, list|
         unless new_id_lists.key? list_name
@@ -360,7 +354,14 @@ module Statsig
       delete_lists.each do |list_name|
         local_id_lists.delete list_name
       end
-      init_diagnostics&.mark("get_id_lists", "end", "process", true)
+      promise = Concurrent::Promise.all?(*tasks).then do |result|
+        if result.state != :fulfilled
+          init_diagnostics&.mark("get_id_lists", "end", "process", false)
+        else
+          init_diagnostics&.mark("get_id_lists", "end", "process", true)
+        end
+      end
+      promise.execute.wait(@id_lists_sync_interval)
     end
 
     def get_single_id_list_from_adapter(list)
