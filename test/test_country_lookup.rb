@@ -12,12 +12,11 @@ class CountryLookupTest < Minitest::Test
   end
 
   def test_initialize_async
-    bg_thread = CountryLookup.initialize_async
-    assert(bg_thread.alive?)
     assert(CountryLookup.is_ready_for_lookup == false)
-    sleep 1
-    assert(!bg_thread.alive?)
+    bg_thread = CountryLookup.initialize_async
+    bg_thread.join
     assert(CountryLookup.is_ready_for_lookup == true)
+    assert(!bg_thread.alive?)
   end
 
   def test_no_race_condition
@@ -31,8 +30,8 @@ class CountryLookupTest < Minitest::Test
   end
 
   def test_early_access
-    bg_thread = CountryLookup.initialize_async
     assert(CountryLookup.is_ready_for_lookup == false)
+    bg_thread = CountryLookup.initialize_async
     CountryLookup.lookup_ip_string('12345')
     assert(CountryLookup.is_ready_for_lookup == true)
     assert(!bg_thread.alive?)
