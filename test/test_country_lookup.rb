@@ -4,6 +4,7 @@ require_relative 'test_helper'
 require 'minitest'
 require 'evaluator'
 require 'statsig'
+require 'country_lookup'
 
 class CountryLookupTest < Minitest::Test
   def before_teardown
