@@ -23,7 +23,7 @@ class ManualExposureTest < Minitest::Test
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @user = StatsigUser.new({ 'userID' => 'random' })
-    @options = StatsigOptions.new(disable_diagnostics_logging: true, local_mode: true)
+    @options = StatsigOptions.new(disable_diagnostics_logging: true, local_mode: true, logging_interval_seconds: 9999)
   end
 
   def setup
