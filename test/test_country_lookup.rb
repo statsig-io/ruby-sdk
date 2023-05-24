@@ -7,7 +7,7 @@ require 'statsig'
 require 'country_lookup'
 
 class CountryLookupTest < Minitest::Test
-  def before_teardown
+  def setup
     CountryLookup.teardown
   end
 
