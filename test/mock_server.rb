@@ -19,6 +19,6 @@ class MockServer
 
   def self.stop_server
     MockApp.stop!
-    @thread.kill
+    @thread.kill.join
   end
 end
