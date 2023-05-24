@@ -43,7 +43,7 @@ class StatsigDataAdapterTest < Minitest::Test
     options.data_store = DummyDataAdapter.new
     driver = StatsigDriver.new('secret-testcase', options)
 
-    sleep 2
+    sleep 1.1
 
     adapter_specs = options.data_store&.get(Statsig::Interfaces::IDataStore::CONFIG_SPECS_KEY)
     specs_json = JSON.parse(adapter_specs)
@@ -98,7 +98,7 @@ class StatsigDataAdapterTest < Minitest::Test
     options.data_store.remove_feature_gate("gate_from_adapter")
     options.data_store.update_id_lists
 
-    sleep 1
+    sleep 1.1
 
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == false)
@@ -122,7 +122,7 @@ class StatsigDataAdapterTest < Minitest::Test
 
     options.data_store.corrupt_store
 
-    sleep 1
+    sleep 1.1
 
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == false)
