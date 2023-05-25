@@ -89,8 +89,8 @@ class StatsigOptions
   attr_accessor :post_logs_retry_limit
 
   sig { returns(T.any(Method, Proc, Integer, NilClass)) }
-  # An integer or function that returns an integer which overrides the default backoff time between retries
-  # The function is passed a single integer indicating the remaining number retries
+  # The number of seconds, or a function that returns the number of seconds based on the number of retries remaining
+  # which overrides the default backoff time between retries
   attr_accessor :post_logs_retry_backoff
 
   sig do

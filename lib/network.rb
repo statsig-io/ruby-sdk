@@ -59,15 +59,14 @@ module Statsig
       if @timeout
         http = http.timeout(@timeout)
       end
-      backoff_adjusted = if @post_logs_retry_backoff
-                           if @post_logs_retry_backoff.is_a? Integer
-                             @post_logs_retry_backoff
-                           else
-                             @post_logs_retry_backoff.call(retries)
-                           end
-                         else
-                           backoff > 10 ? backoff += Random.rand(10) : backoff # to deter overlap
-                         end
+      backoff_adjusted = backoff > 10 ? backoff += Random.rand(10) : backoff # to deter overlap
+      if @post_logs_retry_backoff
+        if @post_logs_retry_backoff.is_a? Integer
+          backoff_adjusted = @post_logs_retry_backoff
+        else
+          backoff_adjusted = @post_logs_retry_backoff.call(retries)
+        end
+      end
       begin
         res = http.post(@api + endpoint, body: body)
       rescue StandardError => e
