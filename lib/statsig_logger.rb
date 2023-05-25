@@ -15,10 +15,11 @@ module Statsig
       @options = options
 
       @logging_pool = Concurrent::ThreadPoolExecutor.new(
-        min_threads: [2, Concurrent.processor_count].min,
-        max_threads: [5, Concurrent.processor_count].min,
+        name: 'statsig-logger',
+        min_threads: @options.logger_threadpool_size,
+        max_threads: @options.logger_threadpool_size,
         # max jobs pending before we start dropping
-        max_queue: [5, Concurrent.processor_count].min * 5,
+        max_queue: 100,
         fallback_policy: :discard
       )
 
@@ -106,7 +107,7 @@ module Statsig
       Thread.new do
         loop do
           sleep @options.logging_interval_seconds
-          flush
+          flush_async
           @interval += 1
           @deduper.clear if @interval % 2 == 0
         end
