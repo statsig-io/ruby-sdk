@@ -32,6 +32,7 @@ module Statsig
 
       @id_list_thread_pool = Concurrent::FixedThreadPool.new(
         options.idlist_threadpool_size,
+        name: 'statsig-idlist',
         max_queue: 100,
         fallback_policy: :discard,
       )
@@ -309,6 +310,16 @@ module Statsig
 
       init_diagnostics&.mark("get_id_lists", "start", "process", new_id_lists.length)
 
+      delete_lists = []
+      local_id_lists.each do |list_name, list|
+        unless new_id_lists.key? list_name
+          delete_lists.push list_name
+        end
+      end
+      delete_lists.each do |list_name|
+        local_id_lists.delete list_name
+      end
+
       new_id_lists.each do |list_name, list|
         new_list = IDList.new(list)
         local_list = get_id_list(list_name)
@@ -346,21 +357,7 @@ module Statsig
       end
 
       result = Concurrent::Promise.all?(*tasks).execute.wait(@id_lists_sync_interval)
-      if result.state != :fulfilled
-        init_diagnostics&.mark("get_id_lists", "end", "process", false)
-        return # timed out
-      end
-
-      delete_lists = []
-      local_id_lists.each do |list_name, list|
-        unless new_id_lists.key? list_name
-          delete_lists.push list_name
-        end
-      end
-      delete_lists.each do |list_name|
-        local_id_lists.delete list_name
-      end
-      init_diagnostics&.mark("get_id_lists", "end", "process", true)
+      init_diagnostics&.mark("get_id_lists", "end", "process", result.state == :fulfilled)
     end
 
     def get_single_id_list_from_adapter(list)

@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name        = 'statsig'
-  s.version     = '1.24.6'
+  s.version     = '1.25.0'
   s.summary     = 'Statsig server SDK for Ruby'
   s.description = 'Statsig server SDK for feature gates and experimentation in Ruby'
   s.authors     = ['Statsig, Inc']
@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'simplecov-cobertura', '~> 2.1'
   s.add_runtime_dependency 'user_agent_parser', '~> 2.15.0'
   s.add_runtime_dependency 'http', '>= 4.4', '< 6.0'
-  s.add_runtime_dependency 'ip3country', '0.1.1'
+  s.add_runtime_dependency 'ip3country', '~> 0.2.1'
   s.add_runtime_dependency 'sorbet-runtime', '~> 0.5.10461'
   s.add_runtime_dependency 'concurrent-ruby', '~> 1.1'
 end

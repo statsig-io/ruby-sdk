@@ -33,6 +33,7 @@ module Statsig
       @local_mode = options.local_mode
       @timeout = options.network_timeout
       @backoff_multiplier = backoff_mult
+      @post_logs_retry_backoff = options.post_logs_retry_backoff
       @post_logs_retry_limit = options.post_logs_retry_limit
       @session_id = SecureRandom.uuid
     end
@@ -59,6 +60,13 @@ module Statsig
         http = http.timeout(@timeout)
       end
       backoff_adjusted = backoff > 10 ? backoff += Random.rand(10) : backoff # to deter overlap
+      if @post_logs_retry_backoff
+        if @post_logs_retry_backoff.is_a? Integer
+          backoff_adjusted = @post_logs_retry_backoff
+        else
+          backoff_adjusted = @post_logs_retry_backoff.call(retries)
+        end
+      end
       begin
         res = http.post(@api + endpoint, body: body)
       rescue StandardError => e

@@ -6,7 +6,7 @@ require 'evaluation_helpers'
 require 'client_initialize_helpers'
 require 'spec_store'
 require 'time'
-require 'user_agent_parser'
+require 'ua_parser'
 require 'evaluation_details'
 require 'user_agent_parser/operating_system'
 
@@ -19,8 +19,8 @@ module Statsig
 
     def initialize(network, options, error_callback, init_diagnostics = nil)
       @spec_store = Statsig::SpecStore.new(network, options, error_callback, init_diagnostics)
-      @ua_parser = UserAgentParser::Parser.new
-      CountryLookup.initialize
+      UAParser.initialize_async
+      CountryLookup.initialize_async
 
       @gate_overrides = {}
       @config_overrides = {}
@@ -449,16 +449,16 @@ module Statsig
 
       case field.downcase
       when 'os_name', 'osname'
-        os = @ua_parser.parse_os(ua)
+        os = UAParser.parse_os(ua)
         return os&.family
       when 'os_version', 'osversion'
-        os = @ua_parser.parse_os(ua)
+        os = UAParser.parse_os(ua)
         return os&.version unless os&.version.nil?
       when 'browser_name', 'browsername'
-        parsed = @ua_parser.parse_ua(ua)
+        parsed = UAParser.parse_ua(ua)
         return parsed.family
       when 'browser_version', 'browserversion'
-        parsed = @ua_parser.parse_ua(ua)
+        parsed = UAParser.parse_ua(ua)
         return parsed.version.to_s
       else
         nil
