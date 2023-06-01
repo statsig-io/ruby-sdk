@@ -44,5 +44,6 @@ class CountryLookupTest < Minitest::Test
     user2 = StatsigUser.new({ user_id: '123', ip: '115.240.90.163' }) # Mumbai, India (IN)
     assert(Statsig.check_gate(user1, 'test_country'))
     assert(!Statsig.check_gate(user2, 'test_country'))
+    Statsig.shutdown
   end
 end
