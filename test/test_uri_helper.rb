@@ -46,7 +46,7 @@ class TestURIHelper < Minitest::Test
   end
 
   def test_custom_api_url_dcs
-    options = StatsigOptions.new(api_url_dcs: 'https://custom_dcs_url', rulesets_sync_interval: 1)
+    options = StatsigOptions.new(api_url_download_config_specs: 'https://custom_dcs_url', rulesets_sync_interval: 1)
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
     Statsig::SpecStore.new(net, options, nil)
@@ -62,7 +62,7 @@ class TestURIHelper < Minitest::Test
     options = StatsigOptions.new(
       nil,
       'https://custom_base_url',
-      api_url_dcs: 'https://custom_dcs_url',
+      api_url_download_config_specs: 'https://custom_dcs_url',
       rulesets_sync_interval: 1
     )
     net = Statsig::Network.new('secret-abc', options)

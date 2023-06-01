@@ -17,8 +17,8 @@ class URIHelper
     sig { params(endpoint: String).returns(String) }
     def build_url(endpoint)
       api = @options.api_url_base
-      if endpoint == 'download_config_specs' && !@options.api_url_dcs.nil?
-        api = T.must(@options.api_url_dcs)
+      if endpoint == 'download_config_specs' && !@options.api_url_download_config_specs.nil?
+        api = T.must(@options.api_url_download_config_specs)
       end
       unless api.end_with?('/')
         api += '/'
