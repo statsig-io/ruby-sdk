@@ -32,20 +32,6 @@ class TestStore < Minitest::Test
     sleep 0.1 # dont return immediately
   end
 
-  def wait_for
-    timeout = 10
-    start = Time.now
-    x = yield
-    until x
-      if Time.now - start > timeout
-        raise "Waited too long here. Timeout #{timeout} sec"
-      end
-
-      sleep(0.1)
-      x = yield
-    end
-  end
-
   def can_sync_id_lists
     @id_list_syncing_enabled
   end

@@ -74,7 +74,7 @@ class StatsigErrorBoundaryUsageTest < Minitest::Test
     opts.expect(:instance_of?, true, [StatsigOptions])
 
     StatsigDriver.new("secret-key", opts)
-    assert_exception("NoMethodError", "unmocked method :api_url_base")
+    assert_exception("MockExpectationError", "method_missing")
   end
 
   def test_errors_with_shutdown
