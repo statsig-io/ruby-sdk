@@ -6,7 +6,7 @@ require 'securerandom'
 require 'sorbet-runtime'
 require 'uri_helper'
 
-$retry_codes = [408, 500, 502, 503, 504, 522, 524, 599]
+RETRY_CODES = [408, 500, 502, 503, 504, 522, 524, 599].freeze
 
 module Statsig
   class NetworkError < StandardError
@@ -33,29 +33,32 @@ module Statsig
       @post_logs_retry_backoff = options.post_logs_retry_backoff
       @post_logs_retry_limit = options.post_logs_retry_limit
       @session_id = SecureRandom.uuid
+      meta = Statsig.get_statsig_metadata
+      @http_client = HTTP.headers(
+        {
+          'STATSIG-API-KEY' => @server_secret,
+          'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
+          'STATSIG-SERVER-SESSION-ID' => @session_id,
+          'Content-Type' => 'application/json; charset=UTF-8',
+          'STATSIG-SDK-TYPE' => meta['sdkType'],
+          'STATSIG-SDK-VERSION' => meta['sdkVersion']
+        }
+      ).accept(:json)
+      if @timeout
+        @http_client = @http_client.timeout(@timeout)
+      end
     end
 
-    sig { params(endpoint: String, body: String, retries: Integer, backoff: Integer)
-            .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)]) }
+    sig do
+      params(endpoint: String, body: String, retries: Integer, backoff: Integer)
+        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    end
 
     def post_helper(endpoint, body, retries = 0, backoff = 1)
       if @local_mode
         return nil, nil
       end
 
-      meta = Statsig.get_statsig_metadata
-      http = HTTP.headers(
-        {
-          "STATSIG-API-KEY" => @server_secret,
-          "STATSIG-CLIENT-TIME" => (Time.now.to_f * 1000).to_i.to_s,
-          "STATSIG-SERVER-SESSION-ID" => @session_id,
-          "Content-Type" => "application/json; charset=UTF-8",
-          "STATSIG-SDK-TYPE" => meta['sdkType'],
-          "STATSIG-SDK-VERSION" => meta['sdkVersion'],
-        }).accept(:json)
-      if @timeout
-        http = http.timeout(@timeout)
-      end
       backoff_adjusted = backoff > 10 ? backoff += Random.rand(10) : backoff # to deter overlap
       if @post_logs_retry_backoff
         if @post_logs_retry_backoff.is_a? Integer
@@ -66,48 +69,52 @@ module Statsig
       end
       url = URIHelper.build_url(endpoint)
       begin
-        res = http.post(url, body: body)
+        res = @http_client.post(url, body: body)
       rescue StandardError => e
         ## network error retry
-        return nil, e unless retries > 0
+        return nil, e unless retries.positive?
+
         sleep backoff_adjusted
         return post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
       end
       return res, nil if res.status.success?
-      return nil, NetworkError.new("Got an exception when making request to #{url}: #{res.to_s}", res.status.to_i) unless retries > 0 && $retry_codes.include?(res.code)
+
+      unless retries.positive? && RETRY_CODES.include?(res.code)
+        return nil, NetworkError.new("Got an exception when making request to #{url}: #{res.to_s}",
+                                     res.status.to_i)
+      end
+
       ## status code retry
       sleep backoff_adjusted
       post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
     end
 
     def check_gate(user, gate_name)
-      begin
-        request_body = JSON.generate({ 'user' => user&.serialize(false), 'gateName' => gate_name })
-        response, _ = post_helper('check_gate', request_body)
-        return JSON.parse(response.body) unless response.nil?
-        false
-      rescue
-        return false
-      end
+      request_body = JSON.generate({ 'user' => user&.serialize(false), 'gateName' => gate_name })
+      response, = post_helper('check_gate', request_body)
+      return JSON.parse(response.body) unless response.nil?
+
+      false
+    rescue StandardError
+      false
     end
 
     def get_config(user, dynamic_config_name)
-      begin
-        request_body = JSON.generate({ 'user' => user&.serialize(false), 'configName' => dynamic_config_name })
-        response, _ = post_helper('get_config', request_body)
-        return JSON.parse(response.body) unless response.nil?
-        nil
-      rescue
-        return nil
-      end
+      request_body = JSON.generate({ 'user' => user&.serialize(false), 'configName' => dynamic_config_name })
+      response, = post_helper('get_config', request_body)
+      return JSON.parse(response.body) unless response.nil?
+
+      nil
+    rescue StandardError
+      nil
     end
 
     def post_logs(events)
-      begin
-        json_body = JSON.generate({ 'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata })
-        post_helper('log_event', json_body, @post_logs_retry_limit)
-      rescue
-      end
+
+      json_body = JSON.generate({ 'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata })
+      post_helper('log_event', json_body, @post_logs_retry_limit)
+    rescue StandardError
+
     end
   end
 end
