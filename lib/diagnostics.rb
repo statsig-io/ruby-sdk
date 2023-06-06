@@ -7,7 +7,7 @@ module Statsig
     extend T::Sig
 
     sig { returns(String) }
-    attr_reader :context
+    attr_accessor :context
 
     sig { returns(T::Array[T::Hash[Symbol, T.untyped]]) }
     attr_reader :markers
@@ -31,6 +31,13 @@ module Statsig
                     })
     end
 
+    sig { params(key: String, step: T.any(String, NilClass), value: T.any(String, Integer, T::Boolean, NilClass)).returns(Tracker) }
+    def track(key, step = nil, value = nil)
+      tracker = Tracker.new(self, key, step)
+      tracker.start(value)
+      tracker
+    end
+
     sig { returns(T::Hash[Symbol, T.untyped]) }
 
     def serialize
@@ -39,6 +46,24 @@ module Statsig
         markers: @markers
       }
     end
-  end
 
+    class Tracker
+      extend T::Sig
+
+      sig { params(diagnostics: Diagnostics, key: String, step: T.any(String, NilClass)).void }
+      def initialize(diagnostics, key, step)
+        @diagnostics = diagnostics
+        @key = key
+        @step = step
+      end
+
+      def start(value = nil)
+        @diagnostics.mark(@key, 'start', @step, value)
+      end
+
+      def end(value = nil)
+        @diagnostics.mark(@key, 'end', @step, value)
+      end
+    end
+  end
 end
