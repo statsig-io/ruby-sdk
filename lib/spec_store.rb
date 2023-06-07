@@ -161,7 +161,7 @@ module Statsig
 
     def sync_config_specs
       Thread.new do
-        @diagnostics.context = 'config_sync'
+        @diagnostics = Diagnostics.new('config_sync')
         loop do
           sleep @options.rulesets_sync_interval
           if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
@@ -175,7 +175,7 @@ module Statsig
 
     def sync_id_lists
       Thread.new do
-        @diagnostics.context = 'config_sync'
+        @diagnostics = Diagnostics.new('config_sync')
         loop do
           sleep @id_lists_sync_interval
           if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::ID_LISTS_KEY)
@@ -285,7 +285,7 @@ module Statsig
     def get_id_lists_from_network
       tracker = @diagnostics.track('get_id_lists', 'network_request')
       response, e = @network.post_helper('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
-      tracker.end(response.status.to_i)
+      tracker.end(response&.status&.to_i)
       if !e.nil? || response.nil?
         return
       end

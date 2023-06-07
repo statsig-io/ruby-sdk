@@ -7,7 +7,7 @@ module Statsig
     extend T::Sig
 
     sig { returns(String) }
-    attr_accessor :context
+    attr_reader :context
 
     sig { returns(T::Array[T::Hash[Symbol, T.untyped]]) }
     attr_reader :markers
