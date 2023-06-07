@@ -39,7 +39,7 @@ class StatsigDriver
       @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options)
       @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @diagnostics)
-      tracker.end
+      tracker.end('success')
 
       log_init_diagnostics
     })

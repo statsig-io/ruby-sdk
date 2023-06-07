@@ -43,7 +43,7 @@ module Statsig
           if !@options.data_store.nil?
             puts 'data_store gets priority over bootstrap_values. bootstrap_values will be ignored'
           else
-            tracker = @diagnostics.track('bootstrap', 'load')
+            tracker = @diagnostics.track('bootstrap', 'process')
             if process_specs(options.bootstrap_values)
               @init_reason = EvaluationReason::BOOTSTRAP
             end
@@ -55,10 +55,8 @@ module Statsig
       end
 
       unless @options.data_store.nil?
-        tracker = @diagnostics.track('data_store', 'load')
         @options.data_store.init
         load_config_specs_from_storage_adapter
-        tracker.end(@init_reason == EvaluationReason::DATA_ADAPTER)
       end
 
       if @init_reason == EvaluationReason::UNINITIALIZED
@@ -137,15 +135,15 @@ module Statsig
     private
 
     def load_config_specs_from_storage_adapter
-      tracker = @diagnostics.track('download_config_specs', 'fetch_from_adapter')
+      tracker = @diagnostics.track('data_store_config_specs', 'fetch')
       cached_values = @options.data_store.get(Interfaces::IDataStore::CONFIG_SPECS_KEY)
       tracker.end(true)
       return if cached_values.nil?
 
-      tracker = @diagnostics.track('download_config_specs', 'process')
+      tracker = @diagnostics.track('data_store_config_specs', 'process')
       process_specs(cached_values, from_adapter: true)
       @init_reason = EvaluationReason::DATA_ADAPTER
-      tracker.end(@init_reason)
+      tracker.end(true)
     rescue StandardError
       # Fallback to network
       tracker.end(false)
@@ -262,7 +260,7 @@ module Statsig
     end
 
     def get_id_lists_from_adapter
-      tracker = @diagnostics.track('get_id_lists', 'fetch_from_adapter')
+      tracker = @diagnostics.track('data_store_id_lists', 'fetch')
       cached_values = @options.data_store.get(Interfaces::IDataStore::ID_LISTS_KEY)
       return if cached_values.nil?
 
@@ -283,9 +281,13 @@ module Statsig
     end
 
     def get_id_lists_from_network
-      tracker = @diagnostics.track('get_id_lists', 'network_request')
+      tracker = @diagnostics.track('get_id_list_sources', 'network_request')
       response, e = @network.post_helper('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
-      tracker.end(response&.status&.to_i)
+      code = response&.status.to_i
+      if e.is_a? NetworkError
+        code = e.http_code
+      end
+      tracker.end(code)
       if !e.nil? || response.nil?
         return
       end
@@ -306,11 +308,16 @@ module Statsig
       end
       tasks = []
 
-      if new_id_lists.length == 0
+      tracker = @diagnostics.track(
+        from_adapter ? 'data_store_id_lists' : 'get_id_list_sources',
+        'process',
+        new_id_lists.length
+      )
+
+      if new_id_lists.empty?
+        tracker.end
         return
       end
-
-      tracker = @diagnostics.track('get_id_lists', 'process', new_id_lists.length)
 
       delete_lists = []
       local_id_lists.each do |list_name, list|
@@ -363,10 +370,13 @@ module Statsig
     end
 
     def get_single_id_list_from_adapter(list)
+      tracker = @diagnostics.track('data_store_id_list', 'fetch', nil, { url: list.url })
       cached_values = @options.data_store.get("#{Interfaces::IDataStore::ID_LISTS_KEY}::#{list.name}")
+      tracker.end(true)
       content = cached_values.to_s
-      process_single_id_list(list, content)
+      process_single_id_list(list, content, from_adapter: true)
     rescue StandardError
+      tracker.end(false)
       nil
     end
 
@@ -380,7 +390,9 @@ module Statsig
       nil unless list.is_a? IDList
       http = HTTP.headers({ 'Range' => "bytes=#{list&.size || 0}-" }).accept(:json)
       begin
+        tracker = @diagnostics.track('get_id_list', 'network_request', nil, { url: list.url })
         res = http.get(list.url)
+        tracker.end(res.status.code)
         nil unless res.status.success?
         content_length = Integer(res['content-length'])
         nil if content_length.nil? || content_length <= 0
@@ -392,11 +404,13 @@ module Statsig
       end
     end
 
-    def process_single_id_list(list, content, content_length = nil)
+    def process_single_id_list(list, content, content_length = nil, from_adapter: false)
       false unless list.is_a? IDList
       begin
+        tracker = @diagnostics.track(from_adapter ? 'data_store_id_list' : 'get_id_list', 'process', nil, { url: list.url })
         unless content.is_a?(String) && (content[0] == '-' || content[0] == '+')
           @specs[:id_lists].delete(list.name)
+          tracker.end(false)
           return false
         end
         ids_clone = list.ids # clone the list, operate on the new list, and swap out the old list, so the operation is thread-safe
@@ -418,8 +432,10 @@ module Statsig
                     else
                       list.size + content_length
                     end
+        tracker.end(true)
         return true
       rescue
+        tracker.end(false)
         return false
       end
     end
