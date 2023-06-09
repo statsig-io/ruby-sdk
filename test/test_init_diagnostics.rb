@@ -51,12 +51,16 @@ class InitDiagnosticsTest < Minitest::Test
     markers = metadata['markers']
     assert_marker_equal(markers[0], "overall", "start")
     # skip 4 markers for download_config_specs
-    assert_marker_equal(markers[5], "get_id_lists", "start", "network_request")
-    assert_marker_equal(markers[6], "get_id_lists", "end", "network_request", 200)
-    assert_marker_equal(markers[7], "get_id_lists", "start", "process", 1)
-    assert_marker_equal(markers[8], "get_id_lists", "end", "process", true)
-    assert_marker_equal(markers[9], "overall", "end")
-    assert_equal(10, markers.length)
+    assert_marker_equal(markers[5], "get_id_list_sources", "start", "network_request")
+    assert_marker_equal(markers[6], "get_id_list_sources", "end", "network_request", 200)
+    assert_marker_equal(markers[7], "get_id_list_sources", "start", "process", 1)
+    assert_marker_equal(markers[8], "get_id_list", "start", "network_request", nil, {"url"=>"https://fakecdn.com/my_id_list"})
+    assert_marker_equal(markers[9], "get_id_list", "end", "network_request", 200, {"url"=>"https://fakecdn.com/my_id_list"})
+    assert_marker_equal(markers[10], "get_id_list", "start", "process", nil, {"url"=>"https://fakecdn.com/my_id_list"})
+    assert_marker_equal(markers[11], "get_id_list", "end", "process", true, {"url"=>"https://fakecdn.com/my_id_list"})
+    assert_marker_equal(markers[12], "get_id_list_sources", "end", "process", true)
+    assert_marker_equal(markers[13], "overall", "end", nil, "success")
+    assert_equal(14, markers.length)
   end
 
   def test_network_init_success
@@ -76,9 +80,9 @@ class InitDiagnosticsTest < Minitest::Test
     assert_marker_equal(markers[2], "download_config_specs", "end", "network_request", 200)
     assert_marker_equal(markers[3], "download_config_specs", "start", "process")
     assert_marker_equal(markers[4], "download_config_specs", "end", 'process', true)
-    assert_marker_equal(markers[5], "get_id_lists", "start", "network_request")
-    assert_marker_equal(markers[6], "get_id_lists", "end", "network_request", 200)
-    assert_marker_equal(markers[7], "overall", "end")
+    assert_marker_equal(markers[5], "get_id_list_sources", "start", "network_request")
+    assert_marker_equal(markers[6], "get_id_list_sources", "end", "network_request", 200)
+    assert_marker_equal(markers[7], "overall", "end", nil, "success")
     assert_equal(8, markers.length)
   end
 
@@ -99,9 +103,9 @@ class InitDiagnosticsTest < Minitest::Test
     assert_marker_equal(markers[0], "overall", "start")
     assert_marker_equal(markers[1], "download_config_specs", "start", "network_request")
     assert_marker_equal(markers[2], "download_config_specs", "end", "network_request", 500)
-    assert_marker_equal(markers[3], "get_id_lists", "start", "network_request")
-    assert_marker_equal(markers[4], "get_id_lists", "end", "network_request", 200)
-    assert_marker_equal(markers[5], "overall", "end")
+    assert_marker_equal(markers[3], "get_id_list_sources", "start", "network_request")
+    assert_marker_equal(markers[4], "get_id_list_sources", "end", "network_request", 200)
+    assert_marker_equal(markers[5], "overall", "end", nil, "success")
     assert_equal(6, markers.length)
   end
 
@@ -118,11 +122,11 @@ class InitDiagnosticsTest < Minitest::Test
 
     markers = metadata['markers']
     assert_marker_equal(markers[0], "overall", "start")
-    assert_marker_equal(markers[1], "bootstrap", "start", "load")
-    assert_marker_equal(markers[2], "bootstrap", "end", "load", true)
-    assert_marker_equal(markers[3], "get_id_lists", "start", "network_request")
-    assert_marker_equal(markers[4], "get_id_lists", "end", "network_request", 200)
-    assert_marker_equal(markers[5], "overall", "end")
+    assert_marker_equal(markers[1], "bootstrap", "start", "process")
+    assert_marker_equal(markers[2], "bootstrap", "end", "process", true)
+    assert_marker_equal(markers[3], "get_id_list_sources", "start", "network_request")
+    assert_marker_equal(markers[4], "get_id_list_sources", "end", "network_request", 200)
+    assert_marker_equal(markers[5], "overall", "end", nil, "success")
     assert_equal(6, markers.length)
   end
 
@@ -139,27 +143,30 @@ class InitDiagnosticsTest < Minitest::Test
 
     markers = metadata['markers']
     assert_marker_equal(markers[0], "overall", "start")
-    assert_marker_equal(markers[1], "data_store", "start", "load")
-    assert_marker_equal(markers[2], "download_config_specs", "start", "fetch_from_adapter")
-    assert_marker_equal(markers[3], "download_config_specs", "end", "fetch_from_adapter", true)
-    assert_marker_equal(markers[4], "download_config_specs", "start", "process")
-    assert_marker_equal(markers[5], "download_config_specs", "end", "process", "DataAdapter")
-    assert_marker_equal(markers[6], "data_store", "end", "load", true)
-    assert_marker_equal(markers[7], "get_id_lists", "start", "fetch_from_adapter")
-    assert_marker_equal(markers[8], "get_id_lists", "end", "fetch_from_adapter", true)
-    assert_marker_equal(markers[9], "get_id_lists", "start", "process", 1)
-    assert_marker_equal(markers[10], "get_id_lists", "end", "process", true)
-    assert_marker_equal(markers[11], "overall", "end")
-    assert_equal(12, markers.length)
+    assert_marker_equal(markers[1], "data_store_config_specs", "start", "fetch")
+    assert_marker_equal(markers[2], "data_store_config_specs", "end", "fetch", true)
+    assert_marker_equal(markers[3], "data_store_config_specs", "start", "process")
+    assert_marker_equal(markers[4], "data_store_config_specs", "end", "process", true)
+    assert_marker_equal(markers[5], "data_store_id_lists", "start", "fetch")
+    assert_marker_equal(markers[6], "data_store_id_lists", "end", "fetch", true)
+    assert_marker_equal(markers[7], "data_store_id_lists", "start", "process", 1)
+    assert_marker_equal(markers[8], "data_store_id_list", "start", "fetch", nil, {"url"=>"https://idliststorage.fake"})
+    assert_marker_equal(markers[9], "data_store_id_list", "end", "fetch", true, {"url"=>"https://idliststorage.fake"})
+    assert_marker_equal(markers[10], "data_store_id_list", "start", "process", nil, {"url"=>"https://idliststorage.fake"})
+    assert_marker_equal(markers[11], "data_store_id_list", "end", "process", true, {"url"=>"https://idliststorage.fake"})
+    assert_marker_equal(markers[12], "data_store_id_lists", "end", "process", true)
+    assert_marker_equal(markers[13], "overall", "end", nil, "success")
+    assert_equal(14, markers.length)
   end
 
   private
 
-  def assert_marker_equal(marker, key, action, step = nil, value = nil)
+  def assert_marker_equal(marker, key, action, step = nil, value = nil, metadata = nil)
     assert_equal(key, marker['key'])
     assert_equal(action, marker['action'])
-    assert(step == marker['step'], "expected #{step || "nil"} but received #{marker['step']}")
-    assert(value == marker['value'], "expected #{value || "nil"} but received #{marker['value']}")
+    assert(step == marker['step'], "expected #{step} but received #{marker['step']}")
+    assert(value == marker['value'], "expected #{value} but received #{marker['value']}")
+    assert(metadata == marker['metadata'], "expected #{metadata} but received #{marker['metdata']}")
     assert_instance_of(Integer, marker['timestamp'])
   end
 end

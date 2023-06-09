@@ -31,15 +31,15 @@ class StatsigDriver
 
     @err_boundary = Statsig::ErrorBoundary.new(secret_key)
     @err_boundary.capture(-> {
-      @init_diagnostics = Statsig::Diagnostics.new("initialize")
-      @init_diagnostics.mark("overall", "start")
+      @diagnostics = Statsig::Diagnostics.new('initialize')
+      tracker = @diagnostics.track('overall')
       @options = options || StatsigOptions.new
       @shutdown = false
       @secret_key = secret_key
       @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options)
-      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @init_diagnostics)
-      @init_diagnostics.mark("overall", "end")
+      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @diagnostics)
+      tracker.end('success')
 
       log_init_diagnostics
     })
@@ -308,6 +308,6 @@ class StatsigDriver
       return
     end
 
-    @logger.log_diagnostics_event(@init_diagnostics)
+    @logger.log_diagnostics_event(@diagnostics)
   end
 end

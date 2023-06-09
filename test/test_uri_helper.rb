@@ -24,6 +24,7 @@ class TestURIHelper < Minitest::Test
       .to_return do |req|
       @dcs_counter[:custom_dcs_url] += 1
     end
+    @diagnostics = Statsig::Diagnostics.new('test')
   end
 
   def teardown
@@ -36,7 +37,7 @@ class TestURIHelper < Minitest::Test
     options = StatsigOptions.new(nil, 'https://custom_base_url', rulesets_sync_interval: 1)
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil)
+    Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
@@ -49,7 +50,7 @@ class TestURIHelper < Minitest::Test
     options = StatsigOptions.new(api_url_download_config_specs: 'https://custom_dcs_url', rulesets_sync_interval: 1)
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil)
+    Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
@@ -67,7 +68,7 @@ class TestURIHelper < Minitest::Test
     )
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil)
+    Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
@@ -80,7 +81,7 @@ class TestURIHelper < Minitest::Test
     options = StatsigOptions.new(rulesets_sync_interval: 1)
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil)
+    Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
