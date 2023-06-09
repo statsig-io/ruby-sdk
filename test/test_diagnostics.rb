@@ -24,6 +24,9 @@ class InitDiagnosticsTest < Minitest::Test
       @events.push(*JSON.parse(request.body)["events"])
       return ''
     })
+    Spy.on_instance_method(Statsig::ErrorBoundary, 'sample_diagnostics').and_return do
+      true
+    end
   end
 
   def teardown
@@ -157,6 +160,41 @@ class InitDiagnosticsTest < Minitest::Test
     assert_marker_equal(markers[12], "data_store_id_lists", "end", "process", true)
     assert_marker_equal(markers[13], "overall", "end", nil, "success")
     assert_equal(14, markers.length)
+  end
+
+  def test_api_call_diagnostics
+    Statsig.initialize('secret-key')
+    user = StatsigUser.new(user_id: 'test-user')
+    Statsig.check_gate_with_exposure_logging_disabled(user, 'non-existent-gate')
+    Statsig.get_config_with_exposure_logging_disabled(user, 'non-existent-config')
+    Statsig.get_experiment_with_exposure_logging_disabled(user, 'non-existent-experiment')
+    Statsig.get_layer_with_exposure_logging_disabled(user, 'non-existent-layer')
+    Statsig.shutdown
+
+    keys = Statsig::Diagnostics::API_CALL_KEYS
+
+    events = @events[1..-1] # skip initialize diagnostics
+    assert_equal(4, events.length)
+    events.each_with_index do |event, index|
+      assert_equal('statsig::diagnostics', event['eventName'])
+      metadata = event['metadata']
+      assert_equal('api_call', metadata['context'])
+      markers = metadata['markers']
+      assert_marker_equal(markers[0], keys[index], 'start')
+      assert_marker_equal(markers[1], keys[index], 'end', nil, true)
+    end
+  end
+
+  def test_disable_diagnostics_logging
+    Statsig.initialize('secret-key', StatsigOptions.new(disable_diagnostics_logging: true))
+    user = StatsigUser.new(user_id: 'test-user')
+    Statsig.check_gate_with_exposure_logging_disabled(user, 'non-existent-gate')
+    Statsig.get_config_with_exposure_logging_disabled(user, 'non-existent-config')
+    Statsig.get_experiment_with_exposure_logging_disabled(user, 'non-existent-experiment')
+    Statsig.get_layer_with_exposure_logging_disabled(user, 'non-existent-layer')
+    Statsig.shutdown
+
+    assert_equal(0, @events.length)
   end
 
   private

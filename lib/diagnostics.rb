@@ -12,8 +12,6 @@ module Statsig
     sig { returns(T::Array[T::Hash[Symbol, T.untyped]]) }
     attr_reader :markers
 
-    sig { params(context: String).void }
-
     def initialize(context)
       @context = context
       @markers = []
@@ -58,10 +56,22 @@ module Statsig
 
     def serialize
       {
-        context: @context,
-        markers: @markers
+        context: @context.clone,
+        markers: @markers.clone
       }
     end
+
+    def clear_markers
+      @markers.clear
+    end
+
+    class Context
+      INITIALIZE = 'initialize'.freeze
+      CONFIG_SYNC = 'config_sync'.freeze
+      API_CALL = 'api_call'.freeze
+    end
+
+    API_CALL_KEYS = %w[check_gate get_config get_experiment get_layer].freeze
 
     class Tracker
       extend T::Sig

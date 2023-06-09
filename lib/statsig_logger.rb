@@ -97,10 +97,14 @@ module Statsig
     end
 
     def log_diagnostics_event(diagnostics, user = nil)
+      return if @options.disable_diagnostics_logging
+      return if diagnostics.nil? || diagnostics.markers.empty?
+
       event = StatsigEvent.new($diagnostics_event)
       event.user = user
       event.metadata = diagnostics.serialize
       log_event(event)
+      diagnostics.clear_markers
     end
 
     def periodic_flush
