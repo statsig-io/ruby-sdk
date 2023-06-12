@@ -30,6 +30,7 @@ class StatsigE2ETest < Minitest::Test
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @statsig_user = StatsigUser.new({ 'userID' => '123', 'email' => 'testuser@statsig.com' })
     @random_user = StatsigUser.new({ 'userID' => 'random' })
+    @options = StatsigOptions.new(disable_diagnostics_logging: true)
   end
 
   def setup
@@ -42,10 +43,14 @@ class StatsigE2ETest < Minitest::Test
   end
 
   def test_feature_gate
-    driver = StatsigDriver.new('secret-testcase', nil, (-> (e) {
-      # error callback should not be called on successful initialize
-      assert(false)
-    }))
+    driver = StatsigDriver.new(
+      'secret-testcase',
+      @options,
+      lambda { |e|
+        # error callback should not be called on successful initialize
+        assert(false)
+      }
+    )
     assert(driver.check_gate(@statsig_user, 'always_on_gate') == true)
     assert(driver.check_gate(@statsig_user, 'on_for_statsig_email') == true)
     assert(driver.check_gate(@statsig_user, 'email_not_null') == true)
@@ -57,7 +62,6 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
-          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'statsig::gate_exposure',
             'user' => {
@@ -108,7 +112,7 @@ class StatsigE2ETest < Minitest::Test
   end
 
   def test_dynamic_config
-    driver = StatsigDriver.new('secret-testcase')
+    driver = StatsigDriver.new('secret-testcase', @options)
     config = driver.get_config(@statsig_user, 'test_config')
     assert(config.group_name == 'statsig email')
     assert(config.id_type == 'anonymousID')
@@ -129,7 +133,6 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
-          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'statsig::config_exposure',
             'metadata' => hash_including(
@@ -147,7 +150,7 @@ class StatsigE2ETest < Minitest::Test
   end
 
   def test_experiment
-    driver = StatsigDriver.new('secret-testcase')
+    driver = StatsigDriver.new('secret-testcase', @options)
     experiment = driver.get_experiment(@random_user, 'sample_experiment')
     assert(experiment.get('experiment_param', '') == 'control')
     assert(experiment.group_name == 'Control')
@@ -165,7 +168,6 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
-          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'statsig::config_exposure',
             'metadata' => hash_including(
@@ -183,7 +185,7 @@ class StatsigE2ETest < Minitest::Test
   end
 
   def test_log_event
-    driver = StatsigDriver.new('secret-testcase')
+    driver = StatsigDriver.new('secret-testcase', @options)
     driver.log_event(@random_user, 'add_to_cart', 'SKU_12345', { 'price' => '9.99', 'item_name' => 'diet_coke_48_pack' })
     driver.shutdown
 
@@ -192,7 +194,6 @@ class StatsigE2ETest < Minitest::Test
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
         'events' => [
-          hash_including('eventName' => 'statsig::diagnostics'),
           hash_including(
             'eventName' => 'add_to_cart',
             'value' => 'SKU_12345',
@@ -216,7 +217,7 @@ class StatsigE2ETest < Minitest::Test
 
     # with network, rules_updated_callback gets called when there are updated rulesets coming back from server
     callback_validated = false
-    options = StatsigOptions.new(rulesets_sync_interval: 0.1, rules_updated_callback: ->(rules, time) {
+    options = StatsigOptions.new(rulesets_sync_interval: 0.1, rules_updated_callback: lambda { |rules, time|
       if rules == @@mock_response && time == 1631638014811
         callback_validated = true
       end
