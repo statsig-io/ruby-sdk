@@ -25,8 +25,7 @@ module Minitest::Assertions
   end
 end
 
-def wait_for
-  timeout = 10
+def wait_for(timeout: 10)
   start = Time.now
   x = yield
   until x

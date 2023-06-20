@@ -69,7 +69,10 @@ class TestLogging < Minitest::Test
     logger.log_event(StatsigEvent.new("my_event"))
     logger.log_event(StatsigEvent.new("my_other_event"))
 
-    sleep 0.1
+    wait_for(timeout: 1) do
+      called == true
+    end
+
     assert_equal(true, called)
     assert_equal(false, called_after_wait)
   end
