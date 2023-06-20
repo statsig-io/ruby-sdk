@@ -77,9 +77,11 @@ class StatsigDriver
   sig { params(user: StatsigUser, gate_name: String).void }
 
   def manually_log_gate_exposure(user, gate_name)
-    res = @evaluator.check_gate(user, gate_name)
-    context = {'is_manual_exposure' => true}
-    @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
+    @err_boundary.capture(task: lambda {
+      res = @evaluator.check_gate(user, gate_name)
+      context = { 'is_manual_exposure' => true }
+      @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
+    })
   end
 
   class GetConfigOptions < T::Struct
@@ -111,9 +113,11 @@ class StatsigDriver
   sig { params(user: StatsigUser, config_name: String).void }
 
   def manually_log_config_exposure(user, config_name)
-    res = @evaluator.get_config(user, config_name)
-    context = {'is_manual_exposure' => true}
-    @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
+    @err_boundary.capture(task: lambda {
+      res = @evaluator.get_config(user, config_name)
+      context = { 'is_manual_exposure' => true }
+      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
+    })
   end
 
   class GetLayerOptions < T::Struct
@@ -151,10 +155,12 @@ class StatsigDriver
   sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
 
   def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
-    res = @evaluator.get_layer(user, layer_name)
-    layer = Layer.new(layer_name, res.json_value, res.rule_id)
-    context = {'is_manual_exposure' => true}
-    @logger.log_layer_exposure(user, layer, parameter_name, res, context)
+    @err_boundary.capture(task: lambda {
+      res = @evaluator.get_layer(user, layer_name)
+      layer = Layer.new(layer_name, res.json_value, res.rule_id)
+      context = { 'is_manual_exposure' => true }
+      @logger.log_layer_exposure(user, layer, parameter_name, res, context)
+    })
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
