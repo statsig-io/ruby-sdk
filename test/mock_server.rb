@@ -20,6 +20,6 @@ class MockServer
   def self.stop_server
     MockApp.stop!
     @thread.kill.join
-    sleep 0.1 # needs some time for sinatra to free the port
+    sleep 1 # needs some time for sinatra to free the port
   end
 end
