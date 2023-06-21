@@ -18,3 +18,9 @@ Style/IfUnlessModifier:
   Enabled: false
 Style/ConditionalAssignment:
   Enabled: false
+Style/RedundantReturn:
+  Enabled: false
+Style/SlicingWithRange:
+  Enabled: false
+Style/AccessorGrouping:
+  Enabled: false

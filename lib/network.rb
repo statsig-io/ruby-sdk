@@ -4,6 +4,7 @@ require 'http'
 require 'json'
 require 'securerandom'
 require 'sorbet-runtime'
+require 'uri_helper'
 
 $retry_codes = [408, 500, 502, 503, 504, 522, 524, 599]
 
@@ -24,12 +25,8 @@ module Statsig
 
     def initialize(server_secret, options, backoff_mult = 10)
       super()
-      api = options.api_url_base
-      unless api.end_with?('/')
-        api += '/'
-      end
+      URIHelper.initialize(options)
       @server_secret = server_secret
-      @api = api
       @local_mode = options.local_mode
       @timeout = options.network_timeout
       @backoff_multiplier = backoff_mult
@@ -67,8 +64,9 @@ module Statsig
           backoff_adjusted = @post_logs_retry_backoff.call(retries)
         end
       end
+      url = URIHelper.build_url(endpoint)
       begin
-        res = http.post(@api + endpoint, body: body)
+        res = http.post(url, body: body)
       rescue StandardError => e
         ## network error retry
         return nil, e unless retries > 0
@@ -76,7 +74,7 @@ module Statsig
         return post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
       end
       return res, nil if res.status.success?
-      return nil, NetworkError.new("Got an exception when making request to #{@api + endpoint}: #{res.to_s}", res.status.to_i) unless retries > 0 && $retry_codes.include?(res.code)
+      return nil, NetworkError.new("Got an exception when making request to #{url}: #{res.to_s}", res.status.to_i) unless retries > 0 && $retry_codes.include?(res.code)
       ## status code retry
       sleep backoff_adjusted
       post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)

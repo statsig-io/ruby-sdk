@@ -11,6 +11,7 @@ class TestStore < Minitest::Test
   def setup
     super
     WebMock.enable!
+    @diagnostics = Statsig::Diagnostics.new('test')
   end
 
   def teardown
@@ -30,20 +31,6 @@ class TestStore < Minitest::Test
     end
 
     sleep 0.1 # dont return immediately
-  end
-
-  def wait_for
-    timeout = 10
-    start = Time.now
-    x = yield
-    until x
-      if Time.now - start > timeout
-        raise "Waited too long here. Timeout #{timeout} sec"
-      end
-
-      sleep(0.1)
-      x = yield
-    end
   end
 
   def can_sync_id_lists
@@ -239,7 +226,7 @@ class TestStore < Minitest::Test
     @id_list_syncing_enabled = true
     options = StatsigOptions.new(local_mode: false)
     net = Statsig::Network.new('secret-abc', options, 1)
-    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2), nil)
+    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2), nil, @diagnostics)
 
     puts ('await 1 across the board')
     await_next_id_sync(-> { return dcs_calls == 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
@@ -348,7 +335,7 @@ class TestStore < Minitest::Test
     options = StatsigOptions.new(local_mode: false)
     net = Statsig::Network.new('secret-abc', options, 1)
     spy = Spy.on(net, :post_helper).and_call_through
-    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 1), nil)
+    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 1), nil, @diagnostics)
 
     wait_for do
       spy.calls.size == 6

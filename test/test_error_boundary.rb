@@ -23,9 +23,9 @@ class ErrorBoundaryTest < Minitest::Test
 
   def test_recovers_from_errors
     recovered = false
-    @boundary.capture(-> {
+    @boundary.capture(task: -> {
       raise "Bad"
-    }, -> {
+    }, recover: -> {
       recovered = true
     })
 
@@ -33,7 +33,7 @@ class ErrorBoundaryTest < Minitest::Test
   end
 
   def test_logs_to_correct_endpoint
-    @boundary.capture(-> { raise "Bad" }, -> {})
+    @boundary.capture(task: -> { raise "Bad" }, recover: -> {})
     meta = Statsig.get_statsig_metadata
     assert_requested(:post, 'https://statsigapi.net/v1/sdk_exception', :headers => {
       "statsig-api-key" => 'secret-key',
@@ -44,7 +44,7 @@ class ErrorBoundaryTest < Minitest::Test
 
   def test_logs_error_details
     err = RuntimeError.new("Bad")
-    @boundary.capture(-> { raise err }, -> {})
+    @boundary.capture(task: -> { raise err }, recover: -> {})
     assert_requested(:post, 'https://statsigapi.net/v1/sdk_exception', :times => 1) do |req|
       body = JSON.parse(req.body)
       assert_equal("RuntimeError", body["exception"])
@@ -56,7 +56,7 @@ class ErrorBoundaryTest < Minitest::Test
   end
 
   def test_logs_statsig_meta
-    @boundary.capture(-> { raise "Bad" }, -> {})
+    @boundary.capture(task: -> { raise "Bad" }, recover: -> {})
     assert_requested(:post, 'https://statsigapi.net/v1/sdk_exception', :times => 1) do |req|
       body = JSON.parse(req.body)
       assert_equal(Statsig.get_statsig_metadata, body["statsigMetadata"])
@@ -64,36 +64,36 @@ class ErrorBoundaryTest < Minitest::Test
   end
 
   def test_does_not_log_dupes
-    @boundary.capture(-> { raise "Bad" }, -> {})
-    @boundary.capture(-> { raise "Bad" }, -> {})
+    @boundary.capture(task: -> { raise "Bad" }, recover: -> {})
+    @boundary.capture(task: -> { raise "Bad" }, recover: -> {})
     assert_requested(:post, 'https://statsigapi.net/v1/sdk_exception', :times => 1)
   end
 
   def test_does_not_catch_intended
-    assert_raises(Interrupt) { @boundary.capture(-> { raise Interrupt.new }, -> {}) }
-    assert_raises(Statsig::UninitializedError) { @boundary.capture(-> { raise Statsig::UninitializedError.new }, -> {}) }
-    assert_raises(Statsig::ValueError) { @boundary.capture(-> { raise Statsig::ValueError.new }, -> {}) }
+    assert_raises(Interrupt) { @boundary.capture(task: -> { raise Interrupt.new }, recover: -> {}) }
+    assert_raises(Statsig::UninitializedError) { @boundary.capture(task: -> { raise Statsig::UninitializedError.new }, recover: -> {}) }
+    assert_raises(Statsig::ValueError) { @boundary.capture(task: -> { raise Statsig::ValueError.new }, recover: -> {}) }
     assert_requested(:post, 'https://statsigapi.net/v1/sdk_exception', :times => 0)
   end
 
   def test_returns_successful_result
-    res = @boundary.capture(-> {
+    res = @boundary.capture(task: -> {
       return "success"
-    }, -> {})
+    }, recover: -> {})
     assert_equal("success", res)
   end
 
   def test_returns_recovered_result
-    res = @boundary.capture(-> {
+    res = @boundary.capture(task: -> {
       raise "Bad"
-    }, -> {
+    }, recover: -> {
       return "recovered"
     })
     assert_equal("recovered", res)
   end
 
   def test_returns_nil_by_default
-    res = @boundary.capture(-> { raise "Bad" })
+    res = @boundary.capture(task: -> { raise "Bad" })
     assert_nil(res)
   end
 end

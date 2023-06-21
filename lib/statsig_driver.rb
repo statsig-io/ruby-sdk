@@ -30,19 +30,20 @@ class StatsigDriver
     end
 
     @err_boundary = Statsig::ErrorBoundary.new(secret_key)
-    @err_boundary.capture(-> {
-      @init_diagnostics = Statsig::Diagnostics.new("initialize")
-      @init_diagnostics.mark("overall", "start")
+    @err_boundary.capture(task: lambda {
+      @diagnostics = Statsig::Diagnostics.new('initialize')
+      tracker = @diagnostics.track('overall')
       @options = options || StatsigOptions.new
       @shutdown = false
       @secret_key = secret_key
       @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options)
-      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @init_diagnostics)
-      @init_diagnostics.mark("overall", "end")
+      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @diagnostics)
+      tracker.end('success')
 
-      log_init_diagnostics
+      @logger.log_diagnostics_event(@diagnostics)
     })
+    @err_boundary.logger = @logger
   end
 
   class CheckGateOptions < T::Struct
@@ -52,7 +53,7 @@ class StatsigDriver
   sig { params(user: StatsigUser, gate_name: String, options: CheckGateOptions).returns(T::Boolean) }
 
   def check_gate(user, gate_name, options = CheckGateOptions.new)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       user = verify_inputs(user, gate_name, "gate_name")
 
       res = @evaluator.check_gate(user, gate_name)
@@ -70,8 +71,7 @@ class StatsigDriver
       end
 
       res.gate_value
-    }, -> { false })
-
+    }, recover: -> { false }, caller: __method__.to_s)
   end
 
   sig { params(user: StatsigUser, gate_name: String).void }
@@ -89,10 +89,10 @@ class StatsigDriver
   sig { params(user: StatsigUser, dynamic_config_name: String, options: GetConfigOptions).returns(DynamicConfig) }
 
   def get_config(user, dynamic_config_name, options = GetConfigOptions.new)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
       get_config_impl(user, dynamic_config_name, options)
-    }, -> { DynamicConfig.new(dynamic_config_name) })
+    }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
   end
 
   class GetExperimentOptions < T::Struct
@@ -102,10 +102,10 @@ class StatsigDriver
   sig { params(user: StatsigUser, experiment_name: String, options: GetExperimentOptions).returns(DynamicConfig) }
 
   def get_experiment(user, experiment_name, options = GetExperimentOptions.new)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       user = verify_inputs(user, experiment_name, "experiment_name")
       get_config_impl(user, experiment_name, options)
-    }, -> { DynamicConfig.new(experiment_name) })
+    }, recover: -> { DynamicConfig.new(experiment_name) }, caller: __method__.to_s)
   end
 
   sig { params(user: StatsigUser, config_name: String).void }
@@ -123,7 +123,7 @@ class StatsigDriver
   sig { params(user: StatsigUser, layer_name: String, options: GetLayerOptions).returns(Layer) }
 
   def get_layer(user, layer_name, options = GetLayerOptions.new)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       user = verify_inputs(user, layer_name, "layer_name")
 
       res = @evaluator.get_layer(user, layer_name)
@@ -143,9 +143,9 @@ class StatsigDriver
         @logger.log_layer_exposure(user, layer, parameter_name, res)
       } : nil
       Layer.new(res.name, res.json_value, res.rule_id, exposure_log_func)
-    }, -> {
+    }, recover: lambda {
       Layer.new(layer_name)
-    })
+    }, caller: __method__.to_s)
   end
 
   sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
@@ -158,7 +158,7 @@ class StatsigDriver
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       if !user.nil? && !user.instance_of?(StatsigUser)
         raise Statsig::ValueError.new('Must provide a valid StatsigUser or nil')
       end
@@ -175,7 +175,7 @@ class StatsigDriver
   end
 
   def shutdown
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       @shutdown = true
       @logger.shutdown
       @evaluator.shutdown
@@ -183,13 +183,13 @@ class StatsigDriver
   end
 
   def override_gate(gate_name, gate_value)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       @evaluator.override_gate(gate_name, gate_value)
     })
   end
 
   def override_config(config_name, config_value)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       @evaluator.override_config(config_name, config_value)
     })
   end
@@ -197,11 +197,11 @@ class StatsigDriver
   # @param [StatsigUser] user
   # @return [Hash]
   def get_client_initialize_response(user)
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       validate_user(user)
       normalize_user(user)
       @evaluator.get_client_initialize_response(user)
-    }, -> { nil })
+    }, recover: -> { nil })
   end
 
   def maybe_restart_background_threads
@@ -209,7 +209,7 @@ class StatsigDriver
       return
     end
 
-    @err_boundary.capture(-> {
+    @err_boundary.capture(task: lambda {
       @evaluator.maybe_restart_background_threads
       @logger.maybe_restart_background_threads
     })
@@ -301,13 +301,5 @@ class StatsigDriver
       network_result['value'],
       network_result['rule_id'],
     )
-  end
-
-  def log_init_diagnostics
-    if @options.disable_diagnostics_logging
-      return
-    end
-
-    @logger.log_diagnostics_event(@init_diagnostics)
   end
 end

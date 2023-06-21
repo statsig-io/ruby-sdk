@@ -77,7 +77,10 @@ class TestConcurrency < Minitest::Test
       skip "Do not run on Github"
     end
 
-    Statsig.initialize('secret-testcase', StatsigOptions.new(rulesets_sync_interval: 0.01, idlists_sync_interval: 0.01))
+    Statsig.initialize(
+      'secret-testcase',
+      StatsigOptions.new(rulesets_sync_interval: 0.01, idlists_sync_interval: 0.01, disable_diagnostics_logging: true)
+    )
     threads = []
     10.times do
       threads << Thread.new do
@@ -88,7 +91,7 @@ class TestConcurrency < Minitest::Test
           Statsig.log_event(user, "test_event", 1, { 'price' => '9.99', 'item_name' => 'diet_coke_48_pack' })
           assert(Statsig.check_gate(user, 'always_on_gate') == true)
           assert(Statsig.check_gate(user, 'on_for_statsig_email') == true)
-          # this check will get deduped across all threads
+          # this check will get deduped across all threads, only the first exposure should be logged
           assert(Statsig.check_gate(StatsigUser.new({'userID' => 'regular_user_id'}), 'on_for_id_list') == true)
           assert(Statsig.check_gate(user, 'on_for_id_list') == false)
           Statsig.log_event(user, "test_event_2")
@@ -99,8 +102,8 @@ class TestConcurrency < Minitest::Test
           layer = Statsig.get_layer(user, 'a_layer')
           assert(layer.get('layer_param', false) == true)
           assert(%w[control test].include?(layer.get('experiment_param', 'default')))
-          end
         end
+      end
     end
 
     threads.each(&:join)
@@ -108,7 +111,7 @@ class TestConcurrency < Minitest::Test
 
     sleep 0.01
 
-    assert_equal(10002, @@flushed_event_count)
+    assert_equal(10001, @@flushed_event_count)
   end
 
 end

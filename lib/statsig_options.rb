@@ -19,6 +19,11 @@ class StatsigOptions
   # default: https://statsigapi.net/v1
   attr_accessor :api_url_base
 
+  # The base url used specifically to call download_config_specs.
+  # Takes precedence over api_url_base
+  sig { returns(T.any(String, NilClass)) }
+  attr_accessor :api_url_download_config_specs
+
   sig { returns(T.any(Float, Integer)) }
   # The interval (in seconds) to poll for changes to your Statsig configuration
   # default: 10s
@@ -97,6 +102,7 @@ class StatsigOptions
     params(
       environment: T.any(T::Hash[String, String], NilClass),
       api_url_base: String,
+      api_url_download_config_specs: T.any(String, NilClass),
       rulesets_sync_interval: T.any(Float, Integer),
       idlists_sync_interval: T.any(Float, Integer),
       logging_interval_seconds: T.any(Float, Integer),
@@ -118,6 +124,7 @@ class StatsigOptions
   def initialize(
     environment = nil,
     api_url_base = 'https://statsigapi.net/v1',
+    api_url_download_config_specs: nil,
     rulesets_sync_interval: 10,
     idlists_sync_interval: 60,
     logging_interval_seconds: 60,
@@ -135,6 +142,7 @@ class StatsigOptions
     post_logs_retry_backoff: nil)
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
+    @api_url_download_config_specs = api_url_download_config_specs
     @rulesets_sync_interval = rulesets_sync_interval
     @idlists_sync_interval = idlists_sync_interval
     @logging_interval_seconds = logging_interval_seconds
