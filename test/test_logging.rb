@@ -49,6 +49,7 @@ class TestLogging < Minitest::Test
 
     assert_equal([500, 202], codes)
     assert_equal(0, logger.instance_variable_get("@events").length)
+    logger.shutdown
   end
 
   def test_non_blocking_log
@@ -75,6 +76,7 @@ class TestLogging < Minitest::Test
 
     assert_equal(true, called)
     assert_equal(false, called_after_wait)
+    logger.shutdown
   end
 
   def test_exposure_event
@@ -197,6 +199,6 @@ class TestLogging < Minitest::Test
       }, layer_exposure['metadata'])
     assert(layer_exposure['user']['userID'] == '123')
     assert(layer_exposure['user']['privateAttributes'] == nil)
-
+    logger.shutdown
   end
 end
