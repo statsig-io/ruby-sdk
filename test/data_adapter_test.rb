@@ -43,7 +43,14 @@ class StatsigDataAdapterTest < Minitest::Test
     options.data_store = DummyDataAdapter.new
     driver = StatsigDriver.new('secret-testcase', options)
 
-    sleep 1.1
+    evaluator = driver.instance_variable_get('@evaluator')
+    store = evaluator.instance_variable_get('@spec_store')
+    spy_sync_rulesets = Spy.on(store, :download_config_specs).and_call_through
+    spy_sync_id_lists = Spy.on(store, :get_id_lists_from_network).and_call_through
+    wait_for(timeout: 1.9) do
+      spy_sync_rulesets.calls.size.positive?
+      spy_sync_id_lists.calls.size.positive?
+    end
 
     adapter_specs = options.data_store&.get(Statsig::Interfaces::IDataStore::CONFIG_SPECS_KEY)
     specs_json = JSON.parse(adapter_specs)
@@ -53,7 +60,7 @@ class StatsigDataAdapterTest < Minitest::Test
 
     adapter_idlists = options.data_store&.get(Statsig::Interfaces::IDataStore::ID_LISTS_KEY)
     idlists_json = JSON.parse(adapter_idlists)
-    assert(idlists_json = JSON.parse(@mock_get_id_lists))
+    assert(idlists_json == JSON.parse(@mock_get_id_lists))
     assert(idlists_json.size === 1)
     assert(idlists_json["idlist1"]["size"] === 12)
     assert(idlists_json["idlist1"]["fileID"] === "123")
@@ -98,7 +105,14 @@ class StatsigDataAdapterTest < Minitest::Test
     options.data_store.remove_feature_gate("gate_from_adapter")
     options.data_store.update_id_lists
 
-    sleep 1.1
+    evaluator = driver.instance_variable_get('@evaluator')
+    store = evaluator.instance_variable_get('@spec_store')
+    spy_sync_rulesets = Spy.on(store, :load_config_specs_from_storage_adapter).and_call_through
+    spy_sync_id_lists = Spy.on(store, :get_id_lists_from_adapter).and_call_through
+    wait_for(timeout: 1.9) do
+      spy_sync_rulesets.calls.size.positive?
+      spy_sync_id_lists.calls.size.positive?
+    end
 
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == false)
@@ -122,7 +136,14 @@ class StatsigDataAdapterTest < Minitest::Test
 
     options.data_store.corrupt_store
 
-    sleep 1.1
+    evaluator = driver.instance_variable_get('@evaluator')
+    store = evaluator.instance_variable_get('@spec_store')
+    spy_sync_rulesets = Spy.on(store, :download_config_specs).and_call_through
+    spy_sync_id_lists = Spy.on(store, :get_id_lists_from_network).and_call_through
+    wait_for(timeout: 1.9) do
+      spy_sync_rulesets.calls.size.positive?
+      spy_sync_id_lists.calls.size.positive?
+    end
 
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == false)
