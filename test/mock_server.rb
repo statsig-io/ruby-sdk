@@ -10,11 +10,17 @@ class MockApp < Sinatra::Base
 end
 
 class MockServer
-  def self.start_server
+  def self.start_server(retries: 5)
     @thread = Thread.new do
       MockApp.run!
+    rescue Errno::EADDRINUSE
+      raise unless retries.positive?
+
+      puts 'Port in use. Retrying in 1s...'
+      sleep 1
+      MockServer.start_server(retries: retries - 1)
     end
-    sleep 1
+    sleep 0.1 until MockApp.running? || !@thread.alive?
   end
 
   def self.stop_server
