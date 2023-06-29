@@ -36,6 +36,7 @@ class ClientInitializeResponseTest < Minitest::Test
       raise "THIS TEST IS EXPECTED TO FAIL FOR NON-STATSIG EMPLOYEES! If this is the only test failing, please \n" \
             'proceed to submit a pull request. If you are a Statsig employee, chat with jkw.'
     end
+    WebMock.reset!
     WebMock.disable!
     WebMock.allow_net_connect!
   end

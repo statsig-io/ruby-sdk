@@ -15,6 +15,7 @@ class TestLogging < Minitest::Test
 
   def teardown
     super
+    WebMock.reset!
     WebMock.disable!
   end
 

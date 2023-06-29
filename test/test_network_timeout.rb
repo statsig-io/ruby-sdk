@@ -23,6 +23,7 @@ class TestNetworkTimeout < Minitest::Test
 
   def teardown
     super
+    WebMock.reset!
     WebMock.disable!
     WebMock.disallow_net_connect!
     MockServer.stop_server()

@@ -20,6 +20,7 @@ class EvaluateUserProvidedHashesTest < Minitest::Test
 
   def teardown
     super
+    WebMock.reset!
     WebMock.disable!
   end
 

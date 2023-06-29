@@ -31,6 +31,7 @@ class TestSymbolHashes < Minitest::Test
 
   def teardown
     Statsig.shutdown
+    WebMock.reset!
     WebMock.disable!
   end
 

@@ -39,6 +39,7 @@ class StatsigE2ETest < Minitest::Test
 
   def teardown
     super
+    WebMock.reset!
     WebMock.disable!
   end
 

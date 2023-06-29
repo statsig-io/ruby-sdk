@@ -31,6 +31,7 @@ class InitDiagnosticsTest < Minitest::Test
 
   def teardown
     super
+    WebMock.reset!
     WebMock.disable!
   end
 

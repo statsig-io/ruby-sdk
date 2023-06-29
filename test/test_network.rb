@@ -29,9 +29,10 @@ class TestNetwork < Minitest::Test
 
   def teardown
     super
+    WebMock.reset!
     WebMock.disable!
   end
-  
+
   def test_retries_succeed
     stub_request(:post, "https://statsigapi.net/v1/log_event").to_return(status: lambda { |req| status_lambda(req) }, body: "hello")
 

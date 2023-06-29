@@ -33,6 +33,7 @@ class ManualExposureTest < Minitest::Test
   def teardown
     super
     Statsig.shutdown
+    WebMock.reset!
     WebMock.disable!
   end
 
