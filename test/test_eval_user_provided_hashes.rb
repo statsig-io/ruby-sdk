@@ -7,9 +7,10 @@ require 'webmock/minitest'
 
 require 'statsig'
 
-class EvaluateUserProvidedHashesTest < Minitest::Test
-
+class EvaluateUserProvidedHashesTest < BaseTest
+  suite :EvaluateUserProvidedHashesTest
   def setup
+    super
     WebMock.enable!
     stub_request(:post, "https://statsigapi.net/v1/get_id_lists")
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs')

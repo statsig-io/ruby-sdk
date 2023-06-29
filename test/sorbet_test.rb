@@ -38,7 +38,8 @@ end
 
 # All these tests would throw if not for the requiring of
 # statsig which has custom handlers for each of these
-class SorbetTest < Minitest::Test
+class SorbetTest < BaseTest
+  suite :SorbetTest
 
   def setup
     reset_for_test

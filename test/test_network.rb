@@ -7,8 +7,8 @@ require 'spy'
 require 'statsig'
 require 'webmock/minitest'
 
-class TestNetwork < Minitest::Test
-
+class TestNetwork < BaseTest
+  suite :TestNetwork
   def initialize(param)
     super(param)
     @calls = 0
@@ -24,7 +24,10 @@ class TestNetwork < Minitest::Test
   end
 
   def setup
+    super
     WebMock.enable!
+    stub_request(:post, "https://statsigapi.net/v1/download_config_specs").to_return(status: 200)
+    stub_request(:post, "https://statsigapi.net/v1/get_id_lists").to_return(status: 200)
   end
 
   def teardown

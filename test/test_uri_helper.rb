@@ -1,5 +1,6 @@
 require 'test_helper'
-class TestURIHelper < Minitest::Test
+class TestURIHelper < BaseTest
+  suite :TestURIHelper
   def setup
     super
     WebMock.enable!

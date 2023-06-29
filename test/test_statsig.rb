@@ -6,7 +6,8 @@ require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
 
-class TestStatsig < Minitest::Test
+class TestStatsig < BaseTest
+  suite :TestStatsig
   @@json_file = File.read("#{__dir__}/data/download_config_specs.json")
 
   def before_setup

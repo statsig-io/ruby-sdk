@@ -9,7 +9,8 @@ require_relative './dummy_data_adapter'
 
 $expected_sync_time = 1631638014811
 
-class InitDiagnosticsTest < Minitest::Test
+class InitDiagnosticsTest < BaseTest
+  suite :InitDiagnosticsTest
   def setup
     super
     WebMock.enable!

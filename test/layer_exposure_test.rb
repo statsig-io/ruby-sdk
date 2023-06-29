@@ -9,8 +9,8 @@ require 'webmock/minitest'
 require 'dynamic_config'
 require 'layer'
 
-class LayerExposureTest < Minitest::Test
-
+class LayerExposureTest < BaseTest
+  suite :LayerExposureTest
 
   def before_setup
     super
@@ -26,6 +26,7 @@ class LayerExposureTest < Minitest::Test
   end
 
   def setup
+    super
     WebMock.enable!
   end
 

@@ -19,7 +19,8 @@ require 'layer'
 # - ("test" or "control" depending on the user's group)
 $expected_sync_time = 1631638014811
 
-class StatsigE2ETest < Minitest::Test
+class StatsigE2ETest < BaseTest
+  suite :StatsigE2ETest
   @@json_file = File.read("#{__dir__}/data/download_config_specs.json")
   @@mock_response = JSON.parse(@@json_file).to_json
 
@@ -34,6 +35,7 @@ class StatsigE2ETest < Minitest::Test
   end
 
   def setup
+    super
     WebMock.enable!
   end
 

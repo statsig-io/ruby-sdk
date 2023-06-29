@@ -7,7 +7,8 @@ require 'statsig'
 require 'minitest'
 require 'webmock/minitest'
 
-class TestStore < Minitest::Test
+class TestStore < BaseTest
+  suite :TestStore
   def setup
     super
     WebMock.enable!

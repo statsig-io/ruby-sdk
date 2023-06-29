@@ -8,7 +8,8 @@ require 'webmock/minitest'
 require 'statsig_user'
 require_relative './dummy_data_adapter'
 
-class StatsigDataAdapterTest < Minitest::Test
+class StatsigDataAdapterTest < BaseTest
+  suite :StatsigDataAdapterTest
   def setup
     super
     WebMock.enable!
@@ -37,6 +38,7 @@ class StatsigDataAdapterTest < Minitest::Test
     driver = StatsigDriver.new('secret-testcase', options)
     result = driver.check_gate(@user, "gate_from_adapter")
     assert(result == true)
+    driver.shutdown
   end
 
   def test_datastore_overwritten_by_network
@@ -74,6 +76,7 @@ class StatsigDataAdapterTest < Minitest::Test
 
     result = driver.check_gate(@user, "always_on_gate")
     assert(result == true)
+    driver.shutdown
   end
 
   def test_datastore_and_bootstrap_ignores_bootstrap
@@ -87,6 +90,7 @@ class StatsigDataAdapterTest < Minitest::Test
 
     result = driver.check_gate(@user, "always_on_gate")
     assert(result == false)
+    driver.shutdown
   end
 
   def test_datastore_used_for_polling
@@ -123,6 +127,7 @@ class StatsigDataAdapterTest < Minitest::Test
     assert(result == false)
     result = driver.check_gate(@user_not_in_idlist, "test_id_list")
     assert(result == true)
+    driver.shutdown
   end
 
   def test_datastore_fallback_to_network
@@ -152,5 +157,6 @@ class StatsigDataAdapterTest < Minitest::Test
     assert(result == false)
     result = driver.check_gate(@user, "always_on_gate")
     assert(result == true)
+    driver.shutdown
   end
 end

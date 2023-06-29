@@ -6,9 +6,10 @@ require 'minitest/autorun'
 require 'webmock/minitest'
 require 'layer'
 
-class LayerTest < Minitest::Test
-
+class LayerTest < BaseTest
+  suite :LayerTest
   def setup
+    super
     @layer = Layer.new("test", {
       "bool" => true,
       "number" => 2,

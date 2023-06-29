@@ -7,7 +7,8 @@ require 'pp'
 require 'statsig'
 require 'webmock/minitest'
 
-class ServerSDKConsistencyTest < Minitest::Test
+class ServerSDKConsistencyTest < BaseTest
+  suite :ServerSDKConsistencyTest
   def setup
     super
     begin
@@ -18,6 +19,11 @@ class ServerSDKConsistencyTest < Minitest::Test
     WebMock.reset!
     WebMock.disable!
     WebMock.allow_net_connect!
+  end
+
+  def teardown
+    super
+    WebMock.disable_net_connect!
   end
 
   def test_prod

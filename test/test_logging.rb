@@ -8,8 +8,10 @@ require 'statsig'
 require 'layer'
 require 'webmock/minitest'
 
-class TestLogging < Minitest::Test
+class TestLogging < BaseTest
+  suite :TestLogging
   def setup
+    super
     WebMock.enable!
   end
 
@@ -29,6 +31,8 @@ class TestLogging < Minitest::Test
 
   def test_retrying_failed_logs
     stub_request(:post, "https://test_retrying_failed_logs.net/v1/log_event").to_return(status: 500)
+    stub_request(:post, "https://test_retrying_failed_logs.net/v1/download_config_specs").to_return(status: 200)
+    stub_request(:post, "https://test_retrying_failed_logs.net/v1/get_id_lists").to_return(status: 200)
     codes = []
     WebMock.after_request do |req, res|
       if req.uri.to_s.end_with? "log_event"
@@ -55,6 +59,8 @@ class TestLogging < Minitest::Test
 
   def test_non_blocking_log
     stub_request(:post, "https://test_non_blocking_log.net/v1/log_event").to_return(status: 500)
+    stub_request(:post, "https://test_non_blocking_log.net/v1/download_config_specs").to_return(status: 200)
+    stub_request(:post, "https://test_non_blocking_log.net/v1/get_id_lists").to_return(status: 200)
 
     options = StatsigOptions.new(nil, 'https://test_non_blocking_log.net/v1/', local_mode: false)
     net = Statsig::Network.new('secret-abc', options)

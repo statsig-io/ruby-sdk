@@ -25,7 +25,8 @@ STATSIG_METADATA = {
   'sessionID' => 'x123'
 }.freeze
 
-class ClientInitializeResponseTest < Minitest::Test
+class ClientInitializeResponseTest < BaseTest
+  suite :ClientInitializeResponseTest
   def setup
     super
     begin

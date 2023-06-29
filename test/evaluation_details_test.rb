@@ -9,7 +9,8 @@ require 'statsig'
 
 $expected_sync_time = 1631638014811
 
-class EvaluationDetailsTest < Minitest::Test
+class EvaluationDetailsTest < BaseTest
+  suite :EvaluationDetailsTest
   def setup
     super
     WebMock.enable!

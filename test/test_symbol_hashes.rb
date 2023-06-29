@@ -9,8 +9,8 @@ require 'webmock/minitest'
 require 'dynamic_config'
 require 'layer'
 
-class TestSymbolHashes < Minitest::Test
-
+class TestSymbolHashes < BaseTest
+  suite :TestSymbolHashes
   def before_setup
     super
 
@@ -18,14 +18,14 @@ class TestSymbolHashes < Minitest::Test
     @mock_response = JSON.parse(json_file).to_json
     @options = StatsigOptions.new(disable_diagnostics_logging: true)
 
+    WebMock.enable!
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
   end
 
   def setup
-    WebMock.enable!
-
+    super
     Statsig.initialize("secret-key")
   end
 

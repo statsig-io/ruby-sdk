@@ -6,7 +6,8 @@ require 'evaluator'
 require 'statsig'
 require 'country_lookup'
 
-class CountryLookupTest < Minitest::Test
+class CountryLookupTest < BaseTest
+  suite :CountryLookupTest
   def setup
     CountryLookup.teardown
   end
@@ -38,6 +39,7 @@ class CountryLookupTest < Minitest::Test
   end
 
   def test_lookup
+    WebMock.allow_net_connect!
     secret = ENV['test_api_key']
     Statsig.initialize(secret)
     user1 = StatsigUser.new({ user_id: '123', ip: '24.18.183.148' }) # Seattle, WA
@@ -45,5 +47,6 @@ class CountryLookupTest < Minitest::Test
     assert(Statsig.check_gate(user1, 'test_country'))
     assert(!Statsig.check_gate(user2, 'test_country'))
     Statsig.shutdown
+    WebMock.disallow_net_connect!
   end
 end

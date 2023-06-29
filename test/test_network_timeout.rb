@@ -8,17 +8,13 @@ require 'webmock/minitest'
 require 'sinatra/base'
 require 'mock_server'
 
-class TestNetworkTimeout < Minitest::Test
-
-  def initialize(param)
-    super(param)
-    @calls = 0
-  end
-
+class TestNetworkTimeout < BaseTest
+  suite :TestNetworkTimeout
   def setup
+    super
     WebMock.enable!
     WebMock.allow_net_connect!
-    MockServer.start_server()
+    MockServer.start_server
   end
 
   def teardown
@@ -26,7 +22,7 @@ class TestNetworkTimeout < Minitest::Test
     WebMock.reset!
     WebMock.disable!
     WebMock.disallow_net_connect!
-    MockServer.stop_server()
+    MockServer.stop_server
   end
 
   def test_network_timeout

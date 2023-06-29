@@ -4,14 +4,15 @@ require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
 
-class ErrorBoundaryTest < Minitest::Test
-
+class ErrorBoundaryTest < BaseTest
+  suite :ErrorBoundaryTest
   def before_setup
     super
     stub_request(:post, 'https://statsigapi.net/v1/sdk_exception').to_return(status: 200)
   end
 
   def setup
+    super
     WebMock.enable!
     @boundary = Statsig::ErrorBoundary.new("secret-key")
   end

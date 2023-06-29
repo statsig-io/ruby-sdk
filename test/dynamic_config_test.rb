@@ -6,9 +6,11 @@ require 'minitest/autorun'
 require 'webmock/minitest'
 require 'dynamic_config'
 
-class DynamicConfigTest < Minitest::Test
+class DynamicConfigTest < BaseTest
+  suite :DynamicConfigTest
 
   def setup
+    super
     @config = DynamicConfig.new("test", {
       "bool" => true,
       "number" => 2,

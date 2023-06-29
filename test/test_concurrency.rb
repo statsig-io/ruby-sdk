@@ -9,7 +9,8 @@ require 'webmock/minitest'
 require 'dynamic_config'
 require 'layer'
 
-class TestConcurrency < Minitest::Test
+class TestConcurrency < BaseTest
+  suite :TestConcurrency
   json_file = File.read("#{__dir__}/data/download_config_specs.json")
   @@mock_response = JSON.parse(json_file).to_json
 

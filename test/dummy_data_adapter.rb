@@ -154,7 +154,7 @@ class DummyDataAdapter < Statsig::Interfaces::IDataStore
   end
 
   def corrupt_store
-    @store = { 'statsig.cache' => 'corrupted', 'statsig.idlists' => 'corrupted' }.to_json
+    @store = { 'statsig.cache' => 'corrupted', 'statsig.id_lists' => 'corrupted' }
   end
 
   def clear_store

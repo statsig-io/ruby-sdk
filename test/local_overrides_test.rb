@@ -6,8 +6,8 @@ require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
 
-class StatsigLocalOverridesTest < Minitest::Test
-
+class StatsigLocalOverridesTest < BaseTest
+  suite :StatsigLocalOverridesTest
   def setup
     super
     options = StatsigOptions.new()

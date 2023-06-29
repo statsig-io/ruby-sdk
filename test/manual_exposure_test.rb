@@ -10,8 +10,8 @@ require 'dynamic_config'
 require 'layer'
 require 'spy'
 
-class ManualExposureTest < Minitest::Test
-
+class ManualExposureTest < BaseTest
+  suite :ManualExposureTest
 
   def before_setup
     super
@@ -27,6 +27,7 @@ class ManualExposureTest < Minitest::Test
   end
 
   def setup
+    super
     WebMock.enable!
   end
 

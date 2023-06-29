@@ -7,8 +7,8 @@ require 'webmock/minitest'
 
 require 'statsig'
 
-class UserFieldsTest < Minitest::Test
-
+class UserFieldsTest < BaseTest
+  suite :UserFieldsTest
   def test_nil_init
     a = nil
     user = StatsigUser.new(a)

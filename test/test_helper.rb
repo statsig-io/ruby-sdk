@@ -15,13 +15,63 @@ SimpleCov.start { add_filter '/test/' } if ENV['COVERAGE']
 
 require 'minitest'
 require 'minitest/autorun'
+require 'minitest/reporters'
+require 'minitest/suite'
 require 'webmock/minitest'
 require 'spy'
 require 'statsig'
 
+# Minitest overrides & plugin settings
 module Minitest::Assertions
   def assert_nothing_raised(*)
     yield
+  end
+end
+
+unless ENV['RM_INFO'] # For compatibility with IntelliJ Minitest
+  Minitest::Reporters.use! Minitest::Reporters::SpecReporter.new
+end
+
+Minitest::Suite.order = %i[
+  ClientInitializeResponseTest
+  StatsigDataAdapterTest
+  DynamicConfigTest
+  EvaluationDetailsTest
+  LayerExposureTest
+  LayerTest
+  StatsigLocalOverridesTest
+  ManualExposureTest
+  ServerSDKConsistencyTest
+  SorbetTest
+  StatsigE2ETest
+  TestConcurrency
+  CountryLookupTest
+  InitDiagnosticsTest
+  ErrorBoundaryTest
+  EvaluateUserProvidedHashesTest
+  TestLogging
+  TestNetwork
+  TestNetworkTimeout
+  TestStatsig
+  StatsigErrorBoundaryUsageTest
+  TestStore
+  TestSymbolHashes
+  TestURIHelper
+  UserFieldsTest
+]
+
+class BaseTest < Minitest::Test
+  include Minitest::Assertions
+  def self.test_order
+    :alpha
+  end
+
+  def setup
+    super
+  end
+
+  def teardown
+    super
   end
 end
 

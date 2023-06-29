@@ -4,8 +4,8 @@ require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
 
-class StatsigErrorBoundaryUsageTest < Minitest::Test
-
+class StatsigErrorBoundaryUsageTest < BaseTest
+  suite :StatsigErrorBoundaryUsageTest
   def before_setup
     super
     stub_request(:post, 'https://statsigapi.net/v1/sdk_exception').to_return(status: 200)
@@ -14,6 +14,7 @@ class StatsigErrorBoundaryUsageTest < Minitest::Test
   end
 
   def setup
+    super
     WebMock.enable!
     @driver = StatsigDriver.new("secret-key")
     @user = StatsigUser.new({ "userID" => "dloomb" })
