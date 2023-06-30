@@ -25,6 +25,8 @@ require 'statsig'
 module Minitest::Assertions
   def assert_nothing_raised(*)
     yield
+  rescue StandardError => e
+    assert(false, "Failed asserting that nothing raised (#{e})")
   end
 end
 

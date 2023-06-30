@@ -22,6 +22,8 @@ class TestStore < BaseTest
   end
 
   def await_next_id_sync(check)
+    return if check.call
+
     @id_list_syncing_enabled = true
     timeout = 10
     start = Time.now
@@ -231,7 +233,9 @@ class TestStore < BaseTest
     store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2), nil, @diagnostics)
 
     puts ('await 1 across the board')
-    await_next_id_sync(-> { return dcs_calls == 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
+    assert_nothing_raised do
+      await_next_id_sync(-> { return dcs_calls == 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
+    end
 
     assert(!store.get_config('config_1').nil?)
     assert(!store.get_config('config_2').nil?)
@@ -251,8 +255,8 @@ class TestStore < BaseTest
     assert_nothing_raised do
       await_next_id_sync(-> { Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])) == store.get_id_list('list_1') })
     end
-    assert_equal(get_id_lists_calls, 2)
-    assert_equal(id_list_1_calls, 2)
+    assert_equal(2, get_id_lists_calls)
+    assert_equal(2, id_list_1_calls)
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
@@ -260,8 +264,8 @@ class TestStore < BaseTest
     assert_nothing_raised do
       await_next_id_sync(-> { Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1') })
     end
-    assert_equal(get_id_lists_calls, 3)
-    assert_equal(id_list_1_calls, 3)
+    assert_equal(3, get_id_lists_calls)
+    assert_equal(3, id_list_1_calls)
     assert_nil(store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
@@ -287,8 +291,8 @@ class TestStore < BaseTest
                             }, Set.new(["0"])) == store.get_id_list('list_3') })
     end
 
-    assert_equal(get_id_lists_calls, 5)
-    assert_equal(id_list_1_calls, 4)
+    assert_equal(5, get_id_lists_calls)
+    assert_equal(4, id_list_1_calls)
     assert_nil(store.get_id_list('list_1'))
     assert_nil(store.get_id_list('list_2'))
 
@@ -305,8 +309,8 @@ class TestStore < BaseTest
                             }, Set.new(["0"])) == store.get_id_list('list_3')
       })
     end
-    assert_equal(get_id_lists_calls, 6)
-    assert_equal(id_list_1_calls, 5)
+    assert_equal(6, get_id_lists_calls)
+    assert_equal(5, id_list_1_calls)
     assert_nil(store.get_id_list('list_2'))
     assert(!store.get_config('config_1').nil?)
     assert(store.get_config('config_2').nil?)
@@ -342,12 +346,12 @@ class TestStore < BaseTest
     wait_for do
       spy.calls.size == 6
     end
-    assert(6, spy.calls.size) # download_config_specs was called 3 times + get_id_lists 3 times
+    assert_equal(6, spy.calls.size) # download_config_specs was called 3 times + get_id_lists 3 times
     store.shutdown
 
     wait_for do
       spy.calls.size == 6
     end
-    assert(6, spy.calls.size) # after shutdown no more call should be made
+    assert_equal(6, spy.calls.size) # after shutdown no more call should be made
   end
 end
