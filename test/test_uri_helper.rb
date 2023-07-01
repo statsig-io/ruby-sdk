@@ -36,26 +36,37 @@ class TestURIHelper < BaseTest
   end
 
   def test_custom_api_url_base
-    options = StatsigOptions.new(nil, 'https://custom_base_url', rulesets_sync_interval: 1)
+    options = StatsigOptions.new(
+      nil,
+      'https://custom_base_url',
+      rulesets_sync_interval: 1,
+      idlists_sync_interval: 1
+    )
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil, @diagnostics)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
+    store.shutdown
     assert_equal(0, @dcs_counter[:default])
     assert_equal(1, @dcs_counter[:custom_base_url])
     assert_equal(0, @dcs_counter[:custom_dcs_url])
   end
 
   def test_custom_api_url_dcs
-    options = StatsigOptions.new(api_url_download_config_specs: 'https://custom_dcs_url', rulesets_sync_interval: 1)
+    options = StatsigOptions.new(
+      api_url_download_config_specs: 'https://custom_dcs_url',
+      rulesets_sync_interval: 1,
+      idlists_sync_interval: 1
+    )
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil, @diagnostics)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
+    store.shutdown
     assert_equal(0, @dcs_counter[:default])
     assert_equal(0, @dcs_counter[:custom_base_url])
     assert_equal(1, @dcs_counter[:custom_dcs_url])
@@ -66,27 +77,30 @@ class TestURIHelper < BaseTest
       nil,
       'https://custom_base_url',
       api_url_download_config_specs: 'https://custom_dcs_url',
-      rulesets_sync_interval: 1
+      rulesets_sync_interval: 1,
+      idlists_sync_interval: 1
     )
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil, @diagnostics)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
+    store.shutdown
     assert_equal(0, @dcs_counter[:default])
     assert_equal(0, @dcs_counter[:custom_base_url])
     assert_equal(1, @dcs_counter[:custom_dcs_url])
   end
 
   def test_default_api_url
-    options = StatsigOptions.new(rulesets_sync_interval: 1)
+    options = StatsigOptions.new(rulesets_sync_interval: 1, idlists_sync_interval: 1)
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    Statsig::SpecStore.new(net, options, nil, @diagnostics)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics)
     wait_for do
       spy.calls.size >= 2
     end
+    store.shutdown
     assert_equal(1, @dcs_counter[:default])
     assert_equal(0, @dcs_counter[:custom_base_url])
     assert_equal(0, @dcs_counter[:custom_dcs_url])

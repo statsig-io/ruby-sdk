@@ -1,11 +1,8 @@
 # typed: false
+require_relative 'test_helper'
 require 'http'
 require 'json'
-require 'minitest'
-require 'minitest/autorun'
 require 'pp'
-require 'statsig'
-require 'webmock/minitest'
 
 class ServerSDKConsistencyTest < BaseTest
   suite :ServerSDKConsistencyTest

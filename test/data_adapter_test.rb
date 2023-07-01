@@ -46,8 +46,7 @@ class StatsigDataAdapterTest < BaseTest
     spy_sync_rulesets = Spy.on(store, :download_config_specs).and_call_through_void
     spy_sync_id_lists = Spy.on(store, :get_id_lists_from_network).and_call_through_void
     wait_for(timeout: 1.9) do
-      spy_sync_rulesets.finished?
-      spy_sync_id_lists.finished?
+      spy_sync_rulesets.finished? && spy_sync_id_lists.finished?
     end
 
     adapter_specs = options.data_store&.get(Statsig::Interfaces::IDataStore::CONFIG_SPECS_KEY)
@@ -110,8 +109,7 @@ class StatsigDataAdapterTest < BaseTest
     spy_sync_rulesets = Spy.on(store, :load_config_specs_from_storage_adapter).and_call_through_void
     spy_sync_id_lists = Spy.on(store, :get_id_lists_from_adapter).and_call_through_void
     wait_for(timeout: 1.9) do
-      spy_sync_id_lists.finished?
-      spy_sync_rulesets.finished?
+      spy_sync_rulesets.finished? && spy_sync_id_lists.finished?
     end
 
     result = driver.check_gate(@user, "gate_from_adapter")
@@ -142,8 +140,7 @@ class StatsigDataAdapterTest < BaseTest
     spy_sync_rulesets = Spy.on(store, :download_config_specs).and_call_through_void
     spy_sync_id_lists = Spy.on(store, :get_id_lists_from_network).and_call_through_void
     wait_for(timeout: 1.9) do
-      spy_sync_rulesets.finished?
-      spy_sync_id_lists.finished?
+      spy_sync_rulesets.finished? && spy_sync_id_lists.finished?
     end
 
     result = driver.check_gate(@user, "gate_from_adapter")
