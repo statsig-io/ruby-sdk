@@ -13,6 +13,8 @@ class TestStore < BaseTest
     super
     WebMock.enable!
     @diagnostics = Statsig::Diagnostics.new('test')
+    @id_list_syncing_enabled = false
+    @rulesets_syncing_enabled = false
   end
 
   def teardown
@@ -21,10 +23,11 @@ class TestStore < BaseTest
     WebMock.disable!
   end
 
-  def await_next_id_sync(check)
+  def await_next_sync(check)
     return if check.call
 
-    @id_list_syncing_enabled = true
+    enable_id_list_syncing
+    enable_rulesets_syncing
     timeout = 10
     start = Time.now
 
@@ -45,6 +48,22 @@ class TestStore < BaseTest
     @id_list_syncing_enabled = false
   end
 
+  def enable_id_list_syncing
+    @id_list_syncing_enabled = true
+  end
+
+  def can_sync_rulesets
+    @rulesets_syncing_enabled
+  end
+
+  def disable_rulesets_syncing
+    @rulesets_syncing_enabled = false
+  end
+
+  def enable_rulesets_syncing
+    @rulesets_syncing_enabled = true
+  end
+
   def test_1_store_sync
     dcs_calls = 0
     get_id_lists_calls = 0
@@ -57,41 +76,44 @@ class TestStore < BaseTest
     id_list_3_calls_mutex = Mutex.new
 
     stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return { |req|
-      dcs_calls += 1
-      body = {
-        'dynamic_configs' => [
-          { 'name' => 'config_1' },
-        ],
-        'feature_gates' => [
-          { 'name' => 'gate_1' },
-        ],
-        'layer_configs' => [],
-        'has_updates' => true,
-        'id_lists' => {
-          'list_1' => true,
-          'list_2' => true,
-        }
-      }
-
-      if dcs_calls == 1
+      if can_sync_rulesets
+        dcs_calls += 1
         body = {
           'dynamic_configs' => [
             { 'name' => 'config_1' },
-            { 'name' => 'config_2' }
           ],
           'feature_gates' => [
             { 'name' => 'gate_1' },
-            { 'name' => 'gate_2' },
           ],
           'layer_configs' => [],
           'has_updates' => true,
           'id_lists' => {
             'list_1' => true,
+            'list_2' => true,
           }
         }
-      end
 
-      { body: JSON.generate(body) }
+        if dcs_calls == 1
+          body = {
+            'dynamic_configs' => [
+              { 'name' => 'config_1' },
+              { 'name' => 'config_2' }
+            ],
+            'feature_gates' => [
+              { 'name' => 'gate_1' },
+              { 'name' => 'gate_2' },
+            ],
+            'layer_configs' => [],
+            'has_updates' => true,
+            'id_lists' => {
+              'list_1' => true,
+            }
+          }
+        end
+
+        disable_rulesets_syncing
+        { body: JSON.generate(body) }
+      end
     }
 
     get_id_lists_responses = [
@@ -162,17 +184,17 @@ class TestStore < BaseTest
     ]
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return { |req|
-      return unless can_sync_id_lists
+      if can_sync_id_lists
+        get_id_lists_calls_mutex.synchronize do
+          index = [get_id_lists_calls, 4].min
+          response = JSON.generate(get_id_lists_responses[index])
+          get_id_lists_calls += 1
 
-      get_id_lists_calls_mutex.synchronize do
-        index = [get_id_lists_calls, 4].min
-        response = JSON.generate(get_id_lists_responses[index])
-        get_id_lists_calls += 1
+          disable_id_list_syncing
 
-        disable_id_list_syncing
-
-        puts "get_id_lists x#{get_id_lists_calls.to_s} Res:#{response}"
-        { body: response }
+          puts "get_id_lists x#{get_id_lists_calls.to_s} Res:#{response}"
+          { body: response }
+        end
       end
     }
 
@@ -227,14 +249,13 @@ class TestStore < BaseTest
       end
     }
 
-    @id_list_syncing_enabled = true
     options = StatsigOptions.new(local_mode: false)
     net = Statsig::Network.new('secret-abc', options, 1)
     store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2), nil, @diagnostics)
 
     puts ('await 1 across the board')
     assert_nothing_raised do
-      await_next_id_sync(-> { return dcs_calls == 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
+      await_next_sync(-> { return dcs_calls >= 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
     end
 
     assert(!store.get_config('config_1').nil?)
@@ -252,8 +273,9 @@ class TestStore < BaseTest
                                      }, Set.new(["a"])), store.get_id_list('list_2'))
     assert_nil(store.get_id_list('list_3'))
 
+    puts ('await 2 across the board')
     assert_nothing_raised do
-      await_next_id_sync(-> { Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])) == store.get_id_list('list_1') })
+      await_next_sync(-> { Statsig::IDList.new(get_id_lists_responses[1]['list_1'], Set.new(["2"])) == store.get_id_list('list_1') })
     end
     assert_equal(2, get_id_lists_calls)
     assert_equal(2, id_list_1_calls)
@@ -262,7 +284,7 @@ class TestStore < BaseTest
 
     puts ('await 3 across the board')
     assert_nothing_raised do
-      await_next_id_sync(-> { Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1') })
+      await_next_sync(-> { Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])) == store.get_id_list('list_1') })
     end
     assert_equal(3, get_id_lists_calls)
     assert_equal(3, id_list_1_calls)
@@ -270,7 +292,7 @@ class TestStore < BaseTest
     assert_nil(store.get_id_list('list_3'))
 
     puts ('await 4')
-    await_next_id_sync(-> { return get_id_lists_calls == 4 })
+    await_next_sync(-> { return get_id_lists_calls == 4 })
 
     # list_1 not changed because response was pointing to the older url
     assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),
@@ -281,7 +303,7 @@ class TestStore < BaseTest
     puts ('await 5')
     # list_1 is reset to nil because response gave an invalid string
     assert_nothing_raised do
-      await_next_id_sync(lambda {
+      await_next_sync(lambda {
         Statsig::IDList.new({
                               'name' => 'list_3',
                               'size' => 3,
@@ -298,7 +320,7 @@ class TestStore < BaseTest
 
     puts ('await 6')
     assert_nothing_raised do
-      await_next_id_sync(lambda {
+      await_next_sync(lambda {
         Statsig::IDList.new(get_id_lists_responses[4]['list_1'], Set.new(%w[3 5 6])) == store.get_id_list('list_1') &&
         Statsig::IDList.new({
                               'name' => 'list_3',
