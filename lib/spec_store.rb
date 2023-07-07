@@ -12,7 +12,7 @@ module Statsig
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
 
-    def initialize(network, options, error_callback, diagnostics)
+    def initialize(network, options, error_callback, diagnostics, error_boundary)
       @init_reason = EvaluationReason::UNINITIALIZED
       @network = network
       @options = options
@@ -30,6 +30,7 @@ module Statsig
         :experiment_to_layer => {}
       }
       @diagnostics = diagnostics
+      @error_boundary = error_boundary
 
       @id_list_thread_pool = Concurrent::FixedThreadPool.new(
         options.idlist_threadpool_size,
@@ -124,10 +125,10 @@ module Statsig
     end
 
     def maybe_restart_background_threads
-      if @config_sync_thread.nil? or !@config_sync_thread.alive?
+      if @config_sync_thread.nil? || !@config_sync_thread.alive?
         @config_sync_thread = sync_config_specs
       end
-      if @id_lists_sync_thread.nil? or !@id_lists_sync_thread.alive?
+      if @id_lists_sync_thread.nil? || !@id_lists_sync_thread.alive?
         @id_lists_sync_thread = sync_id_lists
       end
     end
@@ -159,29 +160,33 @@ module Statsig
 
     def sync_config_specs
       Thread.new do
-        @diagnostics = Diagnostics.new('config_sync')
-        loop do
-          sleep @options.rulesets_sync_interval
-          if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
-            load_config_specs_from_storage_adapter
-          else
-            download_config_specs
+        @error_boundary.capture(task: lambda {
+          @diagnostics = Diagnostics.new('config_sync')
+          loop do
+            sleep @options.rulesets_sync_interval
+            if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
+              load_config_specs_from_storage_adapter
+            else
+              download_config_specs
+            end
           end
-        end
+        })
       end
     end
 
     def sync_id_lists
       Thread.new do
-        @diagnostics = Diagnostics.new('config_sync')
-        loop do
-          sleep @id_lists_sync_interval
-          if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::ID_LISTS_KEY)
-            get_id_lists_from_adapter
-          else
-            get_id_lists_from_network
+        @error_boundary.capture(task: lambda {
+          @diagnostics = Diagnostics.new('config_sync')
+          loop do
+            sleep @id_lists_sync_interval
+            if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::ID_LISTS_KEY)
+              get_id_lists_from_adapter
+            else
+              get_id_lists_from_network
+            end
           end
-        end
+        })
       end
     end
 

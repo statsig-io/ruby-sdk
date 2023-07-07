@@ -65,6 +65,10 @@ module Statsig
       @markers.clear
     end
 
+    def self.sample(rate)
+      rand(rate).zero?
+    end
+
     class Context
       INITIALIZE = 'initialize'.freeze
       CONFIG_SYNC = 'config_sync'.freeze

@@ -17,8 +17,8 @@ module Statsig
   class Evaluator
     attr_accessor :spec_store
 
-    def initialize(network, options, error_callback, diagnostics)
-      @spec_store = Statsig::SpecStore.new(network, options, error_callback, diagnostics)
+    def initialize(network, options, error_callback, diagnostics, error_boundary)
+      @spec_store = Statsig::SpecStore.new(network, options, error_callback, diagnostics, error_boundary)
       UAParser.initialize_async
       CountryLookup.initialize_async
 

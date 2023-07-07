@@ -25,13 +25,14 @@ class InitDiagnosticsTest < BaseTest
       @events.push(*JSON.parse(request.body)["events"])
       return ''
     })
-    Spy.on_instance_method(Statsig::ErrorBoundary, 'sample_diagnostics').and_return do
+    Spy.on(Statsig::Diagnostics, 'sample').and_return do
       true
     end
   end
 
   def teardown
     super
+    Spy.off(Statsig::Diagnostics, 'sample')
     WebMock.reset!
     WebMock.disable!
   end
