@@ -15,7 +15,7 @@ module Statsig
       @seen = Set.new
     end
 
-    def capture(task:, recover: -> {})
+    def capture(task:, recover: -> {}, caller: nil)
       begin
         res = task.call
       rescue StandardError => e
@@ -24,7 +24,7 @@ module Statsig
         end
 
         puts '[Statsig]: An unexpected exception occurred.'
-        log_exception(e)
+        log_exception(e, tag: caller)
         res = recover.call
       end
       return res
@@ -32,34 +32,33 @@ module Statsig
 
     private
 
-    def log_exception(exception)
-      begin
-        name = exception.class.name
-        if @seen.include?(name)
-          return
-        end
-
-        @seen << name
-        meta = Statsig.get_statsig_metadata
-        http = HTTP.headers(
-          {
-            'STATSIG-API-KEY' => @sdk_key,
-            'STATSIG-SDK-TYPE' => meta['sdkType'],
-            'STATSIG-SDK-VERSION' => meta['sdkVersion'],
-            'Content-Type' => 'application/json; charset=UTF-8'
-          }).accept(:json)
-        body = {
-          'exception' => name,
-          'info' => {
-            'trace' => exception.backtrace.to_s,
-            'message' => exception.message
-          }.to_s,
-          'statsigMetadata' => meta
-        }
-        http.post($endpoint, body: JSON.generate(body))
-      rescue
+    def log_exception(exception, tag: nil)
+      name = exception.class.name
+      if @seen.include?(name)
         return
       end
+
+      @seen << name
+      meta = Statsig.get_statsig_metadata
+      http = HTTP.headers(
+        {
+          'STATSIG-API-KEY' => @sdk_key,
+          'STATSIG-SDK-TYPE' => meta['sdkType'],
+          'STATSIG-SDK-VERSION' => meta['sdkVersion'],
+          'Content-Type' => 'application/json; charset=UTF-8'
+        }).accept(:json)
+      body = {
+        'exception' => name,
+        'info' => {
+          'trace' => exception.backtrace.to_s,
+          'message' => exception.message
+        }.to_s,
+        'statsigMetadata' => meta,
+        'tag' => tag
+      }
+      http.post($endpoint, body: JSON.generate(body))
+    rescue StandardError
+      return
     end
   end
 end

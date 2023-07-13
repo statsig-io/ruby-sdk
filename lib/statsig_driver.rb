@@ -42,7 +42,7 @@ class StatsigDriver
       tracker.end('success')
 
       @logger.log_diagnostics_event(@diagnostics)
-    })
+    }, caller: __method__.to_s)
   end
 
   class CheckGateOptions < T::Struct
@@ -72,7 +72,7 @@ class StatsigDriver
 
         res.gate_value
       }, caller: __method__.to_s)
-    }, recover: -> { false })
+    }, recover: -> { false }, caller: __method__.to_s)
   end
 
   sig { params(user: StatsigUser, gate_name: String).void }
@@ -97,7 +97,7 @@ class StatsigDriver
         user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
         get_config_impl(user, dynamic_config_name, options)
       }, caller: __method__.to_s)
-    }, recover: -> { DynamicConfig.new(dynamic_config_name) })
+    }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
   end
 
   class GetExperimentOptions < T::Struct
@@ -112,7 +112,7 @@ class StatsigDriver
         user = verify_inputs(user, experiment_name, "experiment_name")
         get_config_impl(user, experiment_name, options)
       }, caller: __method__.to_s)
-    }, recover: -> { DynamicConfig.new(experiment_name) })
+    }, recover: -> { DynamicConfig.new(experiment_name) }, caller: __method__.to_s)
   end
 
   sig { params(user: StatsigUser, config_name: String).void }
@@ -122,7 +122,7 @@ class StatsigDriver
       res = @evaluator.get_config(user, config_name)
       context = { 'is_manual_exposure' => true }
       @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
-    })
+    }, caller: __method__.to_s)
   end
 
   class GetLayerOptions < T::Struct
@@ -154,9 +154,7 @@ class StatsigDriver
         } : nil
         Layer.new(res.name, res.json_value, res.rule_id, exposure_log_func)
       }, caller: __method__.to_s)
-    }, recover: lambda {
-      Layer.new(layer_name)
-    })
+    }, recover: lambda { Layer.new(layer_name) }, caller: __method__.to_s)
   end
 
   sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
@@ -167,7 +165,7 @@ class StatsigDriver
       layer = Layer.new(layer_name, res.json_value, res.rule_id)
       context = { 'is_manual_exposure' => true }
       @logger.log_layer_exposure(user, layer, parameter_name, res, context)
-    })
+    }, caller: __method__.to_s)
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
@@ -184,7 +182,7 @@ class StatsigDriver
       event.value = value
       event.metadata = metadata
       @logger.log_event(event)
-    })
+    }, caller: __method__.to_s)
   end
 
   def shutdown
@@ -192,19 +190,19 @@ class StatsigDriver
       @shutdown = true
       @logger.shutdown
       @evaluator.shutdown
-    })
+    }, caller: __method__.to_s)
   end
 
   def override_gate(gate_name, gate_value)
     @err_boundary.capture(task: lambda {
       @evaluator.override_gate(gate_name, gate_value)
-    })
+    }, caller: __method__.to_s)
   end
 
   def override_config(config_name, config_value)
     @err_boundary.capture(task: lambda {
       @evaluator.override_config(config_name, config_value)
-    })
+    }, caller: __method__.to_s)
   end
 
   # @param [StatsigUser] user
@@ -214,7 +212,7 @@ class StatsigDriver
       validate_user(user)
       normalize_user(user)
       @evaluator.get_client_initialize_response(user)
-    }, recover: -> { nil })
+    }, recover: -> { nil }, caller: __method__.to_s)
   end
 
   def maybe_restart_background_threads
@@ -225,7 +223,7 @@ class StatsigDriver
     @err_boundary.capture(task: lambda {
       @evaluator.maybe_restart_background_threads
       @logger.maybe_restart_background_threads
-    })
+    }, caller: __method__.to_s)
   end
 
   private
