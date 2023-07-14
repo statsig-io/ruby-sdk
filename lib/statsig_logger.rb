@@ -9,7 +9,7 @@ $diagnostics_event = 'statsig::diagnostics'
 $ignored_metadata_keys = ['serverTime', 'configSyncTime', 'initTime', 'reason']
 module Statsig
   class StatsigLogger
-    def initialize(network, options)
+    def initialize(network, options, error_boundary)
       @network = network
       @events = []
       @options = options
@@ -26,6 +26,7 @@ module Statsig
       @background_flush = periodic_flush
       @deduper = Concurrent::Set.new()
       @interval = 0
+      @error_boundary = error_boundary
     end
 
     def log_event(event)
@@ -109,12 +110,14 @@ module Statsig
 
     def periodic_flush
       Thread.new do
-        loop do
-          sleep @options.logging_interval_seconds
-          flush_async
-          @interval += 1
-          @deduper.clear if @interval % 2 == 0
-        end
+        @error_boundary.capture(task: lambda {
+          loop do
+            sleep @options.logging_interval_seconds
+            flush_async
+            @interval += 1
+            @deduper.clear if @interval % 2 == 0
+          end
+        })
       end
     end
 
@@ -143,7 +146,7 @@ module Statsig
     end
 
     def maybe_restart_background_threads
-      if @background_flush.nil? or !@background_flush.alive?
+      if @background_flush.nil? || !@background_flush.alive?
         @background_flush = periodic_flush
       end
     end

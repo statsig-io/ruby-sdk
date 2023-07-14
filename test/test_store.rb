@@ -13,6 +13,7 @@ class TestStore < BaseTest
     super
     WebMock.enable!
     @diagnostics = Statsig::Diagnostics.new('test')
+    @error_boundary = Statsig::ErrorBoundary.new('secret-key')
     @id_list_syncing_enabled = false
     @rulesets_syncing_enabled = false
   end
@@ -249,9 +250,9 @@ class TestStore < BaseTest
       end
     }
 
-    options = StatsigOptions.new(local_mode: false)
+    options = StatsigOptions.new(local_mode: false, rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2)
     net = Statsig::Network.new('secret-abc', options, 1)
-    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2), nil, @diagnostics)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary)
 
     puts ('await 1 across the board')
     assert_nothing_raised do
@@ -360,10 +361,10 @@ class TestStore < BaseTest
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
       .to_return(status: 200, body: JSON.generate({}))
 
-    options = StatsigOptions.new(local_mode: false)
+    options = StatsigOptions.new(local_mode: false, rulesets_sync_interval: 1)
     net = Statsig::Network.new('secret-abc', options, 1)
     spy = Spy.on(net, :post_helper).and_call_through
-    store = Statsig::SpecStore.new(net, StatsigOptions.new(rulesets_sync_interval: 1), nil, @diagnostics)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary)
 
     wait_for do
       spy.calls.size == 6
