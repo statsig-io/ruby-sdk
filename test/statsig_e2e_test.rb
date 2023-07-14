@@ -124,7 +124,7 @@ class StatsigE2ETest < BaseTest
     assert(config.get('boolean', true) == false)
 
     config = driver.get_config(@random_user, 'test_config')
-    assert(config.group_name.nil?)
+    assert_equal('default', config.group_name)
     assert(config.id_type == 'anonymousID')
     assert(config.get('number', 0) == 4)
     assert(config.get('string', '') == 'default')

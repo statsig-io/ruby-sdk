@@ -33,6 +33,8 @@ module ClientInitializeHelpers
         :gate_value => eval_result.gate_value,
         :json_value => eval_result.json_value,
         :rule_id => eval_result.rule_id,
+        :group_name => eval_result.group_name,
+        :id_type => eval_result.id_type,
         :config_delegate => eval_result.config_delegate,
         :is_experiment_group => eval_result.is_experiment_group,
         :secondary_exposures => eval_result.secondary_exposures,
@@ -52,10 +54,14 @@ module ClientInitializeHelpers
         end
 
         result['value'] = safe_eval_result[:gate_value]
+        result["group_name"] = safe_eval_result[:group_name]
+        result["id_type"] = safe_eval_result[:id_type]
       when 'dynamic_config'
         id_type = config_spec['idType']
         result['value'] = safe_eval_result[:json_value]
         result["group"] = safe_eval_result[:rule_id]
+        result["group_name"] = safe_eval_result[:group_name]
+        result["id_type"] = safe_eval_result[:id_type]
         result["is_device_based"] = id_type.is_a?(String) && id_type.downcase == 'stableid'
       else
         return nil
@@ -67,6 +73,7 @@ module ClientInitializeHelpers
 
       if entity_type == 'layer'
         populate_layer_fields(config_spec, safe_eval_result, result)
+        result.delete('id_type') # not exposed for layer configs in /initialize
       end
 
       hashed_name = hash_name(config_name)
