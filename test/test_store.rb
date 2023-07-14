@@ -253,10 +253,16 @@ class TestStore < BaseTest
     options = StatsigOptions.new(local_mode: false, rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2)
     net = Statsig::Network.new('secret-abc', options, 1)
     store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary)
+    spy_dcs = Spy.on(store, :download_config_specs).and_call_through_void
+    spy_get_id_lists = Spy.on(store, :get_id_lists_from_network).and_call_through_void
+    spy_download_single_id_list = Spy.on(store, :download_single_id_list).and_call_through_void
 
     puts ('await 1 across the board')
     assert_nothing_raised do
-      await_next_sync(-> { return dcs_calls >= 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
+      await_next_sync(-> { return dcs_calls == 1 && get_id_lists_calls == 1 && id_list_1_calls == 1 })
+    end
+    wait_for do
+      spy_dcs.finished? && spy_get_id_lists.finished? && spy_download_single_id_list.finished?
     end
 
     assert(!store.get_config('config_1').nil?)
@@ -294,6 +300,9 @@ class TestStore < BaseTest
 
     puts ('await 4')
     await_next_sync(-> { return get_id_lists_calls == 4 })
+    wait_for do
+      spy_get_id_lists.finished?
+    end
 
     # list_1 not changed because response was pointing to the older url
     assert_equal(Statsig::IDList.new(get_id_lists_responses[2]['list_1'], Set.new(["3"])),

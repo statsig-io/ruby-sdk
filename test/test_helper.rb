@@ -85,7 +85,7 @@ def wait_for(timeout: 10)
       raise "Waited too long here. Timeout #{timeout} sec"
     end
 
-    sleep(0.1)
+    sleep(0.2)
     x = yield
   end
 end
@@ -93,7 +93,7 @@ end
 module Spy
   class Subroutine
     def returned?(result = nil)
-      has_been_called? && !calls.find { |e| result.nil? ? !e.result.nil? : e.result == result }.nil?
+      has_been_called? && !(result.nil? ? !calls.last.result.nil? : calls.last.result == result).nil?
     end
 
     def finished?
