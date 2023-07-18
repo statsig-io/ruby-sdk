@@ -6,19 +6,20 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 0,15 * * *'
+    - cron: "0 0,15 * * *"
 
 env:
   COVERAGE: true
-  COVERAGE_FORMAT: 'cobertura'
+  COVERAGE_FORMAT: "cobertura"
 
 jobs:
   test:
+    if: github.event_name != 'schedule' || github.repository.private
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
       matrix:
-        version: [ 2.5.0, 3.2.0 ]
+        version: [2.5.0, 3.2.0]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Ruby
@@ -59,7 +60,7 @@ jobs:
           hide_complexity: true
           indicators: true
           output: both
-          thresholds: '80 90'
+          thresholds: "80 90"
 
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
