@@ -22,33 +22,37 @@ module Statsig
         key: String,
         action: String,
         step: T.any(String, NilClass),
-        value: T.any(String, Integer, T::Boolean, NilClass),
-        metadata: T.any(T::Hash[Symbol, T.untyped], NilClass)
+        tags: T::Hash[Symbol, T.untyped]
       ).void
     end
 
-    def mark(key, action, step = nil, value = nil, metadata = nil)
-      @markers.push({
-                      key: key,
-                      step: step,
-                      action: action,
-                      value: value,
-                      metadata: metadata,
-                      timestamp: (Time.now.to_f * 1000).to_i
-                    })
+    def mark(key, action, step, tags)
+      marker = {
+        key: key,
+        action: action,
+        timestamp: (Time.now.to_f * 1000).to_i
+      }
+      if !step.nil?
+        marker[:step] = step
+      end
+      tags.each do |key, val|
+        unless val.nil?
+          marker[key] = val
+        end
+      end
+      @markers.push(marker)
     end
 
     sig do
       params(
         key: String,
         step: T.any(String, NilClass),
-        value: T.any(String, Integer, T::Boolean, NilClass),
-        metadata: T.any(T::Hash[Symbol, T.untyped], NilClass)
+        tags: T::Hash[Symbol, T.untyped]
       ).returns(Tracker)
     end
-    def track(key, step = nil, value = nil, metadata = nil)
-      tracker = Tracker.new(self, key, step, metadata)
-      tracker.start(value)
+    def track(key, step = nil, tags = {})
+      tracker = Tracker.new(self, key, step, tags)
+      tracker.start(**tags)
       tracker
     end
 
@@ -85,22 +89,22 @@ module Statsig
           diagnostics: Diagnostics,
           key: String,
           step: T.any(String, NilClass),
-          metadata: T.any(T::Hash[Symbol, T.untyped], NilClass)
+          tags: T::Hash[Symbol, T.untyped]
         ).void
       end
-      def initialize(diagnostics, key, step, metadata)
+      def initialize(diagnostics, key, step, tags = {})
         @diagnostics = diagnostics
         @key = key
         @step = step
-        @metadata = metadata
+        @tags = tags
       end
 
-      def start(value = nil)
-        @diagnostics.mark(@key, 'start', @step, value, @metadata)
+      def start(**tags)
+        @diagnostics.mark(@key, 'start', @step, tags.nil? ? {} : tags.merge(@tags))
       end
 
-      def end(value = nil)
-        @diagnostics.mark(@key, 'end', @step, value, @metadata)
+      def end(**tags)
+        @diagnostics.mark(@key, 'end', @step, tags.nil? ? {} : tags.merge(@tags))
       end
     end
   end

@@ -45,7 +45,8 @@ class TestURIHelper < BaseTest
     )
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -63,7 +64,8 @@ class TestURIHelper < BaseTest
     )
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -83,7 +85,8 @@ class TestURIHelper < BaseTest
     )
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -97,7 +100,8 @@ class TestURIHelper < BaseTest
     options = StatsigOptions.new(rulesets_sync_interval: 9999, idlists_sync_interval: 9999)
     net = Statsig::Network.new('secret-abc', options)
     spy = Spy.on(net, :post_helper).and_call_through
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end

@@ -80,7 +80,7 @@ module Statsig
       return res, nil if res.status.success?
 
       unless retries.positive? && RETRY_CODES.include?(res.code)
-        return nil, NetworkError.new("Got an exception when making request to #{url}: #{res.to_s}",
+        return res, NetworkError.new("Got an exception when making request to #{url}: #{res.to_s}",
                                      res.status.to_i)
       end
 
