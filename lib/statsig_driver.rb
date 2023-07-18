@@ -207,11 +207,11 @@ class StatsigDriver
 
   # @param [StatsigUser] user
   # @return [Hash]
-  def get_client_initialize_response(user)
+  def get_client_initialize_response(user, hash)
     @err_boundary.capture(task: lambda {
       validate_user(user)
       normalize_user(user)
-      @evaluator.get_client_initialize_response(user)
+      @evaluator.get_client_initialize_response(user, hash)
     }, recover: -> { nil }, caller: __method__.to_s)
   end
 
