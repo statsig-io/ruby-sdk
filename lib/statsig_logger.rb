@@ -27,6 +27,7 @@ module Statsig
       @deduper = Concurrent::Set.new()
       @interval = 0
       @error_boundary = error_boundary
+      @flush_mutex = Mutex.new
     end
 
     def log_event(event)
@@ -135,13 +136,20 @@ module Statsig
     end
 
     def flush
-      if @events.length == 0
+      events_clone = @flush_mutex.synchronize do
+        if @events.length == 0
+          return nil
+        end
+        result = @events
+        @events = []
+        return result
+      end
+
+      if events_clone.nil?
         return
       end
-      events_clone = @events
-      @events = []
-      flush_events = events_clone.map { |e| e.serialize }
 
+      flush_events = events_clone.map { |e| e.serialize }
       @network.post_logs(flush_events)
     end
 
