@@ -98,12 +98,12 @@ module Statsig
       eval_spec(user, @spec_store.get_layer(layer_name))
     end
 
-    def get_client_initialize_response(user)
+    def get_client_initialize_response(user, hash)
       if @spec_store.is_ready_for_checks == false
         return nil
       end
 
-      formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user)
+      formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user, hash)
 
       evaluated_keys = {}
       if user.user_id.nil? == false
@@ -123,6 +123,7 @@ module Statsig
         "generator" => "statsig-ruby-sdk",
         "evaluated_keys" => evaluated_keys,
         "time" => 0,
+        "hash_used" => hash
       }
     end
 

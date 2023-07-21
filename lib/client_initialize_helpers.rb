@@ -1,4 +1,7 @@
 # typed: true
+
+require_relative 'hash_utils'
+
 $empty_eval_result = {
   :gate_value => false,
   :json_value => {},
@@ -9,10 +12,11 @@ $empty_eval_result = {
 
 module ClientInitializeHelpers
   class ResponseFormatter
-    def initialize(evaluator, user)
+    def initialize(evaluator, user, hash)
       @evaluator = evaluator
       @user = user
       @specs = evaluator.spec_store.get_raw_specs
+      @hash = hash
     end
 
     def get_responses(key)
@@ -133,7 +137,14 @@ module ClientInitializeHelpers
     end
 
     def hash_name(name)
-      Digest::SHA256.base64digest(name)
+      case @hash
+      when 'none'
+        return name
+      when 'sha256'
+        return Statsig::HashUtils.sha256(name)
+      when 'djb2'
+        return Statsig::HashUtils.djb2(name)
+      end
     end
   end
 end

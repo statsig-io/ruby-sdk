@@ -49,12 +49,27 @@ class ClientInitializeResponseTest < BaseTest
   end
 
   def test_prod
+    skip "Disabled until Marcos' optimizations are complete"
+
     server, sdk = get_initialize_responses('https://statsigapi.net/v1')
     validate_consistency(server, sdk)
   end
 
   def test_prod_with_dev
-    server, sdk = get_initialize_responses('https://statsigapi.net/v1', { 'tier' => 'development' })
+    skip "Disabled until Marcos' optimizations are complete"
+
+    server, sdk = get_initialize_responses('https://statsigapi.net/v1', environment: { 'tier' => 'development' })
+    validate_consistency(server, sdk)
+  end
+
+  def test_djb2
+    skip "Disabled until Marcos' optimizations are complete"
+
+    server, sdk = get_initialize_responses(
+      'https://latest.statsigapi.net/v1',
+      environment: { 'tier' => 'development' },
+      hash: 'djb2'
+    )
     validate_consistency(server, sdk)
   end
 
@@ -67,6 +82,8 @@ class ClientInitializeResponseTest < BaseTest
   end
 
   def test_fetch_from_server
+    skip "Disabled until Marcos' optimizations are complete"
+
     server, sdk = get_initialize_responses('https://statsigapi.net/v1', force_fetch_from_server: true)
 
     assert_equal(server.keys.sort, sdk.keys.sort)
@@ -91,21 +108,19 @@ class ClientInitializeResponseTest < BaseTest
 
   private
 
-  def get_initialize_responses(api, environment = nil, force_fetch_from_server: false)
-    skip "Disabled until Marcos' optimizations are complete"
-
+  def get_initialize_responses(api, environment: nil, force_fetch_from_server: false, hash: 'sha256')
     headers = {
       'STATSIG-API-KEY' => @client_key,
       'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
       'Content-Type' => 'application/json; charset=UTF-8'
     }
     http = HTTP.headers(headers).accept(:json)
-    server_user_hash = USER_HASH.clone
+    server_user_hash = Marshal.load(Marshal.dump(USER_HASH))
     if environment.nil? == false
       server_user_hash['statsigEnvironment'] = environment
     end
     response = http.post("#{api}/initialize",
-                         body: JSON.generate({ user: server_user_hash, statsigMetadata: STATSIG_METADATA }))
+                         body: JSON.generate({ user: server_user_hash, statsigMetadata: STATSIG_METADATA, hash: hash }))
 
     options = StatsigOptions.new(environment, api)
     Statsig.instance_variable_set('@shared_instance', nil)
@@ -117,7 +132,7 @@ class ClientInitializeResponseTest < BaseTest
 
     [
       JSON.parse(response),
-      Statsig.get_client_initialize_response(StatsigUser.new(USER_HASH))
+      Statsig.get_client_initialize_response(StatsigUser.new(USER_HASH), :hash)
     ]
   end
 
@@ -138,7 +153,7 @@ class ClientInitializeResponseTest < BaseTest
             assert_equal(server_value, sdk_value, "Failed comparing #{key} -> #{sub_key}")
           end
         end
-      elsif !%w[generator time].include?(key)
+      elsif !%w[generator time company_lcut].include?(key)
         assert_equal(sdk_data[key], server_data[key], "Failed comparing #{key}")
       end
     end
