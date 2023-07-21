@@ -1,3 +1,4 @@
+# typed: true
 module Statsig
   class UninitializedError < StandardError
     def initialize(msg="Must call initialize first.")
