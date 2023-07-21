@@ -38,8 +38,8 @@ class StatsigDriver
       @secret_key = secret_key
       @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options, @err_boundary)
-      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @diagnostics, @err_boundary)
-      tracker.end('success')
+      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger)
+      tracker.end(success: true)
 
       @logger.log_diagnostics_event(@diagnostics)
     }, caller: __method__.to_s)
@@ -236,9 +236,9 @@ class StatsigDriver
     end
     begin
       res = task.call
-      tracker&.end(true)
+      tracker&.end(success: true)
     rescue StandardError => e
-      tracker&.end(false)
+      tracker&.end(success: false)
       raise e
     ensure
       @logger.log_diagnostics_event(diagnostics)
