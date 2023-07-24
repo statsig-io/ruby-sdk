@@ -27,7 +27,8 @@ module Statsig
         :configs => {},
         :layers => {},
         :id_lists => {},
-        :experiment_to_layer => {}
+        :experiment_to_layer => {},
+        :sdk_keys_to_app_ids => {}
       }
       @diagnostics = diagnostics
       @error_boundary = error_boundary
@@ -120,6 +121,18 @@ module Statsig
 
     def get_id_list(list_name)
       @specs[:id_lists][list_name]
+    end
+
+    def has_sdk_key?(sdk_key)
+      @specs[:sdk_keys_to_app_ids].key?(sdk_key)
+    end
+
+    def get_app_id_for_sdk_key(sdk_key)
+      if sdk_key.nil?
+        return nil
+      end
+      return nil unless has_sdk_key?(sdk_key)
+      @specs[:sdk_keys_to_app_ids][sdk_key]
     end
 
     def get_raw_specs
@@ -261,6 +274,7 @@ module Statsig
       @specs[:configs] = new_configs
       @specs[:layers] = new_layers
       @specs[:experiment_to_layer] = new_exp_to_layer
+      @specs[:sdk_keys_to_app_ids] = specs_json['sdk_keys_to_app_ids'] || {}
 
       specs_json['diagnostics']
 

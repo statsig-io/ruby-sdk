@@ -12,11 +12,12 @@ $empty_eval_result = {
 
 module ClientInitializeHelpers
   class ResponseFormatter
-    def initialize(evaluator, user, hash)
+    def initialize(evaluator, user, hash, client_sdk_key)
       @evaluator = evaluator
       @user = user
       @specs = evaluator.spec_store.get_raw_specs
       @hash = hash
+      @client_sdk_key = client_sdk_key
     end
 
     def get_responses(key)
@@ -28,6 +29,13 @@ module ClientInitializeHelpers
     private
 
     def to_response(config_name, config_spec)
+      target_app_id = @evaluator.spec_store.get_app_id_for_sdk_key(@client_sdk_key)
+      config_target_apps = config_spec['targetAppIDs']
+
+      unless target_app_id.nil? || config_target_apps.nil? || config_target_apps.include?(target_app_id)
+        return nil
+      end
+
       eval_result = @evaluator.eval_spec(@user, config_spec)
       if eval_result.nil?
         return nil

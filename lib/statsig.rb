@@ -208,18 +208,19 @@ module Statsig
     @shared_instance&.override_config(config_name, config_value)
   end
 
-  sig { params(user: StatsigUser, hash: String).returns(T.any(T::Hash[String, T.untyped], NilClass)) }
+  sig { params(user: StatsigUser, hash: String, client_sdk_key: T.any(String, NilClass)).returns(T.any(T::Hash[String, T.untyped], NilClass)) }
   ##
   # Gets all evaluated values for the given user.
   # These values can then be given to a Statsig Client SDK via bootstrapping.
   #
   # @param user A StatsigUser object used for the evaluation
   # @param hash The type of hashing algorithm to use ('sha256', 'djb2', 'none')
+  # @param client_sdk_key A optional client sdk key to be used for the evaluation
   #
   # @note See Ruby Documentation: https://docs.statsig.com/server/rubySDK)
-  def self.get_client_initialize_response(user, hash: 'sha256')
+  def self.get_client_initialize_response(user, hash: 'sha256', client_sdk_key: nil)
     ensure_initialized
-    @shared_instance&.get_client_initialize_response(user, hash)
+    @shared_instance&.get_client_initialize_response(user, hash, client_sdk_key)
   end
 
   sig { returns(T::Hash[String, String]) }
