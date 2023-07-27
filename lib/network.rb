@@ -5,6 +5,7 @@ require 'json'
 require 'securerandom'
 require 'sorbet-runtime'
 require 'uri_helper'
+require 'connection_pool'
 
 RETRY_CODES = [408, 500, 502, 503, 504, 522, 524, 599].freeze
 
@@ -33,19 +34,23 @@ module Statsig
       @post_logs_retry_backoff = options.post_logs_retry_backoff
       @post_logs_retry_limit = options.post_logs_retry_limit
       @session_id = SecureRandom.uuid
-      meta = Statsig.get_statsig_metadata
-      @http_client = HTTP.headers(
-        {
-          'STATSIG-API-KEY' => @server_secret,
-          'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
-          'STATSIG-SERVER-SESSION-ID' => @session_id,
-          'Content-Type' => 'application/json; charset=UTF-8',
-          'STATSIG-SDK-TYPE' => meta['sdkType'],
-          'STATSIG-SDK-VERSION' => meta['sdkVersion']
-        }
-      ).accept(:json)
-      if @timeout
-        @http_client = @http_client.timeout(@timeout)
+      @connection_pool = ConnectionPool.new(size: 3) do
+        meta = Statsig.get_statsig_metadata
+        client = HTTP.headers(
+          {
+            'STATSIG-API-KEY' => @server_secret,
+            'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
+            'STATSIG-SERVER-SESSION-ID' => @session_id,
+            'Content-Type' => 'application/json; charset=UTF-8',
+            'STATSIG-SDK-TYPE' => meta['sdkType'],
+            'STATSIG-SDK-VERSION' => meta['sdkVersion']
+          }
+        ).accept(:json)
+        if @timeout
+          client = client.timeout(@timeout)
+        end
+
+        client
       end
     end
 
@@ -69,7 +74,9 @@ module Statsig
       end
       url = URIHelper.build_url(endpoint)
       begin
-        res = @http_client.post(url, body: body)
+        res = @connection_pool.with do |conn|
+          conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s).post(url, body: body)
+        end
       rescue StandardError => e
         ## network error retry
         return nil, e unless retries.positive?
@@ -110,7 +117,6 @@ module Statsig
     end
 
     def post_logs(events)
-
       json_body = JSON.generate({ 'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata })
       post_helper('log_event', json_body, @post_logs_retry_limit)
     rescue StandardError

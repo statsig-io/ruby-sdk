@@ -23,10 +23,11 @@ module Statsig
         fallback_policy: :discard
       )
 
+      @error_boundary = error_boundary
       @background_flush = periodic_flush
       @deduper = Concurrent::Set.new()
       @interval = 0
-      @error_boundary = error_boundary
+      @flush_mutex = Mutex.new
     end
 
     def log_event(event)
@@ -135,14 +136,16 @@ module Statsig
     end
 
     def flush
-      if @events.length == 0
-        return
-      end
-      events_clone = @events
-      @events = []
-      flush_events = events_clone.map { |e| e.serialize }
+      @flush_mutex.synchronize do
+        if @events.length.zero?
+          return
+        end
 
-      @network.post_logs(flush_events)
+        events_clone = @events
+        @events = []
+        flush_events = events_clone.map { |e| e.serialize }
+        @network.post_logs(flush_events)
+      end
     end
 
     def maybe_restart_background_threads
