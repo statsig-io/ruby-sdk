@@ -14,7 +14,7 @@ env:
 
 jobs:
   test:
-    if: github.event_name != 'schedule' || github.repository.private
+    if: github.event_name != 'schedule' || github.event.repository.private
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
