@@ -136,7 +136,6 @@ module Statsig
     end
 
     def flush
-      events_clone = []
       @flush_mutex.synchronize do
         if @events.length.zero?
           return
@@ -144,9 +143,9 @@ module Statsig
 
         events_clone = @events
         @events = []
+        flush_events = events_clone.map { |e| e.serialize }
+        @network.post_logs(flush_events)
       end
-      flush_events = events_clone.map { |e| e.serialize }
-      @network.post_logs(flush_events)
     end
 
     def maybe_restart_background_threads

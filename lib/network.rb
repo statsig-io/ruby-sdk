@@ -75,7 +75,7 @@ module Statsig
       url = URIHelper.build_url(endpoint)
       begin
         res = @connection_pool.with do |conn|
-          conn.post(url, body: body)
+          conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s).post(url, body: body)
         end
       rescue StandardError => e
         ## network error retry
