@@ -34,6 +34,14 @@ class StatsigOptions
   # default: 60s
   attr_accessor :idlists_sync_interval
 
+  # Disable background syncing for rulesets
+  sig { returns(T::Boolean) }
+  attr_accessor :disable_rulesets_sync
+
+  # Disable background syncing for id lists
+  sig { returns(T::Boolean) }
+  attr_accessor :disable_idlists_sync
+
   sig { returns(T.any(Float, Integer)) }
   # How often to flush logs to Statsig
   # default: 60s
@@ -105,6 +113,8 @@ class StatsigOptions
       api_url_download_config_specs: T.any(String, NilClass),
       rulesets_sync_interval: T.any(Float, Integer),
       idlists_sync_interval: T.any(Float, Integer),
+      disable_rulesets_sync: T::Boolean,
+      disable_idlists_sync: T::Boolean,
       logging_interval_seconds: T.any(Float, Integer),
       logging_max_buffer_size: Integer,
       local_mode: T::Boolean,
@@ -127,6 +137,8 @@ class StatsigOptions
     api_url_download_config_specs: nil,
     rulesets_sync_interval: 10,
     idlists_sync_interval: 60,
+    disable_rulesets_sync: false,
+    disable_idlists_sync: false,
     logging_interval_seconds: 60,
     logging_max_buffer_size: 1000,
     local_mode: false,
@@ -145,6 +157,8 @@ class StatsigOptions
     @api_url_download_config_specs = api_url_download_config_specs
     @rulesets_sync_interval = rulesets_sync_interval
     @idlists_sync_interval = idlists_sync_interval
+    @disable_rulesets_sync = disable_rulesets_sync
+    @disable_idlists_sync = disable_idlists_sync
     @logging_interval_seconds = logging_interval_seconds
     @logging_max_buffer_size = [logging_max_buffer_size, 1000].min
     @local_mode = local_mode

@@ -74,8 +74,8 @@ module Statsig
         get_id_lists_from_network
       end
 
-      @config_sync_thread = sync_config_specs
-      @id_lists_sync_thread = sync_id_lists
+      @config_sync_thread = spawn_sync_config_specs_thread
+      @id_lists_sync_thread = spawn_sync_id_lists_thread
     end
 
     def is_ready_for_checks
@@ -148,6 +148,26 @@ module Statsig
       end
     end
 
+    def sync_config_specs
+      @diagnostics = Diagnostics.new('config_sync')
+      if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
+        load_config_specs_from_storage_adapter
+      else
+        download_config_specs
+      end
+      @logger.log_diagnostics_event(@diagnostics)
+    end
+
+    def sync_id_lists
+      @diagnostics = Diagnostics.new('config_sync')
+      if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::ID_LISTS_KEY)
+        get_id_lists_from_adapter
+      else
+        get_id_lists_from_network
+      end
+      @logger.log_diagnostics_event(@diagnostics)
+    end
+
     private
 
     def load_config_specs_from_storage_adapter
@@ -173,40 +193,35 @@ module Statsig
       @options.data_store.set(Interfaces::IDataStore::CONFIG_SPECS_KEY, specs_string)
     end
 
-    def sync_config_specs
+    def spawn_sync_config_specs_thread
+      if @options.disable_rulesets_sync
+        return nil
+      end
+
       Thread.new do
         @error_boundary.capture(task: lambda {
           loop do
-            @diagnostics = Diagnostics.new('config_sync')
             sleep @options.rulesets_sync_interval
-            if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
-              load_config_specs_from_storage_adapter
-            else
-              download_config_specs
-            end
-            @logger.log_diagnostics_event(@diagnostics)
+            sync_config_specs
           end
         })
       end
     end
 
-    def sync_id_lists
+    def spawn_sync_id_lists_thread
+      if @options.disable_idlists_sync
+        return nil
+      end
+
       Thread.new do
         @error_boundary.capture(task: lambda {
           loop do
-            @diagnostics = Diagnostics.new('config_sync')
             sleep @id_lists_sync_interval
-            if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::ID_LISTS_KEY)
-              get_id_lists_from_adapter
-            else
-              get_id_lists_from_network
-            end
-            @logger.log_diagnostics_event(@diagnostics)
+            sync_id_lists
           end
         })
       end
     end
-
     def download_config_specs
       tracker = @diagnostics.track('download_config_specs', 'network_request')
 
