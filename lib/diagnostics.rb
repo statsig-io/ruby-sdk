@@ -7,14 +7,18 @@ module Statsig
     extend T::Sig
 
     sig { returns(String) }
-    attr_reader :context
+    attr_accessor :context
 
     sig { returns(T::Array[T::Hash[Symbol, T.untyped]]) }
     attr_reader :markers
 
+    sig { returns(T::Hash[String, Numeric]) }
+    attr_accessor :sample_rates
+
     def initialize(context)
       @context = context
       @markers = []
+      @sample_rates = {}
     end
 
     sig do
@@ -65,12 +69,27 @@ module Statsig
       }
     end
 
+    def serialize_with_sampling
+      marker_keys = @markers.map { |e| e[:key] }
+      unique_marker_keys = marker_keys.uniq { |e| e }
+      sampled_marker_keys = unique_marker_keys.select do |key|
+        @sample_rates.key?(key) && !self.class.sample(@sample_rates[key])
+      end
+      final_markers = @markers.select do |marker|
+        !sampled_marker_keys.include?(marker[:key])
+      end
+      {
+        context: @context.clone,
+        markers: final_markers
+      }
+    end
+
     def clear_markers
       @markers.clear
     end
 
-    def self.sample(rate)
-      rand(rate).zero?
+    def self.sample(rate_over_ten_thousand)
+      rand * 10_000 < rate_over_ten_thousand
     end
 
     class Context

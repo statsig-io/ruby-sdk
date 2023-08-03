@@ -32,14 +32,10 @@ class InitDiagnosticsTest < BaseTest
       @events.push(*JSON.parse(request.body)['events'])
       return ''
     })
-    Spy.on(Statsig::Diagnostics, 'sample').and_return do
-      true
-    end
   end
 
   def teardown
     super
-    Spy.off(Statsig::Diagnostics, 'sample')
     WebMock.reset!
     WebMock.disable!
   end
@@ -190,12 +186,16 @@ class InitDiagnosticsTest < BaseTest
 
   def test_api_call_diagnostics
     Statsig.initialize('secret-key')
+    Spy.on(Statsig::Diagnostics, 'sample').and_return do
+      true
+    end
     user = StatsigUser.new(user_id: 'test-user')
     Statsig.check_gate_with_exposure_logging_disabled(user, 'non-existent-gate')
     Statsig.get_config_with_exposure_logging_disabled(user, 'non-existent-config')
     Statsig.get_experiment_with_exposure_logging_disabled(user, 'non-existent-experiment')
     Statsig.get_layer_with_exposure_logging_disabled(user, 'non-existent-layer')
     Statsig.shutdown
+    Spy.off(Statsig::Diagnostics, 'sample')
 
     keys = Statsig::Diagnostics::API_CALL_KEYS
 
@@ -221,6 +221,72 @@ class InitDiagnosticsTest < BaseTest
     Statsig.shutdown
 
     assert_equal(0, @events.length)
+  end
+
+  def test_diagnostics_sampling
+    json_file = File.read("#{__dir__}/data/download_config_specs.json")
+    @mock_response = JSON.parse(json_file)
+    @mock_response['diagnostics'] = {
+      "download_config_specs": 5000,
+      "get_id_list": 5000,
+      "get_id_list_sources": 5000
+    }
+    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(
+      status: 200,
+      body: @mock_response.to_json,
+      headers: { 'x-statsig-region' => 'az-westus-2' }
+    )
+    driver = StatsigDriver.new(
+      'secret-key',
+      StatsigOptions.new(
+        disable_rulesets_sync: true,
+        disable_idlists_sync: true,
+        logging_interval_seconds: 9999
+      )
+    )
+    logger = driver.instance_variable_get('@logger')
+    logger.flush
+
+    assert_equal(1, @events.length)
+    event = @events[0]
+    assert_equal('statsig::diagnostics', event['eventName'])
+
+    metadata = event['metadata']
+    assert_equal('initialize', metadata['context'])
+    @events = []
+
+    10.times do
+      driver.manually_sync_rulesets
+    end
+    logger.flush
+
+    assert(
+      @events.length < 10 && @events.length.positive?,
+      "Expected between 0 and 10 events, received #{@events.length}"
+    )
+    event = @events[0]
+    assert_equal('statsig::diagnostics', event['eventName'])
+
+    metadata = event['metadata']
+    assert_equal('config_sync', metadata['context'])
+    @events = []
+
+    10.times do
+      driver.manually_sync_idlists
+    end
+    logger.flush
+
+    assert(
+      @events.length < 10 && @events.length.positive?,
+      "Expected between 0 and 10 events, received #{@events.length}"
+    )
+    event = @events[0]
+    assert_equal('statsig::diagnostics', event['eventName'])
+
+    metadata = event['metadata']
+    assert_equal('config_sync', metadata['context'])
+
+    driver.shutdown
   end
 
   private

@@ -100,11 +100,14 @@ module Statsig
 
     def log_diagnostics_event(diagnostics, user = nil)
       return if @options.disable_diagnostics_logging
-      return if diagnostics.nil? || diagnostics.markers.empty?
+      return if diagnostics.nil?
 
       event = StatsigEvent.new($diagnostics_event)
       event.user = user
-      event.metadata = diagnostics.serialize
+      serialized = diagnostics.serialize_with_sampling
+      return if serialized[:markers].empty?
+
+      event.metadata = serialized
       log_event(event)
       diagnostics.clear_markers
     end
