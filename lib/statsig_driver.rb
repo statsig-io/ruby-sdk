@@ -185,6 +185,18 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
+  def manually_sync_rulesets
+    @err_boundary.capture(task: lambda {
+      @evaluator.spec_store.sync_config_specs
+    }, caller: __method__.to_s)
+  end
+
+  def manually_sync_idlists
+    @err_boundary.capture(task: lambda {
+      @evaluator.spec_store.sync_id_lists
+    }, caller: __method__.to_s)
+  end
+
   def shutdown
     @err_boundary.capture(task: lambda {
       @shutdown = true

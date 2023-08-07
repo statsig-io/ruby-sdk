@@ -176,6 +176,16 @@ module Statsig
     @shared_instance&.log_event(user, event_name, value, metadata)
   end
 
+  def self.sync_rulesets
+    ensure_initialized
+    @shared_instance&.manually_sync_rulesets
+  end
+
+  def self.sync_idlists
+    ensure_initialized
+    @shared_instance&.manually_sync_idlists
+  end
+
   sig { void }
   ##
   # Stops all Statsig activity and flushes any pending events.
