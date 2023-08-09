@@ -18,7 +18,7 @@ module Statsig
     def capture(task:, recover: -> {}, caller: nil)
       begin
         res = task.call
-      rescue StandardError => e
+      rescue StandardError, SystemStackError => e
         if e.is_a?(Statsig::UninitializedError) || e.is_a?(Statsig::ValueError)
           raise e
         end
