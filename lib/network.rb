@@ -23,7 +23,6 @@ module Statsig
     extend T::Sig
 
     sig { params(server_secret: String, options: StatsigOptions, backoff_mult: Integer).void }
-
     def initialize(server_secret, options, backoff_mult = 10)
       super()
       URIHelper.initialize(options)
@@ -36,14 +35,14 @@ module Statsig
       @session_id = SecureRandom.uuid
       @connection_pool = ConnectionPool.new(size: 3) do
         meta = Statsig.get_statsig_metadata
-        client = HTTP.headers(
+        client = HTTP.use(:auto_inflate).headers(
           {
             'STATSIG-API-KEY' => @server_secret,
-            'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
             'STATSIG-SERVER-SESSION-ID' => @session_id,
             'Content-Type' => 'application/json; charset=UTF-8',
             'STATSIG-SDK-TYPE' => meta['sdkType'],
-            'STATSIG-SDK-VERSION' => meta['sdkVersion']
+            'STATSIG-SDK-VERSION' => meta['sdkVersion'],
+            'Accept-Encoding' => 'gzip'
           }
         ).accept(:json)
         if @timeout
@@ -58,7 +57,6 @@ module Statsig
       params(endpoint: String, body: String, retries: Integer, backoff: Integer)
         .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
     end
-
     def post_helper(endpoint, body, retries = 0, backoff = 1)
       if @local_mode
         return nil, nil
