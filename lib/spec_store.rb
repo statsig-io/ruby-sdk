@@ -149,7 +149,7 @@ module Statsig
     end
 
     def sync_config_specs
-      @diagnostics = Diagnostics.new('config_sync')
+      @diagnostics.context = 'config_sync'
       if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
         load_config_specs_from_storage_adapter
       else
@@ -159,7 +159,7 @@ module Statsig
     end
 
     def sync_id_lists
-      @diagnostics = Diagnostics.new('config_sync')
+      @diagnostics.context = 'config_sync'
       if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::ID_LISTS_KEY)
         get_id_lists_from_adapter
       else
@@ -280,6 +280,7 @@ module Statsig
       specs_json['feature_gates'].each { |gate| new_gates[gate['name']] = gate }
       specs_json['dynamic_configs'].each { |config| new_configs[config['name']] = config }
       specs_json['layer_configs'].each { |layer| new_layers[layer['name']] = layer }
+      specs_json['diagnostics']&.each { |key, value| @diagnostics.sample_rates[key] = value }
 
       if specs_json['layers'].is_a?(Hash)
         specs_json['layers'].each { |layer_name, experiments|
@@ -292,8 +293,6 @@ module Statsig
       @specs[:layers] = new_layers
       @specs[:experiment_to_layer] = new_exp_to_layer
       @specs[:sdk_keys_to_app_ids] = specs_json['sdk_keys_to_app_ids'] || {}
-
-      specs_json['diagnostics']
 
       unless from_adapter
         save_config_specs_to_storage_adapter(specs_string)

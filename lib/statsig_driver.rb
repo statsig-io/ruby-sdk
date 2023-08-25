@@ -243,7 +243,7 @@ class StatsigDriver
 
   def run_with_diagnostics(task:, caller:)
     diagnostics = nil
-    if Statsig::Diagnostics::API_CALL_KEYS.include?(caller) && Statsig::Diagnostics.sample(10_000)
+    if Statsig::Diagnostics::API_CALL_KEYS.include?(caller) && Statsig::Diagnostics.sample(1)
       diagnostics = Statsig::Diagnostics.new('api_call')
       tracker = diagnostics.track(caller)
     end
