@@ -103,6 +103,49 @@ class StatsigUser
     hash.compact
   end
 
+  def to_hash_without_stable_id()
+    hash = {}
+    if @user_id != nil
+      hash['userID'] = @user_id
+    end
+    if @email != nil
+      hash['email'] = @email
+    end
+    if @ip != nil
+      hash['ip'] = @ip
+    end
+    if @user_agent != nil
+      hash['userAgent'] = @user_agent
+    end
+    if @country != nil
+      hash['country'] = @country
+    end
+    if @locale != nil
+      hash['locale'] = @locale
+    end
+    if @app_version != nil
+      hash['appVersion'] = @app_version
+    end
+    if @custom != nil
+      hash['custom'] = @custom.clone.sort_by { |key| key }.to_h
+    end
+    if @statsig_environment != nil
+      hash['statsigEnvironment'] = @statsig_environment.clone.sort_by { |key| key }.to_h
+    end
+    if @private_attributes != nil
+      hash['privateAttributes'] = @private_attributes.clone.sort_by { |key| key }.to_h
+    end
+    custom_ids = {}
+    if @custom_ids != nil
+      custom_ids = @custom_ids.clone
+      if custom_ids.key?("stableID")
+        custom_ids.delete("stableID")
+      end
+    end
+    hash['customIDs'] = custom_ids.sort_by { |key| key }.to_h
+    return Statsig::HashUtils.djb2ForHash(hash.sort_by { |key| key }.to_h)
+  end
+
   def value_lookup
     {
       'userID' => @user_id,

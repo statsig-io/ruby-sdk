@@ -123,7 +123,8 @@ module Statsig
         "generator" => "statsig-ruby-sdk",
         "evaluated_keys" => evaluated_keys,
         "time" => 0,
-        "hash_used" => hash
+        "hash_used" => hash,
+        "user_hash" => user.to_hash_without_stable_id()
       }
     end
 

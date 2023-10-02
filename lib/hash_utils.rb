@@ -1,3 +1,4 @@
+require 'json'
 module Statsig
   class HashUtils
     def self.djb2(input_str)
@@ -8,6 +9,14 @@ module Statsig
       end
       hash &= 0xFFFFFFFF # Convert to unsigned 32-bit integer
       return hash.to_s
+    end
+
+    def self.djb2ForHash(input_hash)
+      return djb2(input_hash.to_json)
+    end
+
+    def self.sortHash(input_hash)
+      return input_hash.sort.to_h
     end
 
     def self.sha256(input_str)
