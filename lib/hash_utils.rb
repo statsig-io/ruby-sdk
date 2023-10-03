@@ -15,10 +15,6 @@ module Statsig
       return djb2(input_hash.to_json)
     end
 
-    def self.sortHash(input_hash)
-      return input_hash.sort.to_h
-    end
-
     def self.sha256(input_str)
       return Digest::SHA256.base64digest(input_str)
     end
