@@ -127,13 +127,13 @@ class StatsigUser
       hash['appVersion'] = @app_version
     end
     if @custom != nil
-      hash['custom'] = @custom.clone.sort_by { |key| key }.to_h
+      hash['custom'] = Statsig::HashUtils.sortHash(@custom)
     end
     if @statsig_environment != nil
       hash['statsigEnvironment'] = @statsig_environment.clone.sort_by { |key| key }.to_h
     end
     if @private_attributes != nil
-      hash['privateAttributes'] = @private_attributes.clone.sort_by { |key| key }.to_h
+      hash['privateAttributes'] = Statsig::HashUtils.sortHash(@private_attributes)
     end
     custom_ids = {}
     if @custom_ids != nil

@@ -18,5 +18,15 @@ module Statsig
     def self.sha256(input_str)
       return Digest::SHA256.base64digest(input_str)
     end
+
+    def self.sortHash(input_hash)
+      dictionary = input_hash.clone.sort_by { |key| key }.to_h;
+      input_hash.each do |key, value|
+        if value.is_a?(Hash)
+          dictionary[key] = self.sortHash(value)
+        end
+      end
+      return dictionary
+    end
   end
 end
