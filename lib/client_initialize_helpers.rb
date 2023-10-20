@@ -94,7 +94,7 @@ module ClientInitializeHelpers
           "name" => hashed_name,
           "rule_id" => safe_eval_result[:rule_id],
           "secondary_exposures" => clean_exposures(safe_eval_result[:secondary_exposures])
-        })]
+        }).compact]
     end
 
     def clean_exposures(exposures)

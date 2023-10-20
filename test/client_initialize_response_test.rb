@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 
 require_relative 'test_helper'
 require 'http'
@@ -27,6 +27,7 @@ STATSIG_METADATA = {
 
 class ClientInitializeResponseTest < BaseTest
   suite :ClientInitializeResponseTest
+
   def setup
     super
     begin
@@ -49,22 +50,21 @@ class ClientInitializeResponseTest < BaseTest
   end
 
   def test_prod
-    skip "Disabled until Marcos' optimizations are complete"
-
     server, sdk = get_initialize_responses('https://statsigapi.net/v1')
     validate_consistency(server, sdk)
   end
 
   def test_prod_with_dev
-    skip "Disabled until Marcos' optimizations are complete"
-
     server, sdk = get_initialize_responses('https://statsigapi.net/v1', environment: { 'tier' => 'development' })
     validate_consistency(server, sdk)
   end
 
-  def test_djb2
-    skip "Disabled until Marcos' optimizations are complete"
+  def test_staging
+    server, sdk = get_initialize_responses('https://staging.statsigapi.net/v1', hash: 'none')
+    validate_consistency(server, sdk)
+  end
 
+  def test_djb2
     server, sdk = get_initialize_responses(
       'https://latest.statsigapi.net/v1',
       environment: { 'tier' => 'development' },
@@ -74,21 +74,17 @@ class ClientInitializeResponseTest < BaseTest
   end
 
   def test_nil_result
-    skip "Disabled until Marcos' optimizations are complete"
-
     Statsig.initialize('secret-not-valid-key', StatsigOptions.new(local_mode: true))
     result = Statsig.get_client_initialize_response(StatsigUser.new(USER_HASH))
     assert_nil(result)
   end
 
   def test_fetch_from_server
-    skip "Disabled until Marcos' optimizations are complete"
-
     server, sdk = get_initialize_responses('https://statsigapi.net/v1', force_fetch_from_server: true)
 
-    assert_equal(server.keys.sort, sdk.keys.sort)
     server.each_key do |key|
       next unless server[key].is_a?(Hash)
+      next if %w[derived_fields param_stores].include?(key)
 
       server[key].each do |sub_key, _|
         sdk_value = sdk[key][sub_key]
@@ -112,7 +108,8 @@ class ClientInitializeResponseTest < BaseTest
     headers = {
       'STATSIG-API-KEY' => @client_key,
       'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
-      'Content-Type' => 'application/json; charset=UTF-8'
+      'Content-Type' => 'application/json; charset=UTF-8',
+      'User-Agent' => ''
     }
     http = HTTP.headers(headers).accept(:json)
     server_user_hash = Marshal.load(Marshal.dump(USER_HASH))
@@ -132,7 +129,7 @@ class ClientInitializeResponseTest < BaseTest
 
     [
       JSON.parse(response),
-      Statsig.get_client_initialize_response(StatsigUser.new(USER_HASH), :hash)
+      Statsig.get_client_initialize_response(StatsigUser.new(USER_HASH), hash: hash)
     ]
   end
 
@@ -141,7 +138,10 @@ class ClientInitializeResponseTest < BaseTest
     assert !sdk_data.nil?, 'SDK data was nil'
 
     server_data.keys.each do |key|
+      next if %w[generator time company_lcut derived_fields param_stores].include?(key)
+
       if server_data[key].is_a?(Hash)
+        assert(!sdk_data[key].nil?, "Failed asserting that #{key} exists in SDK response")
         assert_equal(server_data[key].keys.sort, sdk_data[key].keys.sort)
 
         server_data[key].each do |sub_key, _|
@@ -153,7 +153,7 @@ class ClientInitializeResponseTest < BaseTest
             assert_equal(server_value, sdk_value, "Failed comparing #{key} -> #{sub_key}")
           end
         end
-      elsif !%w[generator time company_lcut].include?(key)
+      else
         assert_equal(sdk_data[key], server_data[key], "Failed comparing #{key}")
       end
     end

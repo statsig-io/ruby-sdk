@@ -42,7 +42,7 @@ class TestStatsig < BaseTest
 
   def test_error_callback_called
     Statsig.initialize('secret-fake', nil, (-> (e) {
-      assert(e.message.include?('401'))
+      assert(e.message.include?('Unauthorized'))
     }))
   end
 
