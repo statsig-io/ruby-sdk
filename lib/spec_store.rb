@@ -4,6 +4,7 @@ require 'uri'
 require 'evaluation_details'
 require 'id_list'
 require 'concurrent-ruby'
+require 'hash_utils'
 
 module Statsig
   class SpecStore
@@ -28,7 +29,8 @@ module Statsig
         :layers => {},
         :id_lists => {},
         :experiment_to_layer => {},
-        :sdk_keys_to_app_ids => {}
+        :sdk_keys_to_app_ids => {},
+        :hashed_sdk_keys_to_app_ids => {}
       }
       @diagnostics = diagnostics
       @error_boundary = error_boundary
@@ -127,9 +129,16 @@ module Statsig
       @specs[:sdk_keys_to_app_ids].key?(sdk_key)
     end
 
+    def has_hashed_sdk_key?(sdk_key)
+      @specs[:hashed_sdk_keys_to_app_ids].key?(Statsig::HashUtils.djb2(sdk_key))
+    end
+
     def get_app_id_for_sdk_key(sdk_key)
       if sdk_key.nil?
         return nil
+      end
+      if has_hashed_sdk_key?(sdk_key)
+        return @specs[:hashed_sdk_keys_to_app_ids][Statsig::HashUtils.djb2(sdk_key)]
       end
       return nil unless has_sdk_key?(sdk_key)
       @specs[:sdk_keys_to_app_ids][sdk_key]
@@ -293,6 +302,7 @@ module Statsig
       @specs[:layers] = new_layers
       @specs[:experiment_to_layer] = new_exp_to_layer
       @specs[:sdk_keys_to_app_ids] = specs_json['sdk_keys_to_app_ids'] || {}
+      @specs[:hashed_sdk_keys_to_app_ids] = specs_json['hashed_sdk_keys_to_app_ids'] || {}
 
       unless from_adapter
         save_config_specs_to_storage_adapter(specs_string)
