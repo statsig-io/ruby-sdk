@@ -201,7 +201,7 @@ module Statsig
           @spec_store.initial_config_sync_time,
           @spec_store.init_reason
         ),
-        group_name: 'default',
+        group_name: nil,
         id_type: config['idType']
       )
     end
