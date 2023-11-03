@@ -13,7 +13,8 @@ USER_HASH = {
   'email' => 'test@statsig.com',
   'country' => 'US',
   'custom' => {
-    'test' => '123'
+    'test' => '123',
+    'sdk' => 'ruby'
   },
   'customIDs' => {
     'stableID' => '12345'
