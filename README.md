@@ -1,6 +1,6 @@
 # Statsig Ruby Server SDK
 
-[![build-and-test](https://github.com/statsig-io/ruby-sdk/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/statsig-io/private-ruby-sdk/actions/workflows/build-and-test.yml)
+[![build-and-test](https://github.com/statsig-io/ruby-sdk/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/statsig-io/ruby-sdk/actions/workflows/build-and-test.yml)
 
 The Statsig Ruby SDK for multi-user, server side environments. If you need a SDK for another language or single user client environment, check out our [other SDKs](https://docs.statsig.com/#sdks).
 
