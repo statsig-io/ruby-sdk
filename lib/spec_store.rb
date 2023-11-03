@@ -129,16 +129,17 @@ module Statsig
       @specs[:sdk_keys_to_app_ids].key?(sdk_key)
     end
 
-    def has_hashed_sdk_key?(sdk_key)
-      @specs[:hashed_sdk_keys_to_app_ids].key?(Statsig::HashUtils.djb2(sdk_key))
+    def has_hashed_sdk_key?(hashed_sdk_key)
+      @specs[:hashed_sdk_keys_to_app_ids].key?(hashed_sdk_key)
     end
 
     def get_app_id_for_sdk_key(sdk_key)
       if sdk_key.nil?
         return nil
       end
-      if has_hashed_sdk_key?(sdk_key)
-        return @specs[:hashed_sdk_keys_to_app_ids][Statsig::HashUtils.djb2(sdk_key)]
+      hashed_sdk_key = Statsig::HashUtils.djb2(sdk_key)
+      if has_hashed_sdk_key?(hashed_sdk_key)
+        return @specs[:hashed_sdk_keys_to_app_ids][hashed_sdk_key]
       end
       return nil unless has_sdk_key?(sdk_key)
       @specs[:sdk_keys_to_app_ids][sdk_key]
