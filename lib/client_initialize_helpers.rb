@@ -1,6 +1,7 @@
 # typed: true
 
 require_relative 'hash_utils'
+require 'sorbet-runtime'
 
 $empty_eval_result = {
   :gate_value => false,
@@ -12,6 +13,8 @@ $empty_eval_result = {
 
 module ClientInitializeHelpers
   class ResponseFormatter
+    extend T::Sig
+
     def initialize(evaluator, user, hash, client_sdk_key)
       @evaluator = evaluator
       @user = user
@@ -27,6 +30,13 @@ module ClientInitializeHelpers
     end
 
     private
+
+    sig { params(secondary_exposures: T::Array[T::Hash[String, String]]).returns(T::Array[T::Hash[String, String]]) }
+    def filter_segments_from_secondary_exposures(secondary_exposures)
+      secondary_exposures.reject do |exposure|
+        exposure['gate'].to_s.start_with?('segment:')
+      end
+    end
 
     def to_response(config_name, config_spec)
       target_app_id = @evaluator.spec_store.get_app_id_for_sdk_key(@client_sdk_key)
@@ -49,7 +59,7 @@ module ClientInitializeHelpers
         :id_type => eval_result.id_type,
         :config_delegate => eval_result.config_delegate,
         :is_experiment_group => eval_result.is_experiment_group,
-        :secondary_exposures => eval_result.secondary_exposures,
+        :secondary_exposures => filter_segments_from_secondary_exposures(eval_result.secondary_exposures),
         :undelegated_sec_exps => eval_result.undelegated_sec_exps
       }
 
@@ -94,7 +104,7 @@ module ClientInitializeHelpers
           "name" => hashed_name,
           "rule_id" => safe_eval_result[:rule_id],
           "secondary_exposures" => clean_exposures(safe_eval_result[:secondary_exposures])
-        })]
+        }).compact]
     end
 
     def clean_exposures(exposures)
