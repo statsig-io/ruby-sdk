@@ -60,7 +60,7 @@ class StatsigDriver
           res = check_gate_fallback(user, gate_name)
           # exposure logged by the server
         else
-          if options.log_exposure
+          if !options.disable_log_exposure
             @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details)
           end
         end
@@ -84,7 +84,7 @@ class StatsigDriver
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
-        get_config_impl(user, dynamic_config_name, options.log_exposure)
+        get_config_impl(user, dynamic_config_name, options.disable_log_exposure)
       }, caller: __method__.to_s)
     }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
   end
@@ -94,7 +94,7 @@ class StatsigDriver
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, experiment_name, "experiment_name")
-        get_config_impl(user, experiment_name, options.log_exposure, user_persisted_values: options.user_persisted_values)
+        get_config_impl(user, experiment_name, options.disable_log_exposure, user_persisted_values: options.user_persisted_values)
       }, caller: __method__.to_s)
     }, recover: -> { DynamicConfig.new(experiment_name) }, caller: __method__.to_s)
   end
@@ -134,7 +134,7 @@ class StatsigDriver
           # exposure logged by the server
         end
 
-        exposure_log_func = options.log_exposure ? lambda { |layer, parameter_name|
+        exposure_log_func = !options.disable_log_exposure ? lambda { |layer, parameter_name|
           @logger.log_layer_exposure(user, layer, parameter_name, res)
         } : nil
         Layer.new(res.name, res.json_value, res.rule_id, exposure_log_func)
@@ -259,11 +259,11 @@ class StatsigDriver
     params(
       user: StatsigUser,
       config_name: String,
-      log_exposure: T::Boolean,
+      disable_log_exposure: T::Boolean,
       user_persisted_values: T.nilable(Statsig::UserPersistedValues)
     ).returns(DynamicConfig)
   end
-  def get_config_impl(user, config_name, log_exposure, user_persisted_values: nil)
+  def get_config_impl(user, config_name, disable_log_exposure, user_persisted_values: nil)
     res = @evaluator.get_config(user, config_name, user_persisted_values: user_persisted_values)
     if res.nil?
       res = Statsig::ConfigResult.new(config_name)
@@ -273,7 +273,7 @@ class StatsigDriver
       res = get_config_fallback(user, config_name)
       # exposure logged by the server
     else
-      if log_exposure
+      if !disable_log_exposure
         @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
       end
     end
