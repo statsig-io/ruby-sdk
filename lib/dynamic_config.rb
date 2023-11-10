@@ -26,13 +26,26 @@ class DynamicConfig
   sig { returns(String) }
   attr_accessor :id_type
 
-  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String, group_name: T.nilable(String), id_type: String).void }
-  def initialize(name, value = {}, rule_id = '', group_name = nil, id_type = '')
+  sig { returns(T.nilable(Statsig::EvaluationDetails)) }
+  attr_accessor :evaluation_details
+
+  sig do
+    params(
+      name: String,
+      value: T::Hash[String, T.untyped],
+      rule_id: String,
+      group_name: T.nilable(String),
+      id_type: String,
+      evaluation_details: T.nilable(Statsig::EvaluationDetails)
+    ).void
+  end
+  def initialize(name, value = {}, rule_id = '', group_name = nil, id_type = '', evaluation_details = nil)
     @name = name
     @value = value
     @rule_id = rule_id
     @group_name = group_name
     @id_type = id_type
+    @evaluation_details = evaluation_details
   end
 
   sig { params(index: String, default_value: T.untyped).returns(T.untyped) }

@@ -49,7 +49,6 @@ class StatsigUser
   attr_accessor :private_attributes
 
   sig { returns(T.any(T::Hash[String, T.untyped], NilClass)) }
-
   def custom
     @custom
   end
@@ -61,7 +60,6 @@ class StatsigUser
   end
 
   sig { params(user_hash: T.any(T::Hash[T.any(String, Symbol), T.untyped], NilClass)).void }
-
   def initialize(user_hash)
     the_hash = user_hash
     begin
@@ -166,6 +164,15 @@ class StatsigUser
     }
   end
 
+  def get_unit_id(id_type)
+    if id_type.is_a?(String) && id_type.downcase != 'userid'
+      return nil unless @custom_ids.is_a? Hash
+
+      return @custom_ids[id_type] || @custom_ids[id_type.downcase]
+    end
+    @user_id
+  end
+
   private
 
   sig {
@@ -189,5 +196,4 @@ class StatsigUser
 
     nil
   end
-
 end

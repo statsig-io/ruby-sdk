@@ -2,12 +2,13 @@
 module Statsig
 
   module EvaluationReason
-    NETWORK = "Network"
-    LOCAL_OVERRIDE = "LocalOverride"
-    UNRECOGNIZED = "Unrecognized"
-    UNINITIALIZED = "Uninitialized"
-    BOOTSTRAP = "Bootstrap"
-    DATA_ADAPTER = "DataAdapter"
+    NETWORK = 'Network'.freeze
+    LOCAL_OVERRIDE = 'LocalOverride'.freeze
+    UNRECOGNIZED = 'Unrecognized'.freeze
+    UNINITIALIZED = 'Uninitialized'.freeze
+    BOOTSTRAP = 'Bootstrap'.freeze
+    DATA_ADAPTER = 'DataAdapter'.freeze
+    PERSISTED = 'Persisted'.freeze
   end
 
   class EvaluationDetails
@@ -37,6 +38,10 @@ module Statsig
 
     def self.local_override(config_sync_time, init_time)
       EvaluationDetails.new(config_sync_time, init_time, EvaluationReason::LOCAL_OVERRIDE)
+    end
+
+    def self.persisted(config_sync_time, init_time)
+      EvaluationDetails.new(config_sync_time, init_time, EvaluationReason::PERSISTED)
     end
   end
 end
