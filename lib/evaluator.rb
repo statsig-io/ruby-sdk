@@ -111,19 +111,21 @@ module Statsig
 
       config = @spec_store.get_config(config_name)
 
+      # If persisted values is provided and the experiment is active, return sticky values if exists.
       if !user_persisted_values.nil? && config['isActive'] == true
         sticky_result = Statsig::ConfigResult.from_user_persisted_values(config_name, user_persisted_values)
         return sticky_result unless sticky_result.nil?
-      end
 
-      evaluation = eval_spec(user, config)
-
-      # If the experiment is active and the user is in an experiment group
-      # Save the sticky value if the sdk implementation passes a storage adapter and has opt-ed in for the experiment
-      # by passing user persisted values
-      if !user_persisted_values.nil? && config['isActive'] == true && evaluation.is_experiment_group
-        @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name, evaluation)
-        @persistent_storage_utils.save_to_storage(user, config['idType'], user_persisted_values)
+        # If it doesn't exist, then save to persisted storage if the user was assigned to an experiment group.
+        evaluation = eval_spec(user, config)
+        if evaluation.is_experiment_group
+          @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name, evaluation)
+          @persistent_storage_utils.save_to_storage(user, config['idType'], user_persisted_values)
+        end
+      # Otherwise, remove from persisted storage
+      else
+        evaluation = eval_spec(user, config)
+        @persistent_storage_utils.remove_from_storage(user, config['idType'])
       end
 
       return evaluation
