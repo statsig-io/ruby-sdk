@@ -134,6 +134,37 @@ class TestUserPersistedValues < BaseTest
 
     assert_equal(2, persistent_storage_adapter.store.size)
     assert_equal(3, spy_on_save.calls.size)
+
+    # Verify that persisted values are deleted once the experiment is no longer active
+    @json_file = File.read("#{__dir__}/data/download_config_specs_sticky_experiments_inactive.json")
+    Statsig.shutdown
+    Statsig.initialize(
+      'secret-key',
+      StatsigOptions.new(
+        bootstrap_values: @json_file,
+        user_persistent_storage: persistent_storage_adapter,
+        local_mode: true
+      )
+    )
+    exp = Statsig.get_experiment(
+      @user_in_control,
+      'the_allocated_experiment',
+      Statsig::GetExperimentOptions.new(
+        user_persisted_values: Statsig.get_user_persisted_values(@user_in_control, 'stableID')
+      )
+    )
+    assert_equal('Control', exp.group_name)
+    assert_equal(Statsig::EvaluationReason::BOOTSTRAP, exp.evaluation_details&.reason)
+    assert_equal(1, persistent_storage_adapter.store.size)
+
+    # Verify that persisted values are deleted once an experiment is evaluated without persisted values (opted-out)
+    exp = Statsig.get_experiment(
+      @user_in_test,
+      'the_allocated_experiment'
+    )
+    assert_equal('Test', exp.group_name)
+    assert_equal(Statsig::EvaluationReason::BOOTSTRAP, exp.evaluation_details&.reason)
+    assert_equal(0, persistent_storage_adapter.store.size)
   end
 
   def test_invalid_storage_adapter
@@ -168,6 +199,10 @@ class TestUserPersistedValues < BaseTest
     def save(key, data)
       raise 'Error in persistent storage adapter save'
     end
+
+    def delete(key)
+      raise 'Error in persistent storage adapter delete'
+    end
   end
 
   class DummyPersistentStorageAdapter < Statsig::Interfaces::IUserPersistentStorage
@@ -185,6 +220,10 @@ class TestUserPersistedValues < BaseTest
 
     def save(key, data)
       @store[key] = data
+    end
+
+    def delete(key)
+      @store.delete(key)
     end
   end
 end

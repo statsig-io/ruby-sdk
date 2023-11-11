@@ -36,7 +36,7 @@ module Statsig
       begin
         storage_values = @storage.load(key)
       rescue StandardError => e
-        puts "Failed to load from user_persisted_storage for key: #{key}"
+        puts "Failed to load key (#{key}) from user_persisted_storage (#{e.message})"
         return {}
       end
 
@@ -61,7 +61,21 @@ module Statsig
       begin
         @storage.save(key, stringified)
       rescue StandardError => e
-        puts "Failed to save to user_persisted_storage for key: #{key}"
+        puts "Failed to save key (#{key}) to user_persisted_storage (#{e.message})"
+      end
+    end
+
+    sig { params(user: StatsigUser, id_type: String).void }
+    def remove_from_storage(user, id_type)
+      return if @storage.nil?
+
+      key = self.class.get_storage_key(user, id_type)
+
+      @cache.delete(key)
+      begin
+        @storage.delete(key)
+      rescue StandardError => e
+        puts "Failed to delete key (#{key}) in user_persisted_storage (#{e.message})"
       end
     end
 
