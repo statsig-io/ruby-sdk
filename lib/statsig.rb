@@ -27,7 +27,7 @@ module Statsig
   end
 
   class CheckGateOptions < T::Struct
-    prop :log_exposure, T::Boolean, default: true
+    prop :disable_log_exposure, T::Boolean, default: false
   end
 
   sig { params(user: StatsigUser, gate_name: String, options: CheckGateOptions).returns(T::Boolean) }
@@ -50,7 +50,7 @@ module Statsig
   # @param gate_name The name of the gate being checked
   def self.check_gate_with_exposure_logging_disabled(user, gate_name)
     ensure_initialized
-    @shared_instance&.check_gate(user, gate_name, CheckGateOptions.new(log_exposure: false))
+    @shared_instance&.check_gate(user, gate_name, CheckGateOptions.new(disable_log_exposure: true))
   end
 
   sig { params(user: StatsigUser, gate_name: String).void }
@@ -65,7 +65,7 @@ module Statsig
   end
 
   class GetConfigOptions < T::Struct
-    prop :log_exposure, T::Boolean, default: true
+    prop :disable_log_exposure, T::Boolean, default: false
   end
 
   sig { params(user: StatsigUser, dynamic_config_name: String, options: GetConfigOptions).returns(DynamicConfig) }
@@ -88,7 +88,7 @@ module Statsig
   # @param dynamic_config_name The name of the dynamic config
   def self.get_config_with_exposure_logging_disabled(user, dynamic_config_name)
     ensure_initialized
-    @shared_instance&.get_config(user, dynamic_config_name, GetConfigOptions.new(log_exposure: false))
+    @shared_instance&.get_config(user, dynamic_config_name, GetConfigOptions.new(disable_log_exposure: true))
   end
 
   sig { params(user: StatsigUser, dynamic_config: String).void }
@@ -103,7 +103,7 @@ module Statsig
   end
 
   class GetExperimentOptions < T::Struct
-    prop :log_exposure, T::Boolean, default: true
+    prop :disable_log_exposure, T::Boolean, default: false
     prop :user_persisted_values, T.nilable(T::Hash[String, Hash]), default: nil
   end
 
@@ -127,7 +127,7 @@ module Statsig
   # @param experiment_name The name of the experiment
   def self.get_experiment_with_exposure_logging_disabled(user, experiment_name)
     ensure_initialized
-    @shared_instance&.get_experiment(user, experiment_name, GetExperimentOptions.new(log_exposure: false))
+    @shared_instance&.get_experiment(user, experiment_name, GetExperimentOptions.new(disable_log_exposure: true))
   end
 
   sig { params(user: StatsigUser, experiment_name: String).void }
@@ -148,7 +148,7 @@ module Statsig
   end
 
   class GetLayerOptions < T::Struct
-    prop :log_exposure, T::Boolean, default: true
+    prop :disable_log_exposure, T::Boolean, default: false
   end
 
   sig { params(user: StatsigUser, layer_name: String, options: GetLayerOptions).returns(Layer) }
@@ -171,7 +171,7 @@ module Statsig
   # @param layer_name The name of the layer
   def self.get_layer_with_exposure_logging_disabled(user, layer_name)
     ensure_initialized
-    @shared_instance&.get_layer(user, layer_name, GetLayerOptions.new(log_exposure: false))
+    @shared_instance&.get_layer(user, layer_name, GetLayerOptions.new(disable_log_exposure: true))
   end
 
   sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
