@@ -111,7 +111,10 @@ class StatsigDriver
   sig { params(user: StatsigUser, id_type: String).returns(Statsig::UserPersistedValues) }
   def get_user_persisted_values(user, id_type)
     @err_boundary.capture(task: lambda {
-      @persistent_storage_utils.get_user_persisted_values(user, id_type)
+      persisted_values = @persistent_storage_utils.get_user_persisted_values(user, id_type)
+      return {} if persisted_values.nil?
+
+      persisted_values
     }, caller: __method__.to_s)
   end
 

@@ -21,7 +21,7 @@ module Statsig
       @cache = {}
     end
 
-    sig { params(user: StatsigUser, id_type: String).returns(UserPersistedValues) }
+    sig { params(user: StatsigUser, id_type: String).returns(T.nilable(UserPersistedValues)) }
     def get_user_persisted_values(user, id_type)
       key = self.class.get_storage_key(user, id_type)
       return @cache[key] unless @cache[key].nil?
@@ -37,7 +37,7 @@ module Statsig
         storage_values = @storage.load(key)
       rescue StandardError => e
         puts "Failed to load key (#{key}) from user_persisted_storage (#{e.message})"
-        return {}
+        return nil
       end
 
       unless storage_values.nil?
@@ -47,7 +47,7 @@ module Statsig
           return @cache[key]
         end
       end
-      return {}
+      return nil
     end
 
     sig { params(user: StatsigUser, id_type: String, user_persisted_values: UserPersistedValues).void }
@@ -65,17 +65,12 @@ module Statsig
       end
     end
 
-    sig { params(user: StatsigUser, id_type: String).void }
-    def remove_from_storage(user, id_type)
-      return if @storage.nil?
-
-      key = self.class.get_storage_key(user, id_type)
-
-      @cache.delete(key)
-      begin
-        @storage.delete(key)
-      rescue StandardError => e
-        puts "Failed to delete key (#{key}) in user_persisted_storage (#{e.message})"
+    sig { params(user: StatsigUser, id_type: String, config_name: String).void }
+    def remove_experiment_from_storage(user, id_type, config_name)
+      persisted_values = get_user_persisted_values(user, id_type)
+      unless persisted_values.nil?
+        persisted_values.delete(config_name)
+        save_to_storage(user, id_type, persisted_values)
       end
     end
 
