@@ -124,8 +124,8 @@ module Statsig
         end
       # Otherwise, remove from persisted storage
       else
+        @persistent_storage_utils.remove_experiment_from_storage(user, config['idType'], config_name)
         evaluation = eval_spec(user, config)
-        @persistent_storage_utils.remove_from_storage(user, config['idType'])
       end
 
       return evaluation

@@ -7,8 +7,6 @@ module Statsig
       end
 
       def save(key, data) end
-
-      def delete(key) end
     end
   end
 end

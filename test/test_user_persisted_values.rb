@@ -148,14 +148,25 @@ class TestUserPersistedValues < BaseTest
     )
     exp = Statsig.get_experiment(
       @user_in_control,
-      'the_allocated_experiment',
+      'another_allocated_experiment_still_active',
       Statsig::GetExperimentOptions.new(
-        user_persisted_values: Statsig.get_user_persisted_values(@user_in_control, 'stableID')
+        user_persisted_values: Statsig.get_user_persisted_values(@user_in_control, 'userID')
       )
     )
     assert_equal('Control', exp.group_name)
     assert_equal(Statsig::EvaluationReason::BOOTSTRAP, exp.evaluation_details&.reason)
-    assert_equal(1, persistent_storage_adapter.store.size)
+    assert(JSON.parse(persistent_storage_adapter.store["#{@user_in_control.user_id}:userID"]).key?('another_allocated_experiment_still_active'))
+
+    exp = Statsig.get_experiment(
+      @user_in_control,
+      'the_allocated_experiment',
+      Statsig::GetExperimentOptions.new(
+        user_persisted_values: Statsig.get_user_persisted_values(@user_in_control, 'userID')
+      )
+    )
+    assert_equal('Control', exp.group_name)
+    assert_equal(Statsig::EvaluationReason::BOOTSTRAP, exp.evaluation_details&.reason)
+    assert(!JSON.parse(persistent_storage_adapter.store["#{@user_in_control.user_id}:userID"]).key?('the_allocated_experiment'))
 
     # Verify that persisted values are deleted once an experiment is evaluated without persisted values (opted-out)
     exp = Statsig.get_experiment(
@@ -164,7 +175,7 @@ class TestUserPersistedValues < BaseTest
     )
     assert_equal('Test', exp.group_name)
     assert_equal(Statsig::EvaluationReason::BOOTSTRAP, exp.evaluation_details&.reason)
-    assert_equal(0, persistent_storage_adapter.store.size)
+    assert(!JSON.parse(persistent_storage_adapter.store["#{@user_in_test.user_id}:userID"]).key?('the_allocated_experiment'))
   end
 
   def test_invalid_storage_adapter
@@ -199,10 +210,6 @@ class TestUserPersistedValues < BaseTest
     def save(key, data)
       raise 'Error in persistent storage adapter save'
     end
-
-    def delete(key)
-      raise 'Error in persistent storage adapter delete'
-    end
   end
 
   class DummyPersistentStorageAdapter < Statsig::Interfaces::IUserPersistentStorage
@@ -220,10 +227,6 @@ class TestUserPersistedValues < BaseTest
 
     def save(key, data)
       @store[key] = data
-    end
-
-    def delete(key)
-      @store.delete(key)
     end
   end
 end
