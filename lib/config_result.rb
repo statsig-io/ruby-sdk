@@ -1,6 +1,11 @@
 # typed: true
+
+require 'sorbet-runtime'
+
 module Statsig
   class ConfigResult
+    extend T::Sig
+
     attr_accessor :name
     attr_accessor :gate_value
     attr_accessor :json_value
@@ -38,6 +43,40 @@ module Statsig
       @evaluation_details = evaluation_details
       @group_name = group_name
       @id_type = id_type
+    end
+
+    sig { params(config_name: String, user_persisted_values: UserPersistedValues).returns(T.nilable(ConfigResult)) }
+    def self.from_user_persisted_values(config_name, user_persisted_values)
+      sticky_values = user_persisted_values[config_name]
+      return nil if sticky_values.nil?
+
+      from_hash(config_name, sticky_values)
+    end
+
+    sig { params(config_name: String, hash: Hash).returns(ConfigResult) }
+    def self.from_hash(config_name, hash)
+      new(
+        config_name,
+        hash['gate_value'],
+        hash['json_value'],
+        hash['rule_id'],
+        hash['secondary_exposures'],
+        evaluation_details: EvaluationDetails.persisted(hash['config_sync_time'], hash['init_time']),
+        group_name: hash['group_name']
+      )
+    end
+
+    sig { returns(Hash) }
+    def to_hash
+      {
+        json_value: @json_value,
+        gate_value: @gate_value,
+        rule_id: @rule_id,
+        secondary_exposures: @secondary_exposures,
+        config_sync_time: @evaluation_details.config_sync_time,
+        init_time: @init_time,
+        group_name: @group_name
+      }
     end
   end
 end

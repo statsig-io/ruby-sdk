@@ -2,6 +2,7 @@
 
 require 'sorbet-runtime'
 require_relative 'interfaces/data_store'
+require_relative 'interfaces/user_persistent_storage'
 
 ##
 # Configuration options for the Statsig SDK.
@@ -106,6 +107,11 @@ class StatsigOptions
   # which overrides the default backoff time between retries
   attr_accessor :post_logs_retry_backoff
 
+  sig { returns(T.any(Statsig::Interfaces::IUserPersistentStorage, NilClass)) }
+  # A storage adapter for persisted values. Can be used for sticky bucketing users in experiments.
+  # Implements Statsig::Interfaces::IUserPersistentStorage.
+  attr_accessor :user_persistent_storage
+
   sig do
     params(
       environment: T.any(T::Hash[String, String], NilClass),
@@ -127,7 +133,8 @@ class StatsigOptions
       disable_sorbet_logging_handlers: T::Boolean,
       network_timeout: T.any(Integer, NilClass),
       post_logs_retry_limit: Integer,
-      post_logs_retry_backoff: T.any(Method, Proc, Integer, NilClass)
+      post_logs_retry_backoff: T.any(Method, Proc, Integer, NilClass),
+      user_persistent_storage: T.any(Statsig::Interfaces::IUserPersistentStorage, NilClass)
     ).void
   end
 
@@ -151,7 +158,9 @@ class StatsigOptions
     disable_sorbet_logging_handlers: false,
     network_timeout: nil,
     post_logs_retry_limit: 3,
-    post_logs_retry_backoff: nil)
+    post_logs_retry_backoff: nil,
+    user_persistent_storage: nil
+  )
     @environment = environment.is_a?(Hash) ? environment : nil
     @api_url_base = api_url_base
     @api_url_download_config_specs = api_url_download_config_specs
@@ -172,5 +181,7 @@ class StatsigOptions
     @network_timeout = network_timeout
     @post_logs_retry_limit = post_logs_retry_limit
     @post_logs_retry_backoff = post_logs_retry_backoff
+    @user_persistent_storage = user_persistent_storage
+
   end
 end

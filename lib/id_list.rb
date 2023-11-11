@@ -19,7 +19,7 @@ module Statsig
     end
 
     def self.new_empty(json)
-      self.new(json)
+      new(json)
       @size = 0
     end
 

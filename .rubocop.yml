@@ -24,3 +24,5 @@ Style/SlicingWithRange:
   Enabled: false
 Style/AccessorGrouping:
   Enabled: false
+Metrics/ParameterLists:
+  Enabled: false

@@ -1,4 +1,6 @@
 # typed: false
+
+require 'sorbet-runtime'
 require 'config_result'
 require 'country_lookup'
 require 'digest'
@@ -9,21 +11,44 @@ require 'time'
 require 'ua_parser'
 require 'evaluation_details'
 require 'user_agent_parser/operating_system'
+require 'user_persistent_storage_utils'
 
 $fetch_from_server = 'fetch_from_server'
 $type_dynamic_config = 'dynamic_config'
 
 module Statsig
   class Evaluator
+    extend T::Sig
+
+    sig { returns(SpecStore) }
     attr_accessor :spec_store
 
-    def initialize(network, options, error_callback, diagnostics, error_boundary, logger)
+    sig { returns(StatsigOptions) }
+    attr_accessor :options
+
+    sig { returns(UserPersistentStorageUtils) }
+    attr_accessor :persistent_storage_utils
+
+    sig do
+      params(
+        network: Network,
+        options: StatsigOptions,
+        error_callback: T.any(Method, Proc, NilClass),
+        diagnostics: Diagnostics,
+        error_boundary: ErrorBoundary,
+        logger: StatsigLogger,
+        persistent_storage_utils: UserPersistentStorageUtils,
+      ).void
+    end
+    def initialize(network, options, error_callback, diagnostics, error_boundary, logger, persistent_storage_utils)
       @spec_store = Statsig::SpecStore.new(network, options, error_callback, diagnostics, error_boundary, logger)
       UAParser.initialize_async
       CountryLookup.initialize_async
 
       @gate_overrides = {}
       @config_overrides = {}
+      @options = options
+      @persistent_storage_utils = persistent_storage_utils
     end
 
     def maybe_restart_background_threads
@@ -52,7 +77,8 @@ module Statsig
       eval_spec(user, @spec_store.get_gate(gate_name))
     end
 
-    def get_config(user, config_name)
+    sig { params(user: StatsigUser, config_name: String, user_persisted_values: T.nilable(UserPersistedValues)).returns(ConfigResult) }
+    def get_config(user, config_name, user_persisted_values: nil)
       if @config_overrides.key?(config_name)
         id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)['idType'] : ''
         return Statsig::ConfigResult.new(
@@ -83,7 +109,24 @@ module Statsig
         )
       end
 
-      eval_spec(user, @spec_store.get_config(config_name))
+      config = @spec_store.get_config(config_name)
+
+      if !user_persisted_values.nil? && config['isActive'] == true
+        sticky_result = Statsig::ConfigResult.from_user_persisted_values(config_name, user_persisted_values)
+        return sticky_result unless sticky_result.nil?
+      end
+
+      evaluation = eval_spec(user, config)
+
+      # If the experiment is active and the user is in an experiment group
+      # Save the sticky value if the sdk implementation passes a storage adapter and has opt-ed in for the experiment
+      # by passing user persisted values
+      if !user_persisted_values.nil? && config['isActive'] == true && evaluation.is_experiment_group
+        @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name, evaluation)
+        @persistent_storage_utils.save_to_storage(user, config['idType'], user_persisted_values)
+      end
+
+      return evaluation
     end
 
     def get_layer(user, layer_name)
@@ -150,6 +193,7 @@ module Statsig
       @config_overrides[config] = value
     end
 
+    sig { params(user: StatsigUser, config: Hash).returns(ConfigResult) }
     def eval_spec(user, config)
       default_rule_id = 'default'
       exposures = []
@@ -266,7 +310,7 @@ module Statsig
       operator = condition['operator']
       additional_values = condition['additionalValues']
       additional_values = Hash.new unless additional_values.is_a? Hash
-      idType = condition['idType']
+      id_type = condition['idType']
 
       return $fetch_from_server unless type.is_a? String
       type = type.downcase
@@ -304,14 +348,14 @@ module Statsig
       when 'user_bucket'
         begin
           salt = additional_values['salt']
-          unit_id = get_unit_id(user, idType) || ''
+          unit_id = user.get_unit_id(id_type) || ''
           # there are only 1000 user buckets as opposed to 10k for gate pass %
           value = compute_user_hash("#{salt}.#{unit_id}") % 1000
         rescue
           return false
         end
       when 'unit_id'
-        value = get_unit_id(user, idType)
+        value = user.get_unit_id(id_type)
       else
         return $fetch_from_server
       end
@@ -361,7 +405,7 @@ module Statsig
       when 'none_case_sensitive'
         return !EvaluationHelpers::match_string_in_array(target, value, false, ->(a, b) { a == b })
 
-        #string
+        # string
       when 'str_starts_with_any'
         return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.start_with?(b) })
       when 'str_ends_with_any'
@@ -470,21 +514,13 @@ module Statsig
     def eval_pass_percent(user, rule, config_salt)
       return false unless config_salt.is_a?(String) && !rule['passPercentage'].nil?
       begin
-        unit_id = get_unit_id(user, rule['idType']) || ''
+        unit_id = user.get_unit_id(rule['idType']) || ''
         rule_salt = rule['salt'] || rule['id'] || ''
         hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
         return (hash % 10000) < (rule['passPercentage'].to_f * 100)
       rescue
         return false
       end
-    end
-
-    def get_unit_id(user, id_type)
-      if id_type.is_a?(String) && id_type.downcase != 'userid'
-        return nil unless user&.custom_ids.is_a? Hash
-        return user.custom_ids[id_type] || user.custom_ids[id_type.downcase]
-      end
-      user.user_id
     end
 
     def compute_user_hash(user_hash)
