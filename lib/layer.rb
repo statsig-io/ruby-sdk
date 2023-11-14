@@ -17,11 +17,18 @@ class Layer
   sig { returns(String) }
   attr_accessor :rule_id
 
-  sig { params(name: String, value: T::Hash[String, T.untyped], rule_id: String, exposure_log_func: T.any(Method, Proc, NilClass)).void }
-  def initialize(name, value = {}, rule_id = '', exposure_log_func = nil)
+  sig { returns(String) }
+  attr_accessor :group_name
+
+  sig do
+    params(name: String, value: T::Hash[String, T.untyped], rule_id: String,
+           group_name: T.nilable(String), exposure_log_func: T.any(Method, Proc, NilClass)).void
+  end
+  def initialize(name, value = {}, rule_id = '', group_name = nil, exposure_log_func = nil)
     @name = name
     @value = value
     @rule_id = rule_id
+    @group_name = group_name
     @exposure_log_func = exposure_log_func
   end
 
