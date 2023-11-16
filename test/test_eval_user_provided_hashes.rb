@@ -12,9 +12,8 @@ class EvaluateUserProvidedHashesTest < BaseTest
   def setup
     super
     WebMock.enable!
-    stub_request(:post, "https://statsigapi.net/v1/get_id_lists")
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs')
-      .to_return(status: 200, body: $user_provided_hashes_res)
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
+    stub_download_config_specs.to_return(status: 200, body: $user_provided_hashes_res)
 
     @driver = StatsigDriver.new('secret-key')
   end
@@ -29,7 +28,7 @@ class EvaluateUserProvidedHashesTest < BaseTest
     custom_hashes = [
       { is_new: true },
       { :is_new => true },
-      { "is_new" => true },
+      { 'is_new' => true },
       { "is_new": true },
     ]
 
@@ -44,7 +43,7 @@ class EvaluateUserProvidedHashesTest < BaseTest
     private_hashes = [
       { is_new: true },
       { :is_new => true },
-      { "is_new" => true },
+      { 'is_new' => true },
       { "is_new": true },
     ]
 
@@ -59,7 +58,7 @@ class EvaluateUserProvidedHashesTest < BaseTest
     environment_hashes = [
       { tier: 'development' },
       { :tier => 'development' },
-      { "tier" => 'development' },
+      { 'tier' => 'development' },
       { "tier": 'development' },
     ]
 
@@ -78,48 +77,48 @@ $user_provided_hashes_res = JSON.generate(
     "dynamic_configs": [],
     "layer_configs": [],
     "feature_gates": [
-      { "name": "custom_field_gate",
-        "type": "feature_gate",
-        "salt": "ae16dbef-d592-4179-b3cf-59134ce70708",
+      { "name": 'custom_field_gate',
+        "type": 'feature_gate',
+        "salt": 'ae16dbef-d592-4179-b3cf-59134ce70708',
         "enabled": true,
         "defaultValue": false,
         "rules": [
-          { "name": "5PnoBPsrq6Y2YPu85fIoyl",
-            "groupName": "Is New",
+          { "name": '5PnoBPsrq6Y2YPu85fIoyl',
+            "groupName": 'Is New',
             "passPercentage": 100,
-            "conditions": [{ "type": "user_field",
-                             "targetValue": ["true"],
-                             "operator": "any",
-                             "field": "is_new",
-                             "additionalValues": { "custom_field": "is_new" },
+            "conditions": [{ "type": 'user_field',
+                             "targetValue": ['true'],
+                             "operator": 'any',
+                             "field": 'is_new',
+                             "additionalValues": { "custom_field": 'is_new' },
                              "isDeviceBased": false,
-                             "idType": "userID" }],
+                             "idType": 'userID' }],
             "returnValue": true,
-            "id": "5PnoBPsrq6Y2YPu85fIoyl",
-            "salt": "ad59e707-e14e-462a-89b3-4397c9dc9983",
+            "id": '5PnoBPsrq6Y2YPu85fIoyl',
+            "salt": 'ad59e707-e14e-462a-89b3-4397c9dc9983',
             "isDeviceBased": false,
-            "idType": "userID"
+            "idType": 'userID'
           },
-          { "name": "60QzmvFbUuGvpz2iPEFXnO",
-            "groupName": "Is Development",
+          { "name": '60QzmvFbUuGvpz2iPEFXnO',
+            "groupName": 'Is Development',
             "passPercentage": 100,
             "conditions": [{
-                             "type": "environment_field",
-                             "targetValue": ["development"],
-                             "operator": "any",
-                             "field": "tier",
+                             "type": 'environment_field',
+                             "targetValue": ['development'],
+                             "operator": 'any',
+                             "field": 'tier',
                              "additionalValues": {},
                              "isDeviceBased": false,
-                             "idType": "userID"
+                             "idType": 'userID'
                            }],
             "returnValue": true,
-            "id": "60QzmvFbUuGvpz2iPEFXnO",
-            "salt": "126b37ae-6998-403f-a0ed-43384fe086c3",
+            "id": '60QzmvFbUuGvpz2iPEFXnO',
+            "salt": '126b37ae-6998-403f-a0ed-43384fe086c3',
             "isDeviceBased": false,
-            "idType": "userID"
+            "idType": 'userID'
           }],
         "isDeviceBased": false,
-        "idType": "userID",
-        "entity": "feature_gate"
+        "idType": 'userID',
+        "entity": 'feature_gate'
       }]
   })

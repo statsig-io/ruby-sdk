@@ -29,7 +29,7 @@ class TestNetworkTimeout < BaseTest
     options = StatsigOptions.new(nil, 'http://localhost:4567/v1', network_timeout: 1, local_mode: false)
     net = Statsig::Network.new('secret-abc', options, 0)
     start = Time.now
-    net.post_helper('download_config_specs', '{}', 0, 0)
+    net.get('download_config_specs', 0, 0)
     stop = Time.now
     elapsed = stop - start
     assert(elapsed < MIN_DCS_REQUEST_TIME, "expected #{elapsed} < #{MIN_DCS_REQUEST_TIME}")
@@ -40,7 +40,7 @@ class TestNetworkTimeout < BaseTest
     options = StatsigOptions.new(nil, 'http://localhost:4567/v1', local_mode: false)
     net = Statsig::Network.new('secret-abc', options, 0)
     start = Time.now
-    net.post_helper('download_config_specs', '{}', 0, 0)
+    net.get('download_config_specs', 0, 0)
     stop = Time.now
     elapsed = stop - start
     assert(elapsed >= MIN_DCS_REQUEST_TIME, "expected #{elapsed} >= #{MIN_DCS_REQUEST_TIME}")

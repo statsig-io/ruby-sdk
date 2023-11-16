@@ -19,8 +19,8 @@ class EvaluationDetailsTest < BaseTest
     @user = StatsigUser.new({ 'user_id' => 'a-user' })
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)
-    driver = StatsigDriver.new('secret-key')
+    stub_download_config_specs.to_return(status: 200, body: @mock_response)
+    driver = StatsigDriver.new(SDK_KEY)
 
     @evaluator = driver.instance_variable_get('@evaluator')
     @store = @evaluator.instance_variable_get('@spec_store')
@@ -89,7 +89,7 @@ class EvaluationDetailsTest < BaseTest
 
   def test_local_bootstrap
     options = StatsigOptions.new(bootstrap_values: @json_file, local_mode: true)
-    bootstrap_driver = StatsigDriver.new('secret-key', options)
+    bootstrap_driver = StatsigDriver.new(SDK_KEY, options)
     boostrap_evaluator = bootstrap_driver.instance_variable_get('@evaluator')
 
     result = boostrap_evaluator.check_gate(@user, 'always_on_gate')

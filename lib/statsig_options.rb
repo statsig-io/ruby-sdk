@@ -22,7 +22,7 @@ class StatsigOptions
 
   # The base url used specifically to call download_config_specs.
   # Takes precedence over api_url_base
-  sig { returns(T.any(String, NilClass)) }
+  sig { returns(String) }
   attr_accessor :api_url_download_config_specs
 
   sig { returns(T.any(Float, Integer)) }
@@ -115,7 +115,7 @@ class StatsigOptions
   sig do
     params(
       environment: T.any(T::Hash[String, String], NilClass),
-      api_url_base: String,
+      api_url_base: T.nilable(String),
       api_url_download_config_specs: T.any(String, NilClass),
       rulesets_sync_interval: T.any(Float, Integer),
       idlists_sync_interval: T.any(Float, Integer),
@@ -137,10 +137,9 @@ class StatsigOptions
       user_persistent_storage: T.any(Statsig::Interfaces::IUserPersistentStorage, NilClass)
     ).void
   end
-
   def initialize(
     environment = nil,
-    api_url_base = 'https://statsigapi.net/v1',
+    api_url_base = nil,
     api_url_download_config_specs: nil,
     rulesets_sync_interval: 10,
     idlists_sync_interval: 60,
@@ -162,8 +161,8 @@ class StatsigOptions
     user_persistent_storage: nil
   )
     @environment = environment.is_a?(Hash) ? environment : nil
-    @api_url_base = api_url_base
-    @api_url_download_config_specs = api_url_download_config_specs
+    @api_url_base = api_url_base || 'https://statsigapi.net/v1'
+    @api_url_download_config_specs = api_url_download_config_specs || api_url_base || 'https://api.statsigcdn.com/v1'
     @rulesets_sync_interval = rulesets_sync_interval
     @idlists_sync_interval = idlists_sync_interval
     @disable_rulesets_sync = disable_rulesets_sync

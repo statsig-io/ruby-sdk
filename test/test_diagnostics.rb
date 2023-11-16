@@ -11,6 +11,7 @@ $expected_sync_time = 1631638014811
 
 class InitDiagnosticsTest < BaseTest
   suite :InitDiagnosticsTest
+
   def setup
     super
     WebMock.enable!
@@ -21,7 +22,7 @@ class InitDiagnosticsTest < BaseTest
       status: 200,
       headers: { 'x-statsig-region' => 'az-westus-2' }
     )
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(
+    stub_download_config_specs.to_return(
       status: 200,
       body: @mock_response,
       headers: { 'x-statsig-region' => 'az-westus-2' }
@@ -48,7 +49,7 @@ class InitDiagnosticsTest < BaseTest
     stub_request(:get, 'https://fakecdn.com/my_id_list').to_return(status: 200, body: '+asdfcd',
                                                                    headers: { "content-length": 1 })
 
-    driver = StatsigDriver.new('secret-key')
+    driver = StatsigDriver.new(SDK_KEY)
     driver.shutdown
 
     assert_equal(1, @events.length)
@@ -78,7 +79,7 @@ class InitDiagnosticsTest < BaseTest
   end
 
   def test_network_init_success
-    driver = StatsigDriver.new('secret-key')
+    driver = StatsigDriver.new(SDK_KEY)
     driver.shutdown
 
     assert_equal(1, @events.length)
@@ -98,17 +99,17 @@ class InitDiagnosticsTest < BaseTest
     assert_marker_equal(markers[5], 'get_id_list_sources', 'start', 'network_request')
     assert_marker_equal(markers[6], 'get_id_list_sources', 'end', 'network_request',
                         { 'statusCode' => 200, 'sdkRegion' => 'az-westus-2' })
-    assert_marker_equal(markers[7], 'overall', 'end', nil, { 'success' => true})
+    assert_marker_equal(markers[7], 'overall', 'end', nil, { 'success' => true })
     assert_equal(8, markers.length)
   end
 
   def test_network_init_failure
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(
+    stub_download_config_specs.to_return(
       status: 500,
       headers: { 'x-statsig-region' => 'az-westus-2' }
     )
 
-    driver = StatsigDriver.new('secret-key')
+    driver = StatsigDriver.new(SDK_KEY)
     driver.shutdown
 
     assert_equal(1, @events.length)
@@ -131,7 +132,7 @@ class InitDiagnosticsTest < BaseTest
   end
 
   def test_bootstrap_init
-    driver = StatsigDriver.new('secret-key', StatsigOptions.new(bootstrap_values: @mock_response))
+    driver = StatsigDriver.new(SDK_KEY, StatsigOptions.new(bootstrap_values: @mock_response))
     driver.shutdown
 
     assert_equal(1, @events.length)
@@ -153,7 +154,7 @@ class InitDiagnosticsTest < BaseTest
   end
 
   def test_data_adapter_init
-    driver = StatsigDriver.new('secret-key', StatsigOptions.new(data_store: DummyDataAdapter.new))
+    driver = StatsigDriver.new(SDK_KEY, StatsigOptions.new(data_store: DummyDataAdapter.new))
     driver.shutdown
 
     assert_equal(1, @events.length)
@@ -185,7 +186,7 @@ class InitDiagnosticsTest < BaseTest
   end
 
   def test_api_call_diagnostics
-    Statsig.initialize('secret-key')
+    Statsig.initialize(SDK_KEY)
     Spy.on(Statsig::Diagnostics, 'sample').and_return do
       true
     end
@@ -212,7 +213,7 @@ class InitDiagnosticsTest < BaseTest
   end
 
   def test_disable_diagnostics_logging
-    Statsig.initialize('secret-key', StatsigOptions.new(disable_diagnostics_logging: true))
+    Statsig.initialize(SDK_KEY, StatsigOptions.new(disable_diagnostics_logging: true))
     user = StatsigUser.new(user_id: 'test-user')
     Statsig.check_gate_with_exposure_logging_disabled(user, 'non-existent-gate')
     Statsig.get_config_with_exposure_logging_disabled(user, 'non-existent-config')
@@ -231,13 +232,14 @@ class InitDiagnosticsTest < BaseTest
       "get_id_list": 5000,
       "get_id_list_sources": 5000
     }
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(
+
+    stub_download_config_specs.to_return(
       status: 200,
       body: @mock_response.to_json,
       headers: { 'x-statsig-region' => 'az-westus-2' }
     )
     driver = StatsigDriver.new(
-      'secret-key',
+      SDK_KEY,
       StatsigOptions.new(
         disable_rulesets_sync: true,
         disable_idlists_sync: true,
