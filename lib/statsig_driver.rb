@@ -140,7 +140,7 @@ class StatsigDriver
         exposure_log_func = !options.disable_log_exposure ? lambda { |layer, parameter_name|
           @logger.log_layer_exposure(user, layer, parameter_name, res)
         } : nil
-        Layer.new(res.name, res.json_value, res.rule_id, exposure_log_func)
+        Layer.new(res.name, res.json_value, res.rule_id, res.group_name, exposure_log_func)
       }, caller: __method__.to_s)
     }, recover: lambda { Layer.new(layer_name) }, caller: __method__.to_s)
   end
@@ -149,7 +149,7 @@ class StatsigDriver
   def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
     @err_boundary.capture(task: lambda {
       res = @evaluator.get_layer(user, layer_name)
-      layer = Layer.new(layer_name, res.json_value, res.rule_id)
+      layer = Layer.new(layer_name, res.json_value, res.rule_id, res.group_name)
       context = { 'is_manual_exposure' => true }
       @logger.log_layer_exposure(user, layer, parameter_name, res, context)
     }, caller: __method__.to_s)
