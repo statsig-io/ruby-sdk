@@ -25,7 +25,7 @@ module Statsig
       json_value = {},
       rule_id = '',
       secondary_exposures = [],
-      config_delegate = '',
+      config_delegate = nil,
       explicit_parameters = [],
       is_experiment_group: false,
       evaluation_details: nil,

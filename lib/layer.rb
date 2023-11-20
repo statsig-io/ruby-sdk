@@ -21,14 +21,21 @@ class Layer
   attr_accessor :group_name
 
   sig do
-    params(name: String, value: T::Hash[String, T.untyped], rule_id: String,
-           group_name: T.nilable(String), exposure_log_func: T.any(Method, Proc, NilClass)).void
+    params(
+      name: String,
+      value: T::Hash[String, T.untyped],
+      rule_id: String,
+      group_name: T.nilable(String),
+      allocated_experiment: T.nilable(String),
+      exposure_log_func: T.any(Method, Proc, NilClass)
+    ).void
   end
-  def initialize(name, value = {}, rule_id = '', group_name = nil, exposure_log_func = nil)
+  def initialize(name, value = {}, rule_id = '', group_name = nil, allocated_experiment = nil, exposure_log_func = nil)
     @name = name
     @value = value
     @rule_id = rule_id
     @group_name = group_name
+    @allocated_experiment = allocated_experiment
     @exposure_log_func = exposure_log_func
   end
 
