@@ -19,7 +19,7 @@ class ManualExposureTest < BaseTest
     json_file = File.read("#{__dir__}/data/download_config_specs.json")
     @mock_response = JSON.parse(json_file).to_json
 
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)
+    stub_download_config_specs.to_return(status: 200, body: @mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @user = StatsigUser.new({ 'userID' => 'random' })
@@ -39,7 +39,7 @@ class ManualExposureTest < BaseTest
   end
 
   def test_api_with_exposure_logging_disabled
-    Statsig.initialize('secret-testcase', @options)
+    Statsig.initialize(SDK_KEY, @options)
     Statsig.check_gate_with_exposure_logging_disabled(@user, 'always_on_gate')
     Statsig.get_config_with_exposure_logging_disabled(@user, 'test_config')
     Statsig.get_experiment_with_exposure_logging_disabled(@user, 'sample_experiment')
@@ -61,7 +61,7 @@ class ManualExposureTest < BaseTest
   end
 
   def test_manual_exposure_logging
-    Statsig.initialize('secret-testcase', @options)
+    Statsig.initialize(SDK_KEY, @options)
     Statsig.manually_log_gate_exposure(@user, 'always_on_gate')
     Statsig.manually_log_config_exposure(@user, 'test_config')
     Statsig.manually_log_experiment_exposure(@user, 'sample_experiment')

@@ -9,7 +9,7 @@ class StatsigErrorBoundaryUsageTest < BaseTest
   def before_setup
     super
     stub_request(:post, 'https://statsigapi.net/v1/sdk_exception').to_return(status: 200)
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 500)
+    stub_download_config_specs.to_return(status: 500)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 500)
   end
 

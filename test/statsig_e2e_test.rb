@@ -26,7 +26,7 @@ class StatsigE2ETest < BaseTest
 
   def before_setup
     super
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
+    stub_download_config_specs.to_return(status: 200, body: @@mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @statsig_user = StatsigUser.new({ 'userID' => '123', 'email' => 'testuser@statsig.com' })
@@ -47,7 +47,7 @@ class StatsigE2ETest < BaseTest
 
   def test_feature_gate
     driver = StatsigDriver.new(
-      'secret-testcase',
+      SDK_KEY,
       @options,
       lambda { |e|
         # error callback should not be called on successful initialize
@@ -115,7 +115,7 @@ class StatsigE2ETest < BaseTest
   end
 
   def test_dynamic_config
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     config = driver.get_config(@statsig_user, 'test_config')
     assert(config.group_name == 'statsig email')
     assert(config.id_type == 'anonymousID')
@@ -124,7 +124,7 @@ class StatsigE2ETest < BaseTest
     assert(config.get('boolean', true) == false)
 
     config = driver.get_config(@random_user, 'test_config')
-    assert_equal(nil, config.group_name)
+    assert_nil(config.group_name)
     assert(config.id_type == 'anonymousID')
     assert(config.get('number', 0) == 4)
     assert(config.get('string', '') == 'default')
@@ -153,7 +153,7 @@ class StatsigE2ETest < BaseTest
   end
 
   def test_experiment
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     experiment = driver.get_experiment(@random_user, 'sample_experiment')
     assert(experiment.get('experiment_param', '') == 'control')
     assert(experiment.group_name == 'Control')
@@ -188,7 +188,7 @@ class StatsigE2ETest < BaseTest
   end
 
   def test_log_event
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     driver.log_event(@random_user, 'add_to_cart', 'SKU_12345', { 'price' => '9.99', 'item_name' => 'diet_coke_48_pack' })
     driver.shutdown
 
@@ -215,7 +215,7 @@ class StatsigE2ETest < BaseTest
   def test_bootstrap_option
     # in local mode (without network), bootstrap_values makes evaluation work
     options = StatsigOptions.new(bootstrap_values: @@json_file, local_mode: true)
-    driver = StatsigDriver.new('secret-testcase', options)
+    driver = StatsigDriver.new(SDK_KEY, options)
     assert_equal(driver.check_gate(StatsigUser.new({ 'userID' => 'jkw' }), 'always_on_gate'), true)
 
     # with network, rules_updated_callback gets called when there are updated rulesets coming back from server
@@ -225,7 +225,7 @@ class StatsigE2ETest < BaseTest
         callback_validated = true
       end
     })
-    driver = StatsigDriver.new('secret-testcase', options)
+    driver = StatsigDriver.new(SDK_KEY, options)
     assert_equal(driver.check_gate(StatsigUser.new({ 'userID' => 'jkw' }), 'always_on_gate'), true)
     assert_equal(true, callback_validated)
     driver.shutdown

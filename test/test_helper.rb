@@ -64,6 +64,9 @@ Minitest::Suite.order = %i[
 
 class BaseTest < Minitest::Test
   include Minitest::Assertions
+
+  SDK_KEY = 'secret-key'.freeze
+
   def self.test_order
     :alpha
   end
@@ -74,6 +77,19 @@ class BaseTest < Minitest::Test
 
   def teardown
     super
+  end
+end
+
+module WebMock
+  module API
+    def stub_download_config_specs(base_url = 'https://api.statsigcdn.com/v1')
+      stub_request(
+        :get,
+        Addressable::Template.new(
+          "#{base_url}/download_config_specs/{key}.json{?sinceTime}"
+        )
+      )
+    end
   end
 end
 
@@ -112,6 +128,7 @@ module Spy
 
   class << self
     alias parent_on on
+
     def on(base_object, *method_names)
       save_original_methods(base_object, *method_names)
       parent_on(base_object, *method_names)

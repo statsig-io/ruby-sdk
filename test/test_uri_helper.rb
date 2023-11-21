@@ -1,6 +1,8 @@
 require 'test_helper'
+
 class TestURIHelper < BaseTest
   suite :TestURIHelper
+
   def setup
     super
     WebMock.enable!
@@ -9,20 +11,17 @@ class TestURIHelper < BaseTest
       custom_base_url: 0,
       custom_dcs_url: 0
     }
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs')
-      .to_return do |req|
+    stub_download_config_specs.to_return do |req|
       @dcs_counter[:default] += 1
     end
     stub_request(:post, 'https://statsigapi.net/v1/log_event')
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
-    stub_request(:post, 'https://custom_base_url/download_config_specs')
-      .to_return do |req|
+    stub_download_config_specs('https://custom_base_url').to_return do |req|
       @dcs_counter[:custom_base_url] += 1
     end
     stub_request(:post, 'https://custom_base_url/log_event')
     stub_request(:post, 'https://custom_base_url/get_id_lists')
-    stub_request(:post, 'https://custom_dcs_url/download_config_specs')
-      .to_return do |req|
+    stub_download_config_specs('https://custom_dcs_url').to_return do |req|
       @dcs_counter[:custom_dcs_url] += 1
     end
     @diagnostics = Statsig::Diagnostics.new('test')
@@ -43,8 +42,8 @@ class TestURIHelper < BaseTest
       rulesets_sync_interval: 9999,
       idlists_sync_interval: 9999
     )
-    net = Statsig::Network.new('secret-abc', options)
-    spy = Spy.on(net, :post_helper).and_call_through
+    net = Statsig::Network.new(SDK_KEY, options)
+    spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
     store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do
@@ -62,8 +61,8 @@ class TestURIHelper < BaseTest
       rulesets_sync_interval: 9999,
       idlists_sync_interval: 9999
     )
-    net = Statsig::Network.new('secret-abc', options)
-    spy = Spy.on(net, :post_helper).and_call_through
+    net = Statsig::Network.new(SDK_KEY, options)
+    spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
     store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do
@@ -83,8 +82,8 @@ class TestURIHelper < BaseTest
       rulesets_sync_interval: 9999,
       idlists_sync_interval: 9999
     )
-    net = Statsig::Network.new('secret-abc', options)
-    spy = Spy.on(net, :post_helper).and_call_through
+    net = Statsig::Network.new(SDK_KEY, options)
+    spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
     store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do
@@ -98,8 +97,8 @@ class TestURIHelper < BaseTest
 
   def test_default_api_url
     options = StatsigOptions.new(rulesets_sync_interval: 9999, idlists_sync_interval: 9999)
-    net = Statsig::Network.new('secret-abc', options)
-    spy = Spy.on(net, :post_helper).and_call_through
+    net = Statsig::Network.new(SDK_KEY, options)
+    spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
     store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
     wait_for do

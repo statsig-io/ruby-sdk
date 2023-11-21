@@ -76,7 +76,7 @@ class TestStore < BaseTest
     id_list_3_calls = 0
     id_list_3_calls_mutex = Mutex.new
 
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return { |req|
+    stub_download_config_specs.to_return { |req|
       if can_sync_rulesets
         dcs_calls += 1
         body = {
@@ -365,7 +365,7 @@ class TestStore < BaseTest
       'has_updates' => true,
       'id_lists' => {}
     }
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs')
+    stub_download_config_specs
       .to_return(status: 200, body: JSON.generate(config_spec_mock_response))
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
@@ -373,7 +373,7 @@ class TestStore < BaseTest
 
     options = StatsigOptions.new(local_mode: false, rulesets_sync_interval: 1)
     net = Statsig::Network.new('secret-abc', options, 1)
-    spy = Spy.on(net, :post_helper).and_call_through
+    spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
     store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
 

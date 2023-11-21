@@ -54,10 +54,41 @@ module Statsig
     end
 
     sig do
+      params(since_time: Integer)
+        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    end
+    def download_config_specs(since_time)
+      get("download_config_specs/#{@server_secret}.json?sinceTime=#{since_time}")
+    end
+
+    class HttpMethod < T::Enum
+      enums do
+        GET = new
+        POST = new
+      end
+    end
+
+    sig do
+      params(endpoint: String, retries: Integer, backoff: Integer)
+        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    end
+    def get(endpoint, retries = 0, backoff = 1)
+      request(HttpMethod::GET, endpoint, nil, retries, backoff)
+    end
+
+    sig do
       params(endpoint: String, body: String, retries: Integer, backoff: Integer)
         .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
     end
-    def post_helper(endpoint, body, retries = 0, backoff = 1)
+    def post(endpoint, body, retries = 0, backoff = 1)
+      request(HttpMethod::POST, endpoint, body, retries, backoff)
+    end
+
+    sig do
+      params(method: HttpMethod, endpoint: String, body: T.nilable(String), retries: Integer, backoff: Integer)
+        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    end
+    def request(method, endpoint, body, retries = 0, backoff = 1)
       if @local_mode
         return nil, nil
       end
@@ -73,14 +104,20 @@ module Statsig
       url = URIHelper.build_url(endpoint)
       begin
         res = @connection_pool.with do |conn|
-          conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s).post(url, body: body)
+          request = conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s)
+          case method
+          when HttpMethod::GET
+            request.get(url)
+          when HttpMethod::POST
+            request.post(url, body: body)
+          end
         end
       rescue StandardError => e
         ## network error retry
         return nil, e unless retries.positive?
 
         sleep backoff_adjusted
-        return post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
+        return request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier)
       end
       return res, nil if res.status.success?
 
@@ -91,12 +128,12 @@ module Statsig
 
       ## status code retry
       sleep backoff_adjusted
-      post_helper(endpoint, body, retries - 1, backoff * @backoff_multiplier)
+      request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier)
     end
 
     def check_gate(user, gate_name)
       request_body = JSON.generate({ 'user' => user&.serialize(false), 'gateName' => gate_name })
-      response, = post_helper('check_gate', request_body)
+      response, = post('check_gate', request_body)
       return JSON.parse(response.body) unless response.nil?
 
       false
@@ -106,7 +143,7 @@ module Statsig
 
     def get_config(user, dynamic_config_name)
       request_body = JSON.generate({ 'user' => user&.serialize(false), 'configName' => dynamic_config_name })
-      response, = post_helper('get_config', request_body)
+      response, = post('get_config', request_body)
       return JSON.parse(response.body) unless response.nil?
 
       nil
@@ -116,7 +153,7 @@ module Statsig
 
     def post_logs(events)
       json_body = JSON.generate({ 'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata })
-      post_helper('log_event', json_body, @post_logs_retry_limit)
+      post('log_event', json_body, @post_logs_retry_limit)
     rescue StandardError
 
     end

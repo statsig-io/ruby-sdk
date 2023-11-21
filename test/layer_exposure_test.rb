@@ -19,7 +19,7 @@ class LayerExposureTest < BaseTest
     @mock_response = JSON.parse(json_file).to_json
     @options = StatsigOptions.new(disable_diagnostics_logging: true)
 
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @mock_response)
+    stub_download_config_specs.to_return(status: 200, body: @mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @user = StatsigUser.new({ 'userID' => 'random' })
@@ -37,7 +37,7 @@ class LayerExposureTest < BaseTest
   end
 
   def test_does_not_log_on_get_layer
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     driver.get_layer(@user, 'unallocated_layer')
     driver.shutdown
 
@@ -54,7 +54,7 @@ class LayerExposureTest < BaseTest
   end
 
   def test_does_not_log_on_non_existent_keys
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     layer = driver.get_layer(@user, 'unallocated_layer')
     layer.get('a_string', 'err')
     driver.shutdown
@@ -72,7 +72,7 @@ class LayerExposureTest < BaseTest
   end
 
   def test_unallocated_layer_logging
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     layer = driver.get_layer(@user, 'unallocated_layer')
     layer.get("an_int", 0)
     driver.shutdown
@@ -97,7 +97,7 @@ class LayerExposureTest < BaseTest
   end
 
   def test_explicit_vs_implicit_parameter_logging
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     layer = driver.get_layer(@user, 'explicit_vs_implicit_parameter_layer')
     layer.get("an_int", 0)
     layer.get("a_string", 'err')
@@ -133,7 +133,7 @@ class LayerExposureTest < BaseTest
   end
 
   def test_logs_user_and_event_name
-    driver = StatsigDriver.new('secret-testcase', @options)
+    driver = StatsigDriver.new(SDK_KEY, @options)
     user = StatsigUser.new({ 'userID' => 'dloomb', 'email' => 'dan@loomb.com' })
     layer = driver.get_layer(user, 'unallocated_layer')
     layer.get("an_int", 0)

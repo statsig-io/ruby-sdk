@@ -238,7 +238,7 @@ module Statsig
 
       error = nil
       begin
-        response, e = @network.post_helper('download_config_specs', JSON.generate({ 'sinceTime' => @last_config_sync_time }))
+        response, e = @network.download_config_specs(@last_config_sync_time)
         code = response&.status.to_i
         if e.is_a? NetworkError
           code = e.http_code
@@ -334,7 +334,7 @@ module Statsig
 
     def get_id_lists_from_network
       tracker = @diagnostics.track('get_id_list_sources', 'network_request')
-      response, e = @network.post_helper('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
+      response, e = @network.post('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
       code = response&.status.to_i
       if e.is_a? NetworkError
         code = e.http_code

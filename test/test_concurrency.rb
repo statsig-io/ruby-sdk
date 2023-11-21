@@ -26,7 +26,7 @@ class TestConcurrency < BaseTest
     WebMock.enable!
     Statsig.instance_variable_set("@shared_instance", nil)
 
-    stub_request(:post, 'https://statsigapi.net/v1/download_config_specs').to_return(status: 200, body: @@mock_response)
+    stub_download_config_specs.to_return(status: 200, body: @@mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda {|request|
       @@flushed_event_count_mutex.synchronize do
         @@flushed_event_count += JSON.parse(request.body)["events"].length
@@ -80,7 +80,7 @@ class TestConcurrency < BaseTest
     end
 
     Statsig.initialize(
-      'secret-testcase',
+      SDK_KEY,
       StatsigOptions.new(rulesets_sync_interval: 0.01, idlists_sync_interval: 0.01, disable_diagnostics_logging: true)
     )
     threads = []
