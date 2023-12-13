@@ -42,7 +42,7 @@ module ClientInitializeHelpers
       target_app_id = @evaluator.spec_store.get_app_id_for_sdk_key(@client_sdk_key)
       config_target_apps = config_spec['targetAppIDs']
 
-      unless target_app_id.nil? || config_target_apps.nil? || config_target_apps.include?(target_app_id)
+      unless target_app_id.nil? || (!config_target_apps.nil? && config_target_apps.include?(target_app_id))
         return nil
       end
 
