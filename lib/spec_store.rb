@@ -121,6 +121,18 @@ module Statsig
       @specs[:layers][layer_name]
     end
 
+    def gates
+      @specs[:gates]
+    end
+
+    def configs
+      @specs[:configs]
+    end
+
+    def layers
+      @specs[:layers]
+    end
+
     def get_id_list(list_name)
       @specs[:id_lists][list_name]
     end

@@ -184,6 +184,41 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
+  sig { returns(T::Array[String]) }
+  def list_gates
+    @err_boundary.capture(task: lambda {
+      @evaluator.list_gates
+    }, caller: __method__.to_s)
+  end
+
+  sig { returns(T::Array[String]) }
+  def list_configs
+    @err_boundary.capture(task: lambda {
+      @evaluator.list_configs
+    }, caller: __method__.to_s)
+  end
+
+  sig { returns(T::Array[String]) }
+  def list_experiments
+    @err_boundary.capture(task: lambda {
+      @evaluator.list_experiments
+    }, caller: __method__.to_s)
+  end
+
+  sig { returns(T::Array[String]) }
+  def list_autotunes
+    @err_boundary.capture(task: lambda {
+      @evaluator.list_autotunes
+    }, caller: __method__.to_s)
+  end
+
+  sig { returns(T::Array[String]) }
+  def list_layers
+    @err_boundary.capture(task: lambda {
+      @evaluator.list_layers
+    }, caller: __method__.to_s)
+  end
+
   def shutdown
     @err_boundary.capture(task: lambda {
       @shutdown = true

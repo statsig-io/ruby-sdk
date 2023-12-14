@@ -122,7 +122,7 @@ module Statsig
           @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name, evaluation)
           @persistent_storage_utils.save_to_storage(user, config['idType'], user_persisted_values)
         end
-      # Otherwise, remove from persisted storage
+        # Otherwise, remove from persisted storage
       else
         @persistent_storage_utils.remove_experiment_from_storage(user, config['idType'], config_name)
         evaluation = eval_spec(user, config)
@@ -141,6 +141,26 @@ module Statsig
       end
 
       eval_spec(user, @spec_store.get_layer(layer_name))
+    end
+
+    def list_gates
+      @spec_store.gates.map { |name, _| name }
+    end
+
+    def list_configs
+      @spec_store.configs.filter_map { |name, config| name if config['entity'] == 'dynamic_config' }
+    end
+
+    def list_experiments
+      @spec_store.configs.filter_map { |name, config| name if config['entity'] == 'experiment' }
+    end
+
+    def list_autotunes
+      @spec_store.configs.filter_map { |name, config| name if config['entity'] == 'autotune' }
+    end
+
+    def list_layers
+      @spec_store.layers.map { |name, _| name }
     end
 
     def get_client_initialize_response(user, hash, client_sdk_key)

@@ -212,6 +212,51 @@ module Statsig
     @shared_instance&.manually_sync_idlists
   end
 
+  sig { returns(T::Array[String]) }
+  ##
+  # Returns a list of all gate names
+  #
+  def self.list_gates
+    ensure_initialized
+    @shared_instance&.list_gates
+  end
+
+  sig { returns(T::Array[String]) }
+  ##
+  # Returns a list of all config names
+  #
+  def self.list_configs
+    ensure_initialized
+    @shared_instance&.list_configs
+  end
+
+  sig { returns(T::Array[String]) }
+  ##
+  # Returns a list of all experiment names
+  #
+  def self.list_experiments
+    ensure_initialized
+    @shared_instance&.list_experiments
+  end
+
+  sig { returns(T::Array[String]) }
+  ##
+  # Returns a list of all autotune names
+  #
+  def self.list_autotunes
+    ensure_initialized
+    @shared_instance&.list_autotunes
+  end
+
+  sig { returns(T::Array[String]) }
+  ##
+  # Returns a list of all layer names
+  #
+  def self.list_layers
+    ensure_initialized
+    @shared_instance&.list_layers
+  end
+
   sig { void }
   ##
   # Stops all Statsig activity and flushes any pending events.
