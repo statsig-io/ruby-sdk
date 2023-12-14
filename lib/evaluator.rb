@@ -148,15 +148,15 @@ module Statsig
     end
 
     def list_configs
-      @spec_store.configs.map { |name, config| name if config['entity'] == 'dynamic_config' }
+      @spec_store.configs.map { |name, config| name if config['entity'] == 'dynamic_config' }.compact
     end
 
     def list_experiments
-      @spec_store.configs.map { |name, config| name if config['entity'] == 'experiment' }
+      @spec_store.configs.map { |name, config| name if config['entity'] == 'experiment' }.compact
     end
 
     def list_autotunes
-      @spec_store.configs.map { |name, config| name if config['entity'] == 'autotune' }
+      @spec_store.configs.map { |name, config| name if config['entity'] == 'autotune' }.compact
     end
 
     def list_layers
