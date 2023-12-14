@@ -27,7 +27,8 @@
           "idType": "anonymousID"
         }
       ],
-      "idType": "anonymousID"
+      "idType": "anonymousID",
+      "entity": "dynamic_config"
     },
     {
       "name": "sample_experiment",
@@ -188,7 +189,41 @@
           "idType": "userID"
         }
       ],
-      "idType": "userID"
+      "idType": "userID",
+      "entity": "experiment"
+    },
+    {
+      "name": "test_autotune",
+      "type": "dynamic_config",
+      "salt": "421b42c3-c220-4617-8319-714d1a3dc41a",
+      "enabled": true,
+      "defaultValue": {},
+      "rules": [
+        {
+          "name": "prestart",
+          "groupName": "Unstarted",
+          "passPercentage": 100,
+          "conditions": [
+            {
+              "type": "public",
+              "targetValue": null,
+              "operator": null,
+              "field": null,
+              "additionalValues": {},
+              "isDeviceBased": false,
+              "idType": "userID"
+            }
+          ],
+          "returnValue": {},
+          "id": "prestart",
+          "salt": "",
+          "isDeviceBased": false,
+          "idType": "userID"
+        }
+      ],
+      "isDeviceBased": false,
+      "idType": "userID",
+      "entity": "autotune"
     }
   ],
   "feature_gates": [
