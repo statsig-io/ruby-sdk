@@ -45,6 +45,7 @@ module Statsig
           'STATSIG-API-KEY' => @sdk_key,
           'STATSIG-SDK-TYPE' => meta['sdkType'],
           'STATSIG-SDK-VERSION' => meta['sdkVersion'],
+          'STATSIG-SDK-LANGUAGE-VERSION' => meta['languageVersion'],
           'Content-Type' => 'application/json; charset=UTF-8'
         }).accept(:json)
       body = {

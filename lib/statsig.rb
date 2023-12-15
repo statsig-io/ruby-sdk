@@ -311,6 +311,7 @@ module Statsig
     {
       'sdkType' => 'ruby-server',
       'sdkVersion' => '1.29.0',
+      'languageVersion' => RUBY_VERSION
     }
   end
 

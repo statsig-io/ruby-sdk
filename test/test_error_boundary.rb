@@ -6,6 +6,7 @@ require 'webmock/minitest'
 
 class ErrorBoundaryTest < BaseTest
   suite :ErrorBoundaryTest
+
   def before_setup
     super
     stub_request(:post, 'https://statsigapi.net/v1/sdk_exception').to_return(status: 200)
@@ -41,6 +42,7 @@ class ErrorBoundaryTest < BaseTest
       "statsig-api-key" => 'secret-key',
       "statsig-sdk-type" => meta['sdkType'],
       "statsig-sdk-version" => meta['sdkVersion'],
+      "statsig-sdk-language-version" => meta['languageVersion']
     }, :times => 1)
   end
 
