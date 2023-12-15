@@ -18,6 +18,7 @@ module Statsig
     attr_accessor :evaluation_details
     attr_accessor :group_name
     attr_accessor :id_type
+    attr_accessor :target_app_ids
 
     def initialize(
       name,
@@ -30,7 +31,8 @@ module Statsig
       is_experiment_group: false,
       evaluation_details: nil,
       group_name: nil,
-      id_type: '')
+      id_type: '',
+      target_app_ids: nil)
       @name = name
       @gate_value = gate_value
       @json_value = json_value
@@ -43,6 +45,7 @@ module Statsig
       @evaluation_details = evaluation_details
       @group_name = group_name
       @id_type = id_type
+      @target_app_ids = target_app_ids
     end
 
     sig { params(config_name: String, user_persisted_values: UserPersistedValues).returns(T.nilable(ConfigResult)) }
@@ -62,7 +65,9 @@ module Statsig
         hash['rule_id'],
         hash['secondary_exposures'],
         evaluation_details: EvaluationDetails.persisted(hash['config_sync_time'], hash['init_time']),
-        group_name: hash['group_name']
+        group_name: hash['group_name'],
+        id_type: hash['id_type'],
+        target_app_ids: hash['target_app_ids']
       )
     end
 
@@ -75,7 +80,9 @@ module Statsig
         secondary_exposures: @secondary_exposures,
         config_sync_time: @evaluation_details.config_sync_time,
         init_time: @init_time,
-        group_name: @group_name
+        group_name: @group_name,
+        id_type: @id_type,
+        target_app_ids: @target_app_ids
       }
     end
   end

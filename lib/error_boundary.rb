@@ -24,6 +24,7 @@ module Statsig
         end
 
         puts '[Statsig]: An unexpected exception occurred.'
+        puts e.message
         log_exception(e, tag: caller)
         res = recover.call
       end

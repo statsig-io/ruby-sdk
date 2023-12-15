@@ -26,6 +26,23 @@ module Statsig
     @shared_instance = StatsigDriver.new(secret_key, options, error_callback)
   end
 
+  class GetGateOptions < T::Struct
+    prop :disable_log_exposure, T::Boolean, default: false
+    prop :skip_evaluation, T::Boolean, default: false
+  end
+
+  sig { params(user: StatsigUser, gate_name: String, options: GetGateOptions).returns(FeatureGate) }
+  ##
+  # Gets the gate, evaluated against the given user. An exposure event will automatically be logged for the gate.
+  #
+  # @param user A StatsigUser object used for the evaluation
+  # @param gate_name The name of the gate being checked
+  # @param options Additional options for evaluating the gate
+  def self.get_gate(user, gate_name, options = GetGateOptions.new)
+    ensure_initialized
+    @shared_instance&.get_gate(user, gate_name, options)
+  end
+
   class CheckGateOptions < T::Struct
     prop :disable_log_exposure, T::Boolean, default: false
   end

@@ -27,7 +27,8 @@ class DummyDataAdapter < Statsig::Interfaces::IDataStore
             'returnValue' => true,
             'id' => '6N6Z8ODekNYZ7F8gFdoLP5',
             'salt' => '14862979-1468-4e49-9b2a-c8bb100eed8f'
-          }]
+          }],
+          'idType' => 'userID'
         },
         {
           'name' => 'test_id_list',

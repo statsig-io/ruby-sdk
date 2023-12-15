@@ -10,6 +10,7 @@ require 'statsig_options'
 require 'statsig_user'
 require 'spec_store'
 require 'dynamic_config'
+require 'feature_gate'
 require 'error_boundary'
 require 'layer'
 require 'sorbet-runtime'
@@ -38,34 +39,62 @@ class StatsigDriver
       @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options, @err_boundary)
       @persistent_storage_utils = Statsig::UserPersistentStorageUtils.new(@options)
-      @evaluator = Statsig::Evaluator.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger, @persistent_storage_utils)
+      @store = Statsig::SpecStore.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger)
+      @evaluator = Statsig::Evaluator.new(@store, @options, @persistent_storage_utils)
       tracker.end(success: true)
 
       @logger.log_diagnostics_event(@diagnostics)
     }, caller: __method__.to_s)
   end
 
+  sig do
+    params(
+      user: StatsigUser,
+      gate_name: String,
+      disable_log_exposure: T::Boolean,
+      skip_evaluation: T::Boolean
+    ).returns(FeatureGate)
+  end
+  def get_gate_impl(user, gate_name, disable_log_exposure: false, skip_evaluation: false)
+    if skip_evaluation
+      gate = @store.get_gate(gate_name)
+      return FeatureGate.new(gate_name) if gate.nil?
+      return FeatureGate.new(gate['name'], target_app_ids: gate['targetAppIDs'])
+    end
+    user = verify_inputs(user, gate_name, 'gate_name')
+
+    res = @evaluator.check_gate(user, gate_name)
+    if res.nil?
+      res = Statsig::ConfigResult.new(gate_name)
+    end
+
+    if res == $fetch_from_server
+      res = check_gate_fallback(user, gate_name)
+      # exposure logged by the server
+    else
+      unless disable_log_exposure
+        @logger.log_gate_exposure(
+          user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details
+        )
+      end
+    end
+    FeatureGate.from_config_result(res)
+  end
+
+  sig { params(user: StatsigUser, gate_name: String, options: Statsig::GetGateOptions).returns(FeatureGate) }
+  def get_gate(user, gate_name, options = Statsig::GetGateOptions.new)
+    @err_boundary.capture(task: lambda {
+      run_with_diagnostics(task: lambda {
+        get_gate_impl(user, gate_name, disable_log_exposure: options.disable_log_exposure, skip_evaluation: options.skip_evaluation)
+      }, caller: __method__.to_s)
+    }, recover: -> { false }, caller: __method__.to_s)
+  end
+
   sig { params(user: StatsigUser, gate_name: String, options: Statsig::CheckGateOptions).returns(T::Boolean) }
   def check_gate(user, gate_name, options = Statsig::CheckGateOptions.new)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
-        user = verify_inputs(user, gate_name, "gate_name")
-
-        res = @evaluator.check_gate(user, gate_name)
-        if res.nil?
-          res = Statsig::ConfigResult.new(gate_name)
-        end
-
-        if res == $fetch_from_server
-          res = check_gate_fallback(user, gate_name)
-          # exposure logged by the server
-        else
-          if !options.disable_log_exposure
-            @logger.log_gate_exposure(user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details)
-          end
-        end
-
-        res.gate_value
+        get_gate_impl(user, gate_name, disable_log_exposure: options.disable_log_exposure).value
       }, caller: __method__.to_s)
     }, recover: -> { false }, caller: __method__.to_s)
   end

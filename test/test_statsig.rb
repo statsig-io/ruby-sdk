@@ -32,6 +32,7 @@ class TestStatsig < BaseTest
 
   def test_no_userid_raises
     Statsig.initialize('secret-123')
+    assert_raises { Statsig.get_gate(StatsigUser.new({ 'email' => 'jkw@statsig.com' }), 'test_email') }
     assert_raises { Statsig.check_gate(StatsigUser.new({ 'email' => 'jkw@statsig.com' }), 'test_email') }
     assert_raises { Statsig.get_config(StatsigUser.new({ 'email' => 'jkw@statsig.com' }), 'fake_config_name') }
     assert_raises { Statsig.check_gate(StatsigUser.new({ 'email' => 'jkw@statsig.com', 'custom_ids' => {} }), 'test_email') }

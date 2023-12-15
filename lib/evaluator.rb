@@ -31,20 +31,16 @@ module Statsig
 
     sig do
       params(
-        network: Network,
+        store: SpecStore,
         options: StatsigOptions,
-        error_callback: T.any(Method, Proc, NilClass),
-        diagnostics: Diagnostics,
-        error_boundary: ErrorBoundary,
-        logger: StatsigLogger,
         persistent_storage_utils: UserPersistentStorageUtils,
       ).void
     end
-    def initialize(network, options, error_callback, diagnostics, error_boundary, logger, persistent_storage_utils)
-      @spec_store = Statsig::SpecStore.new(network, options, error_callback, diagnostics, error_boundary, logger)
+    def initialize(store, options, persistent_storage_utils)
       UAParser.initialize_async
       CountryLookup.initialize_async
 
+      @spec_store = store
       @gate_overrides = {}
       @config_overrides = {}
       @options = options
@@ -246,7 +242,8 @@ module Statsig
               ),
               is_experiment_group: result.is_experiment_group,
               group_name: result.group_name,
-              id_type: config['idType']
+              id_type: config['idType'],
+              target_app_ids: config['targetAppIDs']
             )
           end
 
@@ -268,7 +265,8 @@ module Statsig
           @spec_store.init_reason
         ),
         group_name: nil,
-        id_type: config['idType']
+        id_type: config['idType'],
+        target_app_ids: config['targetAppIDs']
       )
     end
 
