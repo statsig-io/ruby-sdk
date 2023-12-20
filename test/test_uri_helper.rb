@@ -45,7 +45,7 @@ class TestURIHelper < BaseTest
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -64,7 +64,7 @@ class TestURIHelper < BaseTest
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -85,7 +85,7 @@ class TestURIHelper < BaseTest
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -100,7 +100,7 @@ class TestURIHelper < BaseTest
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end

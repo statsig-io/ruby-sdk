@@ -39,7 +39,7 @@ class StatsigDriver
       @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options, @err_boundary)
       @persistent_storage_utils = Statsig::UserPersistentStorageUtils.new(@options)
-      @store = Statsig::SpecStore.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger)
+      @store = Statsig::SpecStore.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger, secret_key)
       @evaluator = Statsig::Evaluator.new(@store, @options, @persistent_storage_utils)
       tracker.end(success: true)
 

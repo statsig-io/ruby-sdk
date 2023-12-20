@@ -253,7 +253,7 @@ class TestStore < BaseTest
     options = StatsigOptions.new(local_mode: false, rulesets_sync_interval: 0.2, idlists_sync_interval: 0.2)
     net = Statsig::Network.new('secret-abc', options, 1)
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, 'secret-abc')
     spy_dcs = Spy.on(store, :download_config_specs).and_call_through_void
     spy_get_id_lists = Spy.on(store, :get_id_lists_from_network).and_call_through_void
     spy_download_single_id_list = Spy.on(store, :download_single_id_list).and_call_through_void
@@ -375,7 +375,7 @@ class TestStore < BaseTest
     net = Statsig::Network.new('secret-abc', options, 1)
     spy = Spy.on(net, :request).and_call_through
     logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, 'secret-abc')
 
     wait_for do
       spy.calls.size == 6

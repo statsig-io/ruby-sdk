@@ -9,4 +9,10 @@ module Statsig
   class ValueError < StandardError
 
   end
+
+  class InvalidSDKKeyResponse < StandardError
+    def initialize(msg="Incorrect SDK Key used to generate response.")
+      super
+    end
+  end
 end

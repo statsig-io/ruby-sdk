@@ -13,7 +13,7 @@ module Statsig
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
 
-    def initialize(network, options, error_callback, diagnostics, error_boundary, logger)
+    def initialize(network, options, error_callback, diagnostics, error_boundary, logger, secret_key)
       @init_reason = EvaluationReason::UNINITIALIZED
       @network = network
       @options = options
@@ -35,6 +35,7 @@ module Statsig
       @diagnostics = diagnostics
       @error_boundary = error_boundary
       @logger = logger
+      @secret_key = secret_key
 
       @id_list_thread_pool = Concurrent::FixedThreadPool.new(
         options.idlist_threadpool_size,
@@ -287,6 +288,12 @@ module Statsig
 
       specs_json = JSON.parse(specs_string)
       return false unless specs_json.is_a? Hash
+
+      hashed_sdk_key_used = specs_json['hashed_sdk_key_used']
+      unless hashed_sdk_key_used.nil? or hashed_sdk_key_used == Statsig::HashUtils.djb2(@secret_key)
+        err_boundary.log_exception(Statsig::InvalidSDKKeyResponse.new)
+        return false
+      end
 
       @last_config_sync_time = specs_json['time'] || @last_config_sync_time
       return false unless specs_json['has_updates'] == true &&
