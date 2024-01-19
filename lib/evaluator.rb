@@ -223,7 +223,7 @@ module Statsig
             config['name'],
             false,
             config['defaultValue'],
-            default_rule_id,
+            '',
             exposures,
             evaluation_details: EvaluationDetails.new(
               @spec_store.last_config_sync_time,
