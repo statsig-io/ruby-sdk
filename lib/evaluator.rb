@@ -185,6 +185,30 @@ module Statsig
       }
     end
 
+    def get_all_evaluations(user)
+      if @spec_store.is_ready_for_checks == false
+        return nil
+      end
+
+      formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user, 'none', nil)
+
+      {
+        feature_gates: formatter.get_responses(:gates),
+        dynamic_configs: => formatter.get_responses(:configs),
+        layer_configs: => formatter.get_responses(:layers),
+      }
+    end
+
+    def clean_exposures(exposures)
+      seen = {}
+      exposures.reject do |exposure|
+        key = "#{exposure["gate"]}|#{exposure["gateValue"]}|#{exposure["ruleID"]}}"
+        should_reject = seen[key]
+        seen[key] = true
+        should_reject == true
+      end
+    end
+
     def shutdown
       @spec_store.shutdown
     end

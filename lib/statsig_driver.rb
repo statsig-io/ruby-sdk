@@ -266,6 +266,16 @@ class StatsigDriver
     }, recover: -> { nil }, caller: __method__.to_s)
   end
 
+  # @param [StatsigUser] user
+  # @return [Hash]
+  def get_all_evaluations(user)
+    @err_boundary.capture(task: lambda {
+      validate_user(user)
+      normalize_user(user)
+      @evaluator.get_all_evaluations(user)
+    }, recover: -> { nil }, caller: __method__.to_s)
+  end
+
   def maybe_restart_background_threads
     if @options.local_mode
       return

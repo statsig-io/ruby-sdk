@@ -319,6 +319,19 @@ module Statsig
     @shared_instance&.get_client_initialize_response(user, hash, client_sdk_key)
   end
 
+  # sig { params(user: StatsigUser).returns(T.any(T::Hash[String, T.untyped], NilClass)) }
+  ##
+  # Gets all evaluated values for the given user.
+  #
+  # @param user A StatsigUser object used for the evaluation
+  #
+  # @note See Ruby Documentation: https://docs.statsig.com/server/rubySDK)
+  def self.get_all_evaluations(user)
+    ensure_initialized
+    @shared_instance&.get_all_evaluations(user)
+  end
+
+
   # sig { returns(T::Hash[String, String]) }
   ##
   # Internal Statsig metadata for this SDK
