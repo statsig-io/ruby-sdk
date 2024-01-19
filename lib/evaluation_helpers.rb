@@ -1,4 +1,4 @@
-# typed: true
+
 require 'time'
 
 module EvaluationHelpers

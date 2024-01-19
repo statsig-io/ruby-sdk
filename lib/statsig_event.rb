@@ -1,4 +1,4 @@
-# typed: true
+
 class StatsigEvent
   attr_accessor :value, :metadata, :statsig_metadata, :secondary_exposures
   attr_reader :user

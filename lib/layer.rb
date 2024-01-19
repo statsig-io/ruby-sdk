@@ -1,6 +1,6 @@
-# typed: false
 
-require 'sorbet-runtime'
+
+# require 'sorbet-runtime'
 ##
 # Contains the current values from Statsig.
 # Will contain layer default values for all shared parameters in that layer.
@@ -9,27 +9,27 @@ require 'sorbet-runtime'
 #
 # Layers Documentation: https://docs.statsig.com/layers
 class Layer
-  extend T::Sig
+  # extend T::Sig
 
-  sig { returns(String) }
+  # sig { returns(String) }
   attr_accessor :name
 
-  sig { returns(String) }
+  # sig { returns(String) }
   attr_accessor :rule_id
 
-  sig { returns(String) }
+  # sig { returns(String) }
   attr_accessor :group_name
 
-  sig do
-    params(
-      name: String,
-      value: T::Hash[String, T.untyped],
-      rule_id: String,
-      group_name: T.nilable(String),
-      allocated_experiment: T.nilable(String),
-      exposure_log_func: T.any(Method, Proc, NilClass)
-    ).void
-  end
+  # sig do
+  #   params(
+  #     name: String,
+  #     value: T::Hash[String, T.untyped],
+  #     rule_id: String,
+  #     group_name: T.nilable(String),
+  #     allocated_experiment: T.nilable(String),
+  #     exposure_log_func: T.any(Method, Proc, NilClass)
+  #   ).void
+  # end
   def initialize(name, value = {}, rule_id = '', group_name = nil, allocated_experiment = nil, exposure_log_func = nil)
     @name = name
     @value = value
@@ -39,7 +39,7 @@ class Layer
     @exposure_log_func = exposure_log_func
   end
 
-  sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
+  # sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
   ##
   # Get the value for the given key (index), falling back to the default_value if it cannot be found.
   #
@@ -55,7 +55,7 @@ class Layer
     @value[index]
   end
 
-  sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
+  # sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
   ##
   # Get the value for the given key (index), falling back to the default_value if it cannot be found
   # or is found to have a different type from the default_value.

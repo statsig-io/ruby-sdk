@@ -1,12 +1,12 @@
-# typed: true
+
 
 require_relative 'hash_utils'
-require 'sorbet-runtime'
+# require 'sorbet-runtime'
 
 
 module ClientInitializeHelpers
   class ResponseFormatter
-    extend T::Sig
+    # extend T::Sig
 
     def initialize(evaluator, user, hash, client_sdk_key)
       @evaluator = evaluator
@@ -24,7 +24,7 @@ module ClientInitializeHelpers
 
     private
 
-    sig { params(secondary_exposures: T::Array[T::Hash[String, String]]).returns(T::Array[T::Hash[String, String]]) }
+    # sig { params(secondary_exposures: T::Array[T::Hash[String, String]]).returns(T::Array[T::Hash[String, String]]) }
     def filter_segments_from_secondary_exposures(secondary_exposures)
       secondary_exposures.reject do |exposure|
         exposure['gate'].to_s.start_with?('segment:')

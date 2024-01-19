@@ -1,4 +1,4 @@
-# typed: true
+
 module Statsig
 
   module EvaluationReason

@@ -1,4 +1,4 @@
-# typed: true
+
 require 'statsig_event'
 require 'concurrent-ruby'
 

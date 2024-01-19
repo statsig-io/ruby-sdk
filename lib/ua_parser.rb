@@ -1,4 +1,4 @@
-# typed: true
+
 require 'user_agent_parser'
 
 module UAParser

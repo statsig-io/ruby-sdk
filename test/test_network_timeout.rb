@@ -1,4 +1,4 @@
-# typed: ignore
+
 
 require_relative 'test_helper'
 require 'minitest'

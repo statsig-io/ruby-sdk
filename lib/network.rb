@@ -1,9 +1,9 @@
-# typed: true
+
 
 require 'http'
 require 'json'
 require 'securerandom'
-require 'sorbet-runtime'
+# require 'sorbet-runtime'
 require 'uri_helper'
 require 'connection_pool'
 
@@ -20,9 +20,9 @@ module Statsig
   end
 
   class Network
-    extend T::Sig
+    # extend T::Sig
 
-    sig { params(server_secret: String, options: StatsigOptions, backoff_mult: Integer).void }
+    # sig { params(server_secret: String, options: StatsigOptions, backoff_mult: Integer).void }
     def initialize(server_secret, options, backoff_mult = 10)
       super()
       URIHelper.initialize(options)
@@ -54,41 +54,41 @@ module Statsig
       end
     end
 
-    sig do
-      params(since_time: Integer)
-        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
-    end
+    # sig do
+    #   params(since_time: Integer)
+    #     .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    # end
     def download_config_specs(since_time)
       get("download_config_specs/#{@server_secret}.json?sinceTime=#{since_time}")
     end
 
-    class HttpMethod < T::Enum
-      enums do
-        GET = new
-        POST = new
-      end
-    end
+    # class HttpMethod < T::Enum
+    #   enums do
+    #     GET = new
+    #     POST = new
+    #   end
+    # end
 
-    sig do
-      params(endpoint: String, retries: Integer, backoff: Integer)
-        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
-    end
+    # sig do
+    #   params(endpoint: String, retries: Integer, backoff: Integer)
+    #     .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    # end
     def get(endpoint, retries = 0, backoff = 1)
-      request(HttpMethod::GET, endpoint, nil, retries, backoff)
+      request(:GET, endpoint, nil, retries, backoff)
     end
 
-    sig do
-      params(endpoint: String, body: String, retries: Integer, backoff: Integer)
-        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
-    end
+    # sig do
+    #   params(endpoint: String, body: String, retries: Integer, backoff: Integer)
+    #     .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    # end
     def post(endpoint, body, retries = 0, backoff = 1)
-      request(HttpMethod::POST, endpoint, body, retries, backoff)
+      request(:POST, endpoint, body, retries, backoff)
     end
 
-    sig do
-      params(method: HttpMethod, endpoint: String, body: T.nilable(String), retries: Integer, backoff: Integer)
-        .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
-    end
+    # sig do
+    #   params(method: HttpMethod, endpoint: String, body: T.nilable(String), retries: Integer, backoff: Integer)
+    #     .returns([T.any(HTTP::Response, NilClass), T.any(StandardError, NilClass)])
+    # end
     def request(method, endpoint, body, retries = 0, backoff = 1)
       if @local_mode
         return nil, nil
@@ -107,9 +107,9 @@ module Statsig
         res = @connection_pool.with do |conn|
           request = conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s)
           case method
-          when HttpMethod::GET
+          when :GET
             request.get(url)
-          when HttpMethod::POST
+          when :POST
             request.post(url, body: body)
           end
         end

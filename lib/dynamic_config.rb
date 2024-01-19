@@ -1,6 +1,6 @@
-# typed: false
 
-require 'sorbet-runtime'
+
+# require 'sorbet-runtime'
 
 ##
 # Contains the current experiment/dynamic config values from Statsig
@@ -9,36 +9,36 @@ require 'sorbet-runtime'
 #
 #  Experiments Documentation: https://docs.statsig.com/experiments-plus
 class DynamicConfig
-  extend T::Sig
+  # extend T::Sig
 
-  sig { returns(String) }
+  # sig { returns(String) }
   attr_accessor :name
 
-  sig { returns(T::Hash[String, T.untyped]) }
+  # sig { returns(T::Hash[String, T.untyped]) }
   attr_accessor :value
 
-  sig { returns(String) }
+  # sig { returns(String) }
   attr_accessor :rule_id
 
-  sig { returns(T.nilable(String)) }
+  # sig { returns(T.nilable(String)) }
   attr_accessor :group_name
 
-  sig { returns(String) }
+  # sig { returns(String) }
   attr_accessor :id_type
 
-  sig { returns(T.nilable(Statsig::EvaluationDetails)) }
+  # sig { returns(T.nilable(Statsig::EvaluationDetails)) }
   attr_accessor :evaluation_details
 
-  sig do
-    params(
-      name: String,
-      value: T::Hash[String, T.untyped],
-      rule_id: String,
-      group_name: T.nilable(String),
-      id_type: String,
-      evaluation_details: T.nilable(Statsig::EvaluationDetails)
-    ).void
-  end
+  # sig do
+  #   params(
+  #     name: String,
+  #     value: T::Hash[String, T.untyped],
+  #     rule_id: String,
+  #     group_name: T.nilable(String),
+  #     id_type: String,
+  #     evaluation_details: T.nilable(Statsig::EvaluationDetails)
+  #   ).void
+  # end
   def initialize(name, value = {}, rule_id = '', group_name = nil, id_type = '', evaluation_details = nil)
     @name = name
     @value = value
@@ -48,7 +48,7 @@ class DynamicConfig
     @evaluation_details = evaluation_details
   end
 
-  sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
+  # sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
   ##
   # Get the value for the given key (index), falling back to the default_value if it cannot be found.
   #
@@ -59,7 +59,7 @@ class DynamicConfig
     @value[index]
   end
 
-  sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
+  # sig { params(index: String, default_value: T.untyped).returns(T.untyped) }
   ##
   # Get the value for the given key (index), falling back to the default_value if it cannot be found
   # or is found to have a different type from the default_value.

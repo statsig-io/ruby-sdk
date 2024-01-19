@@ -1,6 +1,6 @@
-# typed: false
 
-require 'sorbet-runtime'
+
+# require 'sorbet-runtime'
 require 'config_result'
 require 'country_lookup'
 require 'digest'
@@ -15,26 +15,25 @@ require 'user_persistent_storage_utils'
 
 module Statsig
   class Evaluator
-    extend T::Sig
+    # extend T::Sig
 
     UNSUPPORTED_EVALUATION = :unsupported_eval
 
-    sig { returns(SpecStore) }
     attr_accessor :spec_store
 
-    sig { returns(StatsigOptions) }
+    # sig { returns(StatsigOptions) }
     attr_accessor :options
 
-    sig { returns(UserPersistentStorageUtils) }
+    # sig { returns(UserPersistentStorageUtils) }
     attr_accessor :persistent_storage_utils
 
-    sig do
-      params(
-        store: SpecStore,
-        options: StatsigOptions,
-        persistent_storage_utils: UserPersistentStorageUtils,
-      ).void
-    end
+    # sig do
+    #   params(
+    #     store: SpecStore,
+    #     options: StatsigOptions,
+    #     persistent_storage_utils: UserPersistentStorageUtils,
+    #   ).void
+    # end
     def initialize(store, options, persistent_storage_utils)
       UAParser.initialize_async
       CountryLookup.initialize_async
@@ -72,7 +71,7 @@ module Statsig
       eval_spec(user, @spec_store.get_gate(gate_name))
     end
 
-    sig { params(user: StatsigUser, config_name: String, user_persisted_values: T.nilable(UserPersistedValues)).returns(ConfigResult) }
+    # sig { params(user: StatsigUser, config_name: String, user_persisted_values: T.nilable(UserPersistedValues)).returns(ConfigResult) }
     def get_config(user, config_name, user_persisted_values: nil)
       if @config_overrides.key?(config_name)
         id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)['idType'] : ''
@@ -210,7 +209,7 @@ module Statsig
       @config_overrides[config] = value
     end
 
-    sig { params(user: StatsigUser, config: Hash).returns(ConfigResult) }
+    # sig { params(user: StatsigUser, config: Hash).returns(ConfigResult) }
     def eval_spec(user, config)
       default_rule_id = 'default'
       exposures = []

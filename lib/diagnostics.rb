@@ -1,18 +1,18 @@
-# typed: true
 
-require 'sorbet-runtime'
+
+# require 'sorbet-runtime'
 
 module Statsig
   class Diagnostics
-    extend T::Sig
+    # extend T::Sig
 
-    sig { returns(String) }
+    # sig { returns(String) }
     attr_accessor :context
 
-    sig { returns(T::Array[T::Hash[Symbol, T.untyped]]) }
+    # sig { returns(T::Array[T::Hash[Symbol, T.untyped]]) }
     attr_reader :markers
 
-    sig { returns(T::Hash[String, Numeric]) }
+    # sig { returns(T::Hash[String, Numeric]) }
     attr_accessor :sample_rates
 
     def initialize(context)
@@ -21,14 +21,14 @@ module Statsig
       @sample_rates = {}
     end
 
-    sig do
-      params(
-        key: String,
-        action: String,
-        step: T.any(String, NilClass),
-        tags: T::Hash[Symbol, T.untyped]
-      ).void
-    end
+    # sig do
+    #   params(
+    #     key: String,
+    #     action: String,
+    #     step: T.any(String, NilClass),
+    #     tags: T::Hash[Symbol, T.untyped]
+    #   ).void
+    # end
 
     def mark(key, action, step, tags)
       marker = {
@@ -47,20 +47,20 @@ module Statsig
       @markers.push(marker)
     end
 
-    sig do
-      params(
-        key: String,
-        step: T.any(String, NilClass),
-        tags: T::Hash[Symbol, T.untyped]
-      ).returns(Tracker)
-    end
+    # sig do
+    #   params(
+    #     key: String,
+    #     step: T.any(String, NilClass),
+    #     tags: T::Hash[Symbol, T.untyped]
+    #   ).returns(Tracker)
+    # end
     def track(key, step = nil, tags = {})
       tracker = Tracker.new(self, key, step, tags)
       tracker.start(**tags)
       tracker
     end
 
-    sig { returns(T::Hash[Symbol, T.untyped]) }
+    # sig { returns(T::Hash[Symbol, T.untyped]) }
 
     def serialize
       {
@@ -101,16 +101,16 @@ module Statsig
     API_CALL_KEYS = %w[check_gate get_config get_experiment get_layer].freeze
 
     class Tracker
-      extend T::Sig
+      # extend T::Sig
 
-      sig do
-        params(
-          diagnostics: Diagnostics,
-          key: String,
-          step: T.any(String, NilClass),
-          tags: T::Hash[Symbol, T.untyped]
-        ).void
-      end
+      # sig do
+      #   params(
+      #     diagnostics: Diagnostics,
+      #     key: String,
+      #     step: T.any(String, NilClass),
+      #     tags: T::Hash[Symbol, T.untyped]
+      #   ).void
+      # end
       def initialize(diagnostics, key, step, tags = {})
         @diagnostics = diagnostics
         @key = key
