@@ -59,7 +59,7 @@ class StatsigDriver
     if skip_evaluation
       gate = @store.get_gate(gate_name)
       return FeatureGate.new(gate_name) if gate.nil?
-      return FeatureGate.new(gate['name'], target_app_ids: gate['targetAppIDs'])
+      return FeatureGate.new(gate[:name], target_app_ids: gate[:targetAppIDs])
     end
     user = verify_inputs(user, gate_name, 'gate_name')
 
@@ -98,7 +98,7 @@ class StatsigDriver
   def manually_log_gate_exposure(user, gate_name)
     @err_boundary.capture(task: lambda {
       res = @evaluator.check_gate(user, gate_name)
-      context = { 'is_manual_exposure' => true }
+      context = { :is_manual_exposure => true }
       @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
     })
   end
@@ -127,7 +127,7 @@ class StatsigDriver
   def manually_log_config_exposure(user, config_name)
     @err_boundary.capture(task: lambda {
       res = @evaluator.get_config(user, config_name)
-      context = { 'is_manual_exposure' => true }
+      context = { :is_manual_exposure => true }
       @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
     }, caller: __method__.to_s)
   end
@@ -166,7 +166,7 @@ class StatsigDriver
     @err_boundary.capture(task: lambda {
       res = @evaluator.get_layer(user, layer_name)
       layer = Layer.new(layer_name, res.json_value, res.rule_id, res.group_name, res.config_delegate)
-      context = { 'is_manual_exposure' => true }
+      context = { :is_manual_exposure => true }
       @logger.log_layer_exposure(user, layer, parameter_name, res, context)
     }, caller: __method__.to_s)
   end

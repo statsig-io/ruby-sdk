@@ -42,7 +42,8 @@ class TestSymbolHashes < BaseTest
   end
 
   def test_passes_from_private_attributes
-    result = Statsig.check_gate(StatsigUser.new({ :userID => "this_user_fails", :private_attributes => { :email => "a@statsig.com" } }), "a_gate")
+    user = StatsigUser.new({ :userID => "this_user_fails", :private_attributes => { :email => "a@statsig.com" } })
+    result = Statsig.check_gate(user, "a_gate")
     assert_equal(true, result)
   end
 

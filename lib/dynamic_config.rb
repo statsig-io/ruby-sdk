@@ -41,7 +41,7 @@ class DynamicConfig
   # end
   def initialize(name, value = {}, rule_id = '', group_name = nil, id_type = '', evaluation_details = nil)
     @name = name
-    @value = value
+    @value = JSON.parse(JSON.generate(value))
     @rule_id = rule_id
     @group_name = group_name
     @id_type = id_type

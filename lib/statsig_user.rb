@@ -83,20 +83,20 @@ class StatsigUser
 
   def serialize(for_logging)
     hash = {
-      'userID' => @user_id,
-      'email' => @email,
-      'ip' => @ip,
-      'userAgent' => @user_agent,
-      'country' => @country,
-      'locale' => @locale,
-      'appVersion' => @app_version,
-      'custom' => @custom,
-      'statsigEnvironment' => @statsig_environment,
-      'privateAttributes' => @private_attributes,
-      'customIDs' => @custom_ids,
+      :userID => @user_id,
+      :email => @email,
+      :ip => @ip,
+      :userAgent => @user_agent,
+      :country => @country,
+      :locale => @locale,
+      :appVersion => @app_version,
+      :custom => @custom,
+      :statsigEnvironment => @statsig_environment,
+      :privateAttributes => @private_attributes,
+      :customIDs => @custom_ids,
     }
     if for_logging
-      hash.delete('privateAttributes')
+      hash.delete(:privateAttributes)
     end
     hash.compact
   end
@@ -104,34 +104,34 @@ class StatsigUser
   def to_hash_without_stable_id()
     hash = {}
     if @user_id != nil
-      hash['userID'] = @user_id
+      hash[:userID] = @user_id
     end
     if @email != nil
-      hash['email'] = @email
+      hash[:email] = @email
     end
     if @ip != nil
-      hash['ip'] = @ip
+      hash[:ip] = @ip
     end
     if @user_agent != nil
-      hash['userAgent'] = @user_agent
+      hash[:userAgent] = @user_agent
     end
     if @country != nil
-      hash['country'] = @country
+      hash[:country] = @country
     end
     if @locale != nil
-      hash['locale'] = @locale
+      hash[:locale] = @locale
     end
     if @app_version != nil
-      hash['appVersion'] = @app_version
+      hash[:appVersion] = @app_version
     end
     if @custom != nil
-      hash['custom'] = Statsig::HashUtils.sortHash(@custom)
+      hash[:custom] = Statsig::HashUtils.sortHash(@custom)
     end
     if @statsig_environment != nil
-      hash['statsigEnvironment'] = @statsig_environment.clone.sort_by { |key| key }.to_h
+      hash[:statsigEnvironment] = @statsig_environment.clone.sort_by { |key| key }.to_h
     end
     if @private_attributes != nil
-      hash['privateAttributes'] = Statsig::HashUtils.sortHash(@private_attributes)
+      hash[:privateAttributes] = Statsig::HashUtils.sortHash(@private_attributes)
     end
     custom_ids = {}
     if @custom_ids != nil
@@ -140,32 +140,12 @@ class StatsigUser
         custom_ids.delete("stableID")
       end
     end
-    hash['customIDs'] = custom_ids.sort_by { |key| key }.to_h
+    hash[:customIDs] = custom_ids.sort_by { |key| key }.to_h
     return Statsig::HashUtils.djb2ForHash(hash.sort_by { |key| key }.to_h)
   end
 
-  def value_lookup
-    {
-      'userID' => @user_id,
-      'userid' => @user_id,
-      'user_id' => @user_id,
-      'email' => @email,
-      'ip' => @ip,
-      'userAgent' => @user_agent,
-      'useragent' => @user_agent,
-      'user_agent' => @user_agent,
-      'country' => @country,
-      'locale' => @locale,
-      'appVersion' => @app_version,
-      'appversion' => @app_version,
-      'app_version' => @app_version,
-      'custom' => @custom,
-      'privateAttributes' => @private_attributes,
-    }
-  end
-
   def get_unit_id(id_type)
-    if id_type.is_a?(String) && id_type.downcase != 'userid'
+    if id_type.is_a?(String) && id_type != 'userID'
       return nil unless @custom_ids.is_a? Hash
 
       return @custom_ids[id_type] || @custom_ids[id_type.downcase]

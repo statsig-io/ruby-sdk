@@ -21,13 +21,13 @@ class StatsigEvent
 
   def serialize
     {
-      'eventName' => @event_name,
-      'metadata' => @metadata,
-      'value' => @value,
-      'user' => @user,
-      'time' => @time,
-      'statsigMetadata' => @statsig_metadata,
-      'secondaryExposures' => @secondary_exposures
+      :eventName => @event_name,
+      :metadata => @metadata,
+      :value => @value,
+      :user => @user,
+      :time => @time,
+      :statsigMetadata => @statsig_metadata,
+      :secondaryExposures => @secondary_exposures
     }
   end
 end

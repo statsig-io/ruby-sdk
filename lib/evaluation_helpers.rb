@@ -9,7 +9,6 @@ module EvaluationHelpers
 
   # returns true if array has any element that evaluates to true with value using func lambda, ignoring case
   def self.match_string_in_array(array, value, ignore_case, func)
-    return false unless array.is_a?(Array) && !value.nil?
     str_value = value.to_s
     array.any?{ |s| !s.nil? && ((ignore_case && func.call(str_value.downcase, s.to_s.downcase)) || func.call(str_value, s.to_s)) } rescue false
   end

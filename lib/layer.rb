@@ -32,7 +32,7 @@ class Layer
   # end
   def initialize(name, value = {}, rule_id = '', group_name = nil, allocated_experiment = nil, exposure_log_func = nil)
     @name = name
-    @value = value
+    @value = JSON.parse(JSON.generate(value))
     @rule_id = rule_id
     @group_name = group_name
     @allocated_experiment = allocated_experiment

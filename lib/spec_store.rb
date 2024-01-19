@@ -12,6 +12,13 @@ module Statsig
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
+    attr_accessor :gates
+    attr_accessor :configs
+    attr_accessor :layers
+    attr_accessor :id_lists
+    attr_accessor :experiment_to_layer
+    attr_accessor :sdk_keys_to_app_ids
+    attr_accessor :hashed_sdk_keys_to_app_ids
 
     def initialize(network, options, error_callback, diagnostics, error_boundary, logger, secret_key)
       @init_reason = EvaluationReason::UNINITIALIZED
@@ -23,15 +30,13 @@ module Statsig
       @rulesets_sync_interval = options.rulesets_sync_interval
       @id_lists_sync_interval = options.idlists_sync_interval
       @rules_updated_callback = options.rules_updated_callback
-      @specs = {
-        :gates => {},
-        :configs => {},
-        :layers => {},
-        :id_lists => {},
-        :experiment_to_layer => {},
-        :sdk_keys_to_app_ids => {},
-        :hashed_sdk_keys_to_app_ids => {}
-      }
+      @gates = {}
+      @configs = {}
+      @layers = {}
+      @id_lists = {}
+      @experiment_to_layer = {}
+      @sdk_keys_to_app_ids = {}
+      @hashed_sdk_keys_to_app_ids = {}
       @diagnostics = diagnostics
       @error_boundary = error_boundary
       @logger = logger
@@ -96,70 +101,55 @@ module Statsig
     end
 
     def has_gate?(gate_name)
-      @specs[:gates].key?(gate_name)
+      @gates.key?(gate_name)
     end
 
     def has_config?(config_name)
-      @specs[:configs].key?(config_name)
+      @configs.key?(config_name)
     end
 
     def has_layer?(layer_name)
-      @specs[:layers].key?(layer_name)
+      @layers.key?(layer_name)
     end
 
     def get_gate(gate_name)
       return nil unless has_gate?(gate_name)
-      @specs[:gates][gate_name]
+      @gates[gate_name]
     end
 
     def get_config(config_name)
       return nil unless has_config?(config_name)
-      @specs[:configs][config_name]
+      @configs[config_name]
     end
 
     def get_layer(layer_name)
       return nil unless has_layer?(layer_name)
-      @specs[:layers][layer_name]
-    end
-
-    def gates
-      @specs[:gates]
-    end
-
-    def configs
-      @specs[:configs]
-    end
-
-    def layers
-      @specs[:layers]
+      @layers[layer_name]
     end
 
     def get_id_list(list_name)
-      @specs[:id_lists][list_name]
+      @id_lists[list_name]
     end
 
     def has_sdk_key?(sdk_key)
-      @specs[:sdk_keys_to_app_ids].key?(sdk_key)
+      @sdk_keys_to_app_ids.key?(sdk_key)
     end
 
     def has_hashed_sdk_key?(hashed_sdk_key)
-      @specs[:hashed_sdk_keys_to_app_ids].key?(hashed_sdk_key)
+      @hashed_sdk_keys_to_app_ids.key?(hashed_sdk_key)
     end
 
     def get_app_id_for_sdk_key(sdk_key)
       if sdk_key.nil?
         return nil
       end
-      hashed_sdk_key = Statsig::HashUtils.djb2(sdk_key)
+      hashed_sdk_key = Statsig::HashUtils.djb2(sdk_key).to_sym
       if has_hashed_sdk_key?(hashed_sdk_key)
-        return @specs[:hashed_sdk_keys_to_app_ids][hashed_sdk_key]
+        return @hashed_sdk_keys_to_app_ids[hashed_sdk_key]
       end
-      return nil unless has_sdk_key?(sdk_key)
-      @specs[:sdk_keys_to_app_ids][sdk_key]
-    end
-
-    def get_raw_specs
-      @specs
+      key = sdk_key.to_sym
+      return nil unless has_sdk_key?(key)
+      @sdk_keys_to_app_ids[key]
     end
 
     def maybe_restart_background_threads
@@ -285,48 +275,80 @@ module Statsig
         return false
       end
 
-      specs_json = JSON.parse(specs_string)
+      specs_json = JSON.parse(specs_string, {:symbolize_names => true})
       return false unless specs_json.is_a? Hash
 
-      hashed_sdk_key_used = specs_json['hashed_sdk_key_used']
+      hashed_sdk_key_used = specs_json[:hashed_sdk_key_used]
       unless hashed_sdk_key_used.nil? or hashed_sdk_key_used == Statsig::HashUtils.djb2(@secret_key)
         err_boundary.log_exception(Statsig::InvalidSDKKeyResponse.new)
         return false
       end
 
-      @last_config_sync_time = specs_json['time'] || @last_config_sync_time
-      return false unless specs_json['has_updates'] == true &&
-        !specs_json['feature_gates'].nil? &&
-        !specs_json['dynamic_configs'].nil? &&
-        !specs_json['layer_configs'].nil?
+      @last_config_sync_time = specs_json[:time] || @last_config_sync_time
+      return false unless specs_json[:has_updates] == true &&
+        !specs_json[:feature_gates].nil? &&
+        !specs_json[:dynamic_configs].nil? &&
+        !specs_json[:layer_configs].nil?
 
-      new_gates = {}
-      new_configs = {}
-      new_layers = {}
+
+      new_gates = process_configs(specs_json[:feature_gates])
+      new_configs = process_configs(specs_json[:dynamic_configs])
+      new_layers = process_configs(specs_json[:layer_configs])
+
       new_exp_to_layer = {}
+      specs_json[:diagnostics]&.each { |key, value| @diagnostics.sample_rates[key.to_s] = value }
 
-      specs_json['feature_gates'].each { |gate| new_gates[gate['name']] = gate }
-      specs_json['dynamic_configs'].each { |config| new_configs[config['name']] = config }
-      specs_json['layer_configs'].each { |layer| new_layers[layer['name']] = layer }
-      specs_json['diagnostics']&.each { |key, value| @diagnostics.sample_rates[key] = value }
-
-      if specs_json['layers'].is_a?(Hash)
-        specs_json['layers'].each { |layer_name, experiments|
+      if specs_json[:layers].is_a?(Hash)
+        specs_json[:layers].each { |layer_name, experiments|
           experiments.each { |experiment_name| new_exp_to_layer[experiment_name] = layer_name }
         }
       end
 
-      @specs[:gates] = new_gates
-      @specs[:configs] = new_configs
-      @specs[:layers] = new_layers
-      @specs[:experiment_to_layer] = new_exp_to_layer
-      @specs[:sdk_keys_to_app_ids] = specs_json['sdk_keys_to_app_ids'] || {}
-      @specs[:hashed_sdk_keys_to_app_ids] = specs_json['hashed_sdk_keys_to_app_ids'] || {}
+      @gates = new_gates
+      @configs = new_configs
+      @layers = new_layers
+      @experiment_to_layer = new_exp_to_layer
+      @sdk_keys_to_app_ids = specs_json[:sdk_keys_to_app_ids] || {}
+      @hashed_sdk_keys_to_app_ids = specs_json[:hashed_sdk_keys_to_app_ids] || {}
 
       unless from_adapter
         save_config_specs_to_storage_adapter(specs_string)
       end
       true
+    end
+
+    def process_configs(configs)
+      configs.each_with_object({}) do |config, new_configs|
+        new_configs[config[:name]] = process_config(config)
+      end
+    end
+
+    def process_config(config)
+      config[:rules] = process_rules(config[:rules]) if config.key?(:rules)
+      config
+    end
+
+    def process_rules(rules)
+      rules.map do |rule|
+        rule[:conditions] = process_conditions(rule[:conditions]) if rule.key?(:conditions)
+        rule
+      end
+    end
+
+    def process_conditions(conditions)
+      conditions.map do |condition|
+        # try symbols for perf
+        condition[:operator] = condition[:operator].downcase.to_sym unless condition[:operator].nil?
+        condition[:type] = condition[:type].downcase.to_sym unless condition[:type].nil?
+
+        if condition[:targetValue].is_a?(Array)
+          # target values are really sets, which will be more performant for evaluation
+          # for now, create the set
+          condition[:targetValue] = condition[:targetValue].to_set
+        end
+
+        condition
+      end
     end
 
     def get_id_lists_from_adapter
@@ -373,7 +395,7 @@ module Statsig
     end
 
     def process_id_lists(new_id_lists, from_adapter: false)
-      local_id_lists = @specs[:id_lists]
+      local_id_lists = @id_lists
       if !new_id_lists.is_a?(Hash) || !local_id_lists.is_a?(Hash)
         return
       end
@@ -481,7 +503,7 @@ module Statsig
       begin
         tracker = @diagnostics.track(from_adapter ? 'data_store_id_list' : 'get_id_list', 'process', { url: list.url })
         unless content.is_a?(String) && (content[0] == '-' || content[0] == '+')
-          @specs[:id_lists].delete(list.name)
+          @id_lists.delete(list.name)
           tracker.end(success: false)
           return false
         end
