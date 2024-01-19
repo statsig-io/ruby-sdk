@@ -193,9 +193,9 @@ module Statsig
       formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user, 'none', nil)
 
       {
-        feature_gates: formatter.get_responses(:gates),
-        dynamic_configs: => formatter.get_responses(:configs),
-        layer_configs: => formatter.get_responses(:layers),
+        feature_gates: formatter.get_responses(@spec_store.gates),
+        dynamic_configs: formatter.get_responses(@spec_store.configs),
+        layer_configs: formatter.get_responses(@spec_store.layers),
       }
     end
 
