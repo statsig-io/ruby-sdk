@@ -9,6 +9,7 @@ module Statsig
     BOOTSTRAP = 'Bootstrap'.freeze
     DATA_ADAPTER = 'DataAdapter'.freeze
     PERSISTED = 'Persisted'.freeze
+    UNSUPPORTED = 'Unsupported'.freeze
   end
 
   class EvaluationDetails

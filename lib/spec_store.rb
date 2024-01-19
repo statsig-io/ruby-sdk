@@ -261,7 +261,6 @@ module Statsig
         if e.nil?
           unless response.nil?
             tracker = @diagnostics.track('download_config_specs', 'process')
-
             if process_specs(response.body.to_s)
               @init_reason = EvaluationReason::NETWORK
             end

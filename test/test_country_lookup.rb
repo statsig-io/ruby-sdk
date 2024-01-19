@@ -45,7 +45,7 @@ class CountryLookupTest < BaseTest
     user1 = StatsigUser.new({ user_id: '123', ip: '24.18.183.148' }) # Seattle, WA
     user2 = StatsigUser.new({ user_id: '123', ip: '115.240.90.163' }) # Mumbai, India (IN)
     assert(Statsig.check_gate(user1, 'test_country'))
-    assert(!Statsig.check_gate(user2, 'test_country'))
+    assert(Statsig.check_gate(user2, 'test_country') == false)
     Statsig.shutdown
     WebMock.disallow_net_connect!
   end

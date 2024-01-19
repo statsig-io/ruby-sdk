@@ -132,26 +132,6 @@ module Statsig
       request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier)
     end
 
-    def check_gate(user, gate_name)
-      request_body = JSON.generate({ 'user' => user&.serialize(false), 'gateName' => gate_name })
-      response, = post('check_gate', request_body)
-      return JSON.parse(response.body) unless response.nil?
-
-      false
-    rescue StandardError
-      false
-    end
-
-    def get_config(user, dynamic_config_name)
-      request_body = JSON.generate({ 'user' => user&.serialize(false), 'configName' => dynamic_config_name })
-      response, = post('get_config', request_body)
-      return JSON.parse(response.body) unless response.nil?
-
-      nil
-    rescue StandardError
-      nil
-    end
-
     def post_logs(events)
       json_body = JSON.generate({ 'events' => events, 'statsigMetadata' => Statsig.get_statsig_metadata })
       post('log_event', json_body, @post_logs_retry_limit)

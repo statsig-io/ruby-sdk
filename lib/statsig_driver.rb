@@ -68,15 +68,10 @@ class StatsigDriver
       res = Statsig::ConfigResult.new(gate_name)
     end
 
-    if res == $fetch_from_server
-      res = check_gate_fallback(user, gate_name)
-      # exposure logged by the server
-    else
-      unless disable_log_exposure
-        @logger.log_gate_exposure(
-          user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details
-        )
-      end
+    unless disable_log_exposure
+      @logger.log_gate_exposure(
+        user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details
+      )
     end
     FeatureGate.from_config_result(res)
   end
@@ -156,14 +151,6 @@ class StatsigDriver
         res = @evaluator.get_layer(user, layer_name)
         if res.nil?
           res = Statsig::ConfigResult.new(layer_name)
-        end
-
-        if res == $fetch_from_server
-          if res.config_delegate.nil?
-            return Layer.new(layer_name)
-          end
-          res = get_config_fallback(user, res.config_delegate)
-          # exposure logged by the server
         end
 
         exposure_log_func = !options.disable_log_exposure ? lambda { |layer, parameter_name|
@@ -336,13 +323,8 @@ class StatsigDriver
       res = Statsig::ConfigResult.new(config_name)
     end
 
-    if res == $fetch_from_server
-      res = get_config_fallback(user, config_name)
-      # exposure logged by the server
-    else
-      if !disable_log_exposure
-        @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
-      end
+    unless disable_log_exposure
+      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
     end
 
     DynamicConfig.new(res.name, res.json_value, res.rule_id, res.group_name, res.id_type, res.evaluation_details)
@@ -371,35 +353,5 @@ class StatsigDriver
     if @shutdown
       puts 'SDK has been shutdown.  Updates in the Statsig Console will no longer reflect.'
     end
-  end
-
-  def check_gate_fallback(user, gate_name)
-    network_result = @net.check_gate(user, gate_name)
-    if network_result.nil?
-      config_result = Statsig::ConfigResult.new(gate_name)
-      return config_result
-    end
-
-    Statsig::ConfigResult.new(
-      network_result['name'],
-      network_result['value'],
-      {},
-      network_result['rule_id'],
-    )
-  end
-
-  def get_config_fallback(user, dynamic_config_name)
-    network_result = @net.get_config(user, dynamic_config_name)
-    if network_result.nil?
-      config_result = Statsig::ConfigResult.new(dynamic_config_name)
-      return config_result
-    end
-
-    Statsig::ConfigResult.new(
-      network_result['name'],
-      false,
-      network_result['value'],
-      network_result['rule_id'],
-    )
   end
 end

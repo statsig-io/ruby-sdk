@@ -13,12 +13,11 @@ require 'evaluation_details'
 require 'user_agent_parser/operating_system'
 require 'user_persistent_storage_utils'
 
-$fetch_from_server = 'fetch_from_server'
-$type_dynamic_config = 'dynamic_config'
-
 module Statsig
   class Evaluator
     extend T::Sig
+
+    UNSUPPORTED_EVALUATION = :unsupported_eval
 
     sig { returns(SpecStore) }
     attr_accessor :spec_store
@@ -220,7 +219,21 @@ module Statsig
         until i >= config['rules'].length do
           rule = config['rules'][i]
           result = eval_rule(user, rule)
-          return $fetch_from_server if result.to_s == $fetch_from_server
+          return Statsig::ConfigResult.new(
+            config['name'],
+            false,
+            config['defaultValue'],
+            default_rule_id,
+            exposures,
+            evaluation_details: EvaluationDetails.new(
+              @spec_store.last_config_sync_time,
+              @spec_store.initial_config_sync_time,
+              EvaluationReason::UNSUPPORTED,
+            ),
+            group_name: nil,
+            id_type: config['idType'],
+            target_app_ids: config['targetAppIDs']
+          ) if result == UNSUPPORTED_EVALUATION
           exposures = exposures + result.secondary_exposures
           if result.gate_value
 
@@ -278,8 +291,8 @@ module Statsig
       i = 0
       until i >= rule['conditions'].length do
         result = eval_condition(user, rule['conditions'][i])
-        if result.to_s == $fetch_from_server
-          return $fetch_from_server
+        if result == UNSUPPORTED_EVALUATION
+          return UNSUPPORTED_EVALUATION
         end
 
         if result.is_a?(Hash)
@@ -312,7 +325,7 @@ module Statsig
       return nil unless (config = @spec_store.get_config(delegate))
 
       delegated_result = self.eval_spec(user, config)
-      return $fetch_from_server if delegated_result.to_s == $fetch_from_server
+      return UNSUPPORTED_EVALUATION if delegated_result == UNSUPPORTED_EVALUATION
 
       delegated_result.name = name
       delegated_result.config_delegate = delegate
@@ -332,7 +345,7 @@ module Statsig
       additional_values = Hash.new unless additional_values.is_a? Hash
       id_type = condition['idType']
 
-      return $fetch_from_server unless type.is_a? String
+      return UNSUPPORTED_EVALUATION unless type.is_a? String
       type = type.downcase
 
       case type
@@ -340,7 +353,7 @@ module Statsig
         return true
       when 'fail_gate', 'pass_gate'
         other_gate_result = check_gate(user, target)
-        return $fetch_from_server if other_gate_result.to_s == $fetch_from_server
+        return UNSUPPORTED_EVALUATION if other_gate_result == UNSUPPORTED_EVALUATION
 
         gate_value = other_gate_result&.gate_value == true
         new_exposure = {
@@ -355,10 +368,8 @@ module Statsig
         }
       when 'ip_based'
         value = get_value_from_user(user, field) || get_value_from_ip(user, field)
-        return $fetch_from_server if value.to_s == $fetch_from_server
       when 'ua_based'
         value = get_value_from_user(user, field) || get_value_from_ua(user, field)
-        return $fetch_from_server if value.to_s == $fetch_from_server
       when 'user_field'
         value = get_value_from_user(user, field)
       when 'environment_field'
@@ -377,10 +388,10 @@ module Statsig
       when 'unit_id'
         value = user.get_unit_id(id_type)
       else
-        return $fetch_from_server
+        return UNSUPPORTED_EVALUATION
       end
 
-      return $fetch_from_server if value.to_s == $fetch_from_server || !operator.is_a?(String)
+      return UNSUPPORTED_EVALUATION if !operator.is_a?(String)
       operator = operator.downcase
 
       case operator
@@ -462,7 +473,7 @@ module Statsig
           return false
         end
       else
-        return $fetch_from_server
+        return UNSUPPORTED_EVALUATION
       end
     end
 
