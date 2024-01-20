@@ -160,8 +160,6 @@ module Statsig
         return nil
       end
 
-      formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user, hash, client_sdk_key)
-
       evaluated_keys = {}
       if user.user_id.nil? == false
         evaluated_keys[:userID] = user.user_id
@@ -172,16 +170,16 @@ module Statsig
       end
 
       {
-        'feature_gates' => formatter.get_responses(@spec_store.gates),
-        'dynamic_configs' => formatter.get_responses(@spec_store.configs),
-        'layer_configs' => formatter.get_responses(@spec_store.layers),
-        'sdkParams' => {},
-        'has_updates' => true,
-        'generator' => 'statsig-ruby-sdk',
-        'evaluated_keys' => evaluated_keys,
-        'time' => 0,
-        'hash_used' => hash,
-        'user_hash' => user.to_hash_without_stable_id()
+        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, hash, client_sdk_key),
+        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, hash, client_sdk_key),
+        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, hash, client_sdk_key),
+        sdkParams: {},
+        has_updates: true,
+        generator: 'statsig-ruby-sdk',
+        evaluated_keys: evaluated_keys,
+        time: 0,
+        hash_used: hash,
+        user_hash: user.to_hash_without_stable_id()
       }
     end
 
@@ -190,12 +188,10 @@ module Statsig
         return nil
       end
 
-      formatter = ClientInitializeHelpers::ResponseFormatter.new(self, user, 'none', nil)
-
       {
-        feature_gates: formatter.get_responses(@spec_store.gates),
-        dynamic_configs: formatter.get_responses(@spec_store.configs),
-        layer_configs: formatter.get_responses(@spec_store.layers),
+        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, nil, 'none'),
+        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, nil, 'none'),
+        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, nil, 'none'),
       }
     end
 
