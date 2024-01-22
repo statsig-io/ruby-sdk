@@ -9,8 +9,10 @@ require 'ua_parser'
 require 'evaluation_details'
 require 'user_agent_parser/operating_system'
 require 'user_persistent_storage_utils'
+require 'constants'
 
 module Statsig
+
   class Evaluator
 
     UNSUPPORTED_EVALUATION = :unsupported_eval
@@ -42,7 +44,7 @@ module Statsig
           gate_name,
           @gate_overrides[gate_name],
           @gate_overrides[gate_name],
-          'override',
+          Const::OVERRIDE,
           [],
           evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
@@ -59,12 +61,12 @@ module Statsig
 
     def get_config(user, config_name, user_persisted_values: nil)
       if @config_overrides.key?(config_name)
-        id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)[:idType] : ''
+        id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)[:idType] : Const::EMPTY_STR
         return Statsig::ConfigResult.new(
           config_name,
           false,
           @config_overrides[config_name],
-          'override',
+          Const::OVERRIDE,
           [],
           evaluation_details: EvaluationDetails.local_override(
             @spec_store.last_config_sync_time,
@@ -126,15 +128,15 @@ module Statsig
     end
 
     def list_configs
-      @spec_store.configs.map { |name, config| name if config[:entity] == 'dynamic_config' }.compact
+      @spec_store.configs.map { |name, config| name if config[:entity] == Const::DYNAMIC_CONFIG }.compact
     end
 
     def list_experiments
-      @spec_store.configs.map { |name, config| name if config[:entity] == 'experiment' }.compact
+      @spec_store.configs.map { |name, config| name if config[:entity] == Const::EXPERIMENT }.compact
     end
 
     def list_autotunes
-      @spec_store.configs.map { |name, config| name if config[:entity] == 'autotune' }.compact
+      @spec_store.configs.map { |name, config| name if config[:entity] == Const::AUTOTUNE }.compact
     end
 
     def list_layers
@@ -161,7 +163,7 @@ module Statsig
         layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo),
         sdkParams: {},
         has_updates: true,
-        generator: 'statsig-ruby-sdk',
+        generator: Const::STATSIG_RUBY_SDK,
         evaluated_keys: evaluated_keys,
         time: 0,
         hash_used: hash_algo,
@@ -181,16 +183,6 @@ module Statsig
       }
     end
 
-    def clean_exposures(exposures)
-      seen = {}
-      exposures.reject do |exposure|
-        key = "#{exposure["gate"]}|#{exposure["gateValue"]}|#{exposure["ruleID"]}}"
-        should_reject = seen[key]
-        seen[key] = true
-        should_reject == true
-      end
-    end
-
     def shutdown
       @spec_store.shutdown
     end
@@ -204,7 +196,7 @@ module Statsig
     end
 
     def eval_spec(user, config)
-      default_rule_id = 'default'
+      default_rule_id = Const::DEFAULT
       exposures = []
       if config[:enabled]
         i = 0
@@ -215,7 +207,7 @@ module Statsig
             config[:name],
             false,
             config[:defaultValue],
-            '',
+            Const::EMPTY_STR,
             exposures,
             evaluation_details: EvaluationDetails.new(
               @spec_store.last_config_sync_time,
@@ -255,7 +247,7 @@ module Statsig
           i += 1
         end
       else
-        default_rule_id = 'disabled'
+        default_rule_id = Const::DISABLED
       end
 
       Statsig::ConfigResult.new(
@@ -297,7 +289,7 @@ module Statsig
       end
 
       Statsig::ConfigResult.new(
-        '',
+        Const::EMPTY_STR,
         pass,
         rule[:returnValue],
         rule[:id],
@@ -347,7 +339,7 @@ module Statsig
         gate_value = other_gate_result&.gate_value == true
         new_exposure = {
           gate: target,
-          gateValue: gate_value ? 'true' : 'false',
+          gateValue: gate_value ? Const::TRUE : Const::FALSE,
           ruleID: other_gate_result&.rule_id
         }
         exposures = other_gate_result&.secondary_exposures&.append(new_exposure)
@@ -368,7 +360,7 @@ module Statsig
       when :user_bucket
         begin
           salt = additional_values[:salt]
-          unit_id = user.get_unit_id(id_type) || ''
+          unit_id = user.get_unit_id(id_type) || Const::EMPTY_STR
           # there are only 1000 user buckets as opposed to 10k for gate pass %
           value = compute_user_hash("#{salt}.#{unit_id}") % 1000
         rescue
@@ -465,19 +457,19 @@ module Statsig
 
     def get_value_from_user(user, field)
       value = case field.downcase
-              when 'userid', 'user_id'
+              when Const::USERID, Const::USER_ID
                 user.user_id
-              when 'email'
+              when Const::EMAIL
                 user.email
-              when 'ip'
+              when Const::IP
                 user.ip
-              when 'useragent', 'user_agent'
+              when Const::USERAGENT, Const::USER_AGENT
                 user.user_agent
-              when 'country'
+              when Const::COUNTRY
                 user.country
-              when 'locale'
+              when Const::LOCALE
                 user.locale
-              when 'appversion', 'app_version'
+              when Const::APPVERSION, Const::APP_VERSION
                 user.app_version
               else
                 nil
@@ -500,28 +492,28 @@ module Statsig
     end
 
     def get_value_from_ip(user, field)
-      return nil unless field == 'country'
-      ip = get_value_from_user(user, 'ip')
+      return nil unless field == Const::COUNTRY
+      ip = get_value_from_user(user, Const::IP)
       return nil unless ip.is_a?(String)
 
       CountryLookup.lookup_ip_string(ip)
     end
 
     def get_value_from_ua(user, field)
-      ua = get_value_from_user(user, 'user_agent')
+      ua = get_value_from_user(user, Const::USER_AGENT)
       return nil unless ua.is_a?(String)
 
       case field.downcase
-      when 'os_name', 'osname'
+      when Const::OSNAME, Const::OS_NAME
         os = UAParser.parse_os(ua)
         return os&.family
-      when 'os_version', 'osversion'
+      when Const::OS_VERSION, Const::OSVERSION
         os = UAParser.parse_os(ua)
         return os&.version unless os&.version.nil?
-      when 'browser_name', 'browsername'
+      when Const::BROWSERNAME, Const::BROWSER_NAME
         parsed = UAParser.parse_ua(ua)
         return parsed.family
-      when 'browser_version', 'browserversion'
+      when Const::BROWSERVERSION, Const::BROWSER_VERSION
         parsed = UAParser.parse_ua(ua)
         return parsed.version.to_s
       else
@@ -532,8 +524,8 @@ module Statsig
     def eval_pass_percent(user, rule, config_salt)
       return false unless config_salt.is_a?(String) && !rule[:passPercentage].nil?
       begin
-        unit_id = user.get_unit_id(rule[:idType]) || ''
-        rule_salt = rule[:salt] || rule[:id] || ''
+        unit_id = user.get_unit_id(rule[:idType]) || Const::EMPTY_STR
+        rule_salt = rule[:salt] || rule[:id] || Const::EMPTY_STR
         hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
         return (hash % 10000) < (rule[:passPercentage].to_f * 100)
       rescue
@@ -542,7 +534,7 @@ module Statsig
     end
 
     def compute_user_hash(user_hash)
-      Digest::SHA256.digest(user_hash).unpack('Q>')[0]
+      Digest::SHA256.digest(user_hash).unpack(Const::Q_RIGHT_CHEVRON)[0]
     end
   end
 end

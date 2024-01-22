@@ -1,4 +1,5 @@
 require 'json'
+require 'constants'
 
 ##
 #  The user object to be evaluated against your Statsig configurations (gates/experiments/dynamic configs).
@@ -86,6 +87,7 @@ class StatsigUser
 
   def to_hash_without_stable_id
     hash = {}
+
     if @user_id != nil
       hash[:userID] = @user_id
     end
@@ -128,7 +130,7 @@ class StatsigUser
   end
 
   def get_unit_id(id_type)
-    if id_type.is_a?(String) && id_type != 'userID'
+    if id_type.is_a?(String) && id_type != Statsig::Const::CML_USER_ID
       return nil unless @custom_ids.is_a? Hash
 
       return @custom_ids[id_type] || @custom_ids[id_type.downcase]

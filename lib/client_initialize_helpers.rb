@@ -1,5 +1,7 @@
 require_relative 'hash_utils'
 
+require 'constants'
+
 module Statsig
   class ResponseFormatter
 
@@ -26,7 +28,7 @@ module Statsig
 
       category = config_spec[:type]
       entity_type = config_spec[:entity]
-      if entity_type == 'segment' || entity_type == 'holdout'
+      if entity_type == Statsig::Const::SEGMENT || entity_type == Statsig::Const::HOLDOUT
         return nil
       end
 
@@ -39,26 +41,26 @@ module Statsig
 
       case category
 
-      when 'feature_gate'
+      when Statsig::Const::FEATURE_GATE
         result[:value] = eval_result.gate_value
         result[:group_name] = eval_result.group_name
         result[:id_type] = eval_result.id_type
-      when 'dynamic_config'
+      when Statsig::Const::DYNAMIC_CONFIG
         id_type = config_spec[:idType]
         result[:value] = eval_result.json_value
         result[:group] = eval_result.rule_id
         result[:group_name] = eval_result.group_name
         result[:id_type] = eval_result.id_type
-        result[:is_device_based] = id_type.is_a?(String) && id_type.downcase == 'stableid'
+        result[:is_device_based] = id_type.is_a?(String) && id_type.downcase == Statsig::Const::STABLEID
       else
         return nil
       end
 
-      if entity_type == 'experiment'
+      if entity_type == Statsig::Const::EXPERIMENT
         populate_experiment_fields(config_name, config_spec, eval_result, result, evaluator)
       end
 
-      if entity_type == 'layer'
+      if entity_type == Statsig::Const::LAYER
         populate_layer_fields(config_spec, eval_result, result, evaluator, user, hash_algo)
         result.delete(:id_type) # not exposed for layer configs in /initialize
       end
@@ -123,9 +125,9 @@ module Statsig
 
     def self.hash_name(name, hash_algo)
       case hash_algo
-      when 'none'
+      when Statsig::Const::NONE
         return name
-      when 'djb2'
+      when Statsig::Const::DJB2
         return Statsig::HashUtils.djb2(name)
       else
         return Statsig::HashUtils.sha256(name)
