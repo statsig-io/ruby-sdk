@@ -1,15 +1,10 @@
-
-
 require 'statsig_errors'
-# require 'sorbet-runtime'
 
 $endpoint = 'https://statsigapi.net/v1/sdk_exception'
 
 module Statsig
   class ErrorBoundary
-    # extend T::Sig
 
-    # sig { params(sdk_key: String).void }
     def initialize(sdk_key)
       @sdk_key = sdk_key
       @seen = Set.new

@@ -1,5 +1,3 @@
-
-
 require_relative 'test_helper'
 require 'json'
 require 'minitest'

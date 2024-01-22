@@ -1,5 +1,3 @@
-
-
 require 'config_result'
 require 'evaluator'
 require 'network'
@@ -13,13 +11,11 @@ require 'dynamic_config'
 require 'feature_gate'
 require 'error_boundary'
 require 'layer'
-# require 'sorbet-runtime'
+
 require 'diagnostics'
 
 class StatsigDriver
-  # extend T::Sig
 
-  # sig { params(secret_key: String, options: T.any(StatsigOptions, NilClass), error_callback: T.any(Method, Proc, NilClass)).void }
   def initialize(secret_key, options = nil, error_callback = nil)
     unless secret_key.start_with?('secret-')
       raise Statsig::ValueError.new('Invalid secret key provided. Provide your project secret key from the Statsig console')
@@ -47,14 +43,6 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
-  # sig do
-  #   params(
-  #     user: StatsigUser,
-  #     gate_name: String,
-  #     disable_log_exposure: T::Boolean,
-  #     skip_evaluation: T::Boolean
-  #   ).returns(FeatureGate)
-  # end
   def get_gate_impl(user, gate_name, disable_log_exposure: false, skip_evaluation: false)
     if skip_evaluation
       gate = @store.get_gate(gate_name)
@@ -76,25 +64,25 @@ class StatsigDriver
     FeatureGate.from_config_result(res)
   end
 
-  # sig { params(user: StatsigUser, gate_name: String, options: Statsig::GetGateOptions).returns(FeatureGate) }
-  def get_gate(user, gate_name, options = Statsig::GetGateOptions.new)
+  def get_gate(user, gate_name, options: nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
-        get_gate_impl(user, gate_name, disable_log_exposure: options.disable_log_exposure, skip_evaluation: options.skip_evaluation)
+        get_gate_impl(user, gate_name,
+                      disable_log_exposure: options&.disable_log_exposure == true,
+                      skip_evaluation: options&.skip_evaluation == true
+        )
       }, caller: __method__.to_s)
     }, recover: -> { false }, caller: __method__.to_s)
   end
 
-  # sig { params(user: StatsigUser, gate_name: String, options: Statsig::CheckGateOptions).returns(T::Boolean) }
-  def check_gate(user, gate_name, options = Statsig::CheckGateOptions.new)
+  def check_gate(user, gate_name, options: nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
-        get_gate_impl(user, gate_name, disable_log_exposure: options.disable_log_exposure).value
+        get_gate_impl(user, gate_name, disable_log_exposure: options&.disable_log_exposure == true).value
       }, caller: __method__.to_s)
     }, recover: -> { false }, caller: __method__.to_s)
   end
 
-  # sig { params(user: StatsigUser, gate_name: String).void }
   def manually_log_gate_exposure(user, gate_name)
     @err_boundary.capture(task: lambda {
       res = @evaluator.check_gate(user, gate_name)
@@ -103,27 +91,24 @@ class StatsigDriver
     })
   end
 
-  # sig { params(user: StatsigUser, dynamic_config_name: String, options: Statsig::GetConfigOptions).returns(DynamicConfig) }
-  def get_config(user, dynamic_config_name, options = Statsig::GetConfigOptions.new)
+  def get_config(user, dynamic_config_name, options: nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
-        get_config_impl(user, dynamic_config_name, options.disable_log_exposure)
+        get_config_impl(user, dynamic_config_name, options&.disable_log_exposure == true)
       }, caller: __method__.to_s)
     }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
   end
 
-  # sig { params(user: StatsigUser, experiment_name: String, options: Statsig::GetExperimentOptions).returns(DynamicConfig) }
-  def get_experiment(user, experiment_name, options = Statsig::GetExperimentOptions.new)
+  def get_experiment(user, experiment_name, options: nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, experiment_name, "experiment_name")
-        get_config_impl(user, experiment_name, options.disable_log_exposure, user_persisted_values: options.user_persisted_values)
+        get_config_impl(user, experiment_name, options&.disable_log_exposure == true, user_persisted_values: options&.user_persisted_values)
       }, caller: __method__.to_s)
     }, recover: -> { DynamicConfig.new(experiment_name) }, caller: __method__.to_s)
   end
 
-  # sig { params(user: StatsigUser, config_name: String).void }
   def manually_log_config_exposure(user, config_name)
     @err_boundary.capture(task: lambda {
       res = @evaluator.get_config(user, config_name)
@@ -132,7 +117,6 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
-  # sig { params(user: StatsigUser, id_type: String).returns(Statsig::UserPersistedValues) }
   def get_user_persisted_values(user, id_type)
     @err_boundary.capture(task: lambda {
       persisted_values = @persistent_storage_utils.get_user_persisted_values(user, id_type)
@@ -142,8 +126,7 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
-  # sig { params(user: StatsigUser, layer_name: String, options: Statsig::GetLayerOptions).returns(Layer) }
-  def get_layer(user, layer_name, options = Statsig::GetLayerOptions.new)
+  def get_layer(user, layer_name, options: nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, layer_name, "layer_name")
@@ -153,15 +136,16 @@ class StatsigDriver
           res = Statsig::ConfigResult.new(layer_name)
         end
 
-        exposure_log_func = !options.disable_log_exposure ? lambda { |layer, parameter_name|
+        exposures_disabled = options&.disable_log_exposure != true
+        exposure_log_func = !exposures_disabled ? lambda { |layer, parameter_name|
           @logger.log_layer_exposure(user, layer, parameter_name, res)
         } : nil
+
         Layer.new(res.name, res.json_value, res.rule_id, res.group_name, res.config_delegate, exposure_log_func)
       }, caller: __method__.to_s)
     }, recover: lambda { Layer.new(layer_name) }, caller: __method__.to_s)
   end
 
-  # sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
   def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
     @err_boundary.capture(task: lambda {
       res = @evaluator.get_layer(user, layer_name)
@@ -200,35 +184,30 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
-  # sig { returns(T::Array[String]) }
   def list_gates
     @err_boundary.capture(task: lambda {
       @evaluator.list_gates
     }, caller: __method__.to_s)
   end
 
-  # sig { returns(T::Array[String]) }
   def list_configs
     @err_boundary.capture(task: lambda {
       @evaluator.list_configs
     }, caller: __method__.to_s)
   end
 
-  # sig { returns(T::Array[String]) }
   def list_experiments
     @err_boundary.capture(task: lambda {
       @evaluator.list_experiments
     }, caller: __method__.to_s)
   end
 
-  # sig { returns(T::Array[String]) }
   def list_autotunes
     @err_boundary.capture(task: lambda {
       @evaluator.list_autotunes
     }, caller: __method__.to_s)
   end
 
-  # sig { returns(T::Array[String]) }
   def list_layers
     @err_boundary.capture(task: lambda {
       @evaluator.list_layers
@@ -307,7 +286,6 @@ class StatsigDriver
     return res
   end
 
-  # sig { params(user: StatsigUser, config_name: String, variable_name: String).returns(StatsigUser) }
   def verify_inputs(user, config_name, variable_name)
     validate_user(user)
     if !config_name.is_a?(String) || config_name.empty?
@@ -319,14 +297,6 @@ class StatsigDriver
     normalize_user(user)
   end
 
-  # sig do
-  #   params(
-  #     user: StatsigUser,
-  #     config_name: String,
-  #     disable_log_exposure: T::Boolean,
-  #     user_persisted_values: T.nilable(Statsig::UserPersistedValues)
-  #   ).returns(DynamicConfig)
-  # end
   def get_config_impl(user, config_name, disable_log_exposure, user_persisted_values: nil)
     res = @evaluator.get_config(user, config_name, user_persisted_values: user_persisted_values)
     if res.nil?

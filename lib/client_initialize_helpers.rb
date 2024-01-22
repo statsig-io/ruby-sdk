@@ -1,12 +1,7 @@
-
-
 require_relative 'hash_utils'
-# require 'sorbet-runtime'
-
 
 module Statsig
   class ResponseFormatter
-    # extend T::Sig
 
     def self.get_responses(entities, evaluator, user, client_sdk_key, hash_algo)
       entities

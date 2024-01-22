@@ -1,10 +1,5 @@
-
-
-# require 'sorbet-runtime'
-
 module Statsig
   class ConfigResult
-    # extend T::Sig
 
     attr_accessor :name
     attr_accessor :gate_value
@@ -48,7 +43,6 @@ module Statsig
       @target_app_ids = target_app_ids
     end
 
-    # sig { params(config_name: String, user_persisted_values: UserPersistedValues).returns(T.nilable(ConfigResult)) }
     def self.from_user_persisted_values(config_name, user_persisted_values)
       sticky_values = user_persisted_values[config_name]
       return nil if sticky_values.nil?
@@ -56,7 +50,6 @@ module Statsig
       from_hash(config_name, sticky_values)
     end
 
-    # sig { params(config_name: String, hash: Hash).returns(ConfigResult) }
     def self.from_hash(config_name, hash)
       new(
         config_name,
@@ -71,7 +64,6 @@ module Statsig
       )
     end
 
-    # sig { returns(Hash) }
     def to_hash
       {
         json_value: @json_value,
