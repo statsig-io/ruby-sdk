@@ -2,9 +2,9 @@ name: build-and-test
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, performance-improvements]
   pull_request:
-    branches: [main]
+    branches: [main, performance-improvements]
 
 env:
   COVERAGE: true
