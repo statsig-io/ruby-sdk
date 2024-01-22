@@ -8,13 +8,13 @@ module Statsig
   class ResponseFormatter
     # extend T::Sig
 
-    def self.get_responses(entities, evaluator, user, client_sdk_key, hash)
+    def self.get_responses(entities, evaluator, user, client_sdk_key, hash_algo)
       entities
-        .map { |name, spec| to_response(name, spec, evaluator, user, client_sdk_key, hash) }
+        .map { |name, spec| to_response(name, spec, evaluator, user, client_sdk_key, hash_algo) }
         .delete_if { |v| v.nil? }.to_h
     end
 
-    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash)
+    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo)
       target_app_id = evaluator.spec_store.get_app_id_for_sdk_key(client_sdk_key)
       config_target_apps = config_spec[:targetAppIDs]
 
@@ -57,17 +57,17 @@ module Statsig
       end
 
       if entity_type == 'layer'
-        populate_layer_fields(config_spec, eval_result, result, evaluator, user)
+        populate_layer_fields(config_spec, eval_result, result, evaluator, user, hash_algo)
         result.delete(:id_type) # not exposed for layer configs in /initialize
       end
 
-      hashed_name = hash_name(config_name, hash)
-      result.merge(
-        {
-          :name => hashed_name,
-          :rule_id => eval_result.rule_id,
-          :secondary_exposures => clean_exposures(eval_result.secondary_exposures)
-        }).compact
+      hashed_name = hash_name(config_name, hash_algo)
+
+      result[:name] = hashed_name
+      result[:rule_id] = eval_result.rule_id
+      result[:secondary_exposures] = clean_exposures(eval_result.secondary_exposures)
+
+      [hashed_name, result]
     end
 
     private
@@ -102,7 +102,7 @@ module Statsig
       result[:value] = layer[:defaultValue].merge(result[:value])
     end
 
-    def self.populate_layer_fields(config_spec, eval_result, result, evaluator, user)
+    def self.populate_layer_fields(config_spec, eval_result, result, evaluator, user, hash_algo)
       delegate = eval_result.config_delegate
       result[:explicit_parameters] = config_spec[:explicitParameters] || []
 
@@ -110,7 +110,7 @@ module Statsig
         delegate_spec = evaluator.spec_store.configs[delegate]
         delegate_result = evaluator.eval_spec(user, delegate_spec)
 
-        result[:allocated_experiment_name] = hash_name(delegate)
+        result[:allocated_experiment_name] = hash_name(delegate, hash_algo)
         result[:is_user_in_experiment] = delegate_result.is_experiment_group
         result[:is_experiment_active] = delegate_spec[:isActive] == true
         result[:explicit_parameters] = delegate_spec[:explicitParameters] || []
@@ -119,8 +119,8 @@ module Statsig
       result[:undelegated_secondary_exposures] = clean_exposures(eval_result.undelegated_sec_exps || [])
     end
 
-    def self.hash_name(name, hash)
-      case hash
+    def self.hash_name(name, hash_algo)
+      case hash_algo
       when 'none'
         return name
       when 'sha256'
