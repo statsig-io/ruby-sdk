@@ -4,9 +4,16 @@ module Statsig
   class ResponseFormatter
 
     def self.get_responses(entities, evaluator, user, client_sdk_key, hash_algo)
-      entities
-        .map { |name, spec| to_response(name, spec, evaluator, user, client_sdk_key, hash_algo) }
-        .delete_if { |v| v.nil? }.to_h
+      result = {}
+
+      entities.each do |name, spec|
+        hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo)
+        if hashed_name != nil && value != nil
+          result[hashed_name] = value
+        end
+      end
+
+      result
     end
 
     def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo)
@@ -32,11 +39,11 @@ module Statsig
 
       case category
 
-      when :feature_gate
+      when 'feature_gate'
         result[:value] = eval_result.gate_value
         result[:group_name] = eval_result.group_name
         result[:id_type] = eval_result.id_type
-      when :dynamic_config
+      when 'dynamic_config'
         id_type = config_spec[:idType]
         result[:value] = eval_result.json_value
         result[:group] = eval_result.rule_id
@@ -118,10 +125,10 @@ module Statsig
       case hash_algo
       when 'none'
         return name
-      when 'sha256'
-        return Statsig::HashUtils.sha256(name)
       when 'djb2'
         return Statsig::HashUtils.djb2(name)
+      else
+        return Statsig::HashUtils.sha256(name)
       end
     end
   end

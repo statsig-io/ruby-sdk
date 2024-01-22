@@ -141,7 +141,7 @@ module Statsig
       @spec_store.layers.map { |name, _| name }
     end
 
-    def get_client_initialize_response(user, hash, client_sdk_key)
+    def get_client_initialize_response(user, hash_algo, client_sdk_key)
       if @spec_store.is_ready_for_checks == false
         return nil
       end
@@ -156,16 +156,16 @@ module Statsig
       end
 
       {
-        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, hash, client_sdk_key),
-        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, hash, client_sdk_key),
-        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, hash, client_sdk_key),
+        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo),
+        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, client_sdk_key, hash_algo),
+        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo),
         sdkParams: {},
         has_updates: true,
         generator: 'statsig-ruby-sdk',
         evaluated_keys: evaluated_keys,
         time: 0,
-        hash_used: hash,
-        user_hash: user.to_hash_without_stable_id()
+        hash_used: hash_algo,
+        user_hash: user.to_hash_without_stable_id
       }
     end
 
