@@ -106,7 +106,7 @@ module Statsig
     end
 
     def post_logs(events)
-      json_body = JSON.generate({ :events => events, :statsigMetadata => Statsig.get_statsig_metadata })
+      json_body = JSON.generate({ events: events, statsigMetadata: Statsig.get_statsig_metadata })
       post('log_event', json_body, @post_logs_retry_limit)
     rescue StandardError
 

@@ -1,5 +1,3 @@
-
-
 require_relative 'test_helper'
 require 'minitest'
 require 'minitest/autorun'
@@ -9,6 +7,7 @@ require 'statsig'
 
 class UserFieldsTest < BaseTest
   suite :UserFieldsTest
+
   def test_nil_init
     a = nil
     user = StatsigUser.new(a)
@@ -146,7 +145,7 @@ class UserFieldsTest < BaseTest
           }
       })
 
-    custom = T.must(user.custom)
+    custom = user.custom
 
     assert_equal("a_string_value", custom["a_string"])
     assert_equal(true, custom["a_bool"])

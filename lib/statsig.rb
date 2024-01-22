@@ -38,7 +38,7 @@ module Statsig
   # @return [FeatureGate]
   def self.get_gate(user, gate_name, options)
     ensure_initialized
-    @shared_instance&.get_gate(user, gate_name, options: options)
+    @shared_instance&.get_gate(user, gate_name, options)
   end
 
   class CheckGateOptions
@@ -56,9 +56,9 @@ module Statsig
   # @param [String] gate_name The name of the gate being checked
   # @param [CheckGateOptions] options Additional options for evaluating the gate
   # @return [Boolean]
-  def self.check_gate(user, gate_name, options: nil)
+  def self.check_gate(user, gate_name, options = nil)
     ensure_initialized
-    @shared_instance&.check_gate(user, gate_name, options: options)
+    @shared_instance&.check_gate(user, gate_name, options)
   end
 
   ##
@@ -68,7 +68,7 @@ module Statsig
   # @param gate_name The name of the gate being checked
   def self.check_gate_with_exposure_logging_disabled(user, gate_name)
     ensure_initialized
-    @shared_instance&.check_gate(user, gate_name, options: CheckGateOptions.new(disable_log_exposure: true))
+    @shared_instance&.check_gate(user, gate_name, CheckGateOptions.new(disable_log_exposure: true))
   end
 
   ##
@@ -96,9 +96,9 @@ module Statsig
   # @param [String] dynamic_config_name The name of the dynamic config
   # @param [GetConfigOptions] options Additional options for evaluating the config
   # @return [DynamicConfig]
-  def self.get_config(user, dynamic_config_name, options: nil)
+  def self.get_config(user, dynamic_config_name, options = nil)
     ensure_initialized
-    @shared_instance&.get_config(user, dynamic_config_name, options: options)
+    @shared_instance&.get_config(user, dynamic_config_name, options)
   end
 
   ##
@@ -109,7 +109,7 @@ module Statsig
   # @return [DynamicConfig]
   def self.get_config_with_exposure_logging_disabled(user, dynamic_config_name)
     ensure_initialized
-    @shared_instance&.get_config(user, dynamic_config_name, options: GetConfigOptions.new(disable_log_exposure: true))
+    @shared_instance&.get_config(user, dynamic_config_name, GetConfigOptions.new(disable_log_exposure: true))
   end
 
   ##
@@ -137,9 +137,9 @@ module Statsig
   # @param [StatsigUser] user A StatsigUser object used for the evaluation
   # @param [String] experiment_name The name of the experiment
   # @param [GetExperimentOptions] options Additional options for evaluating the experiment
-  def self.get_experiment(user, experiment_name, options: nil)
+  def self.get_experiment(user, experiment_name, options = nil)
     ensure_initialized
-    @shared_instance&.get_experiment(user, experiment_name, options: options)
+    @shared_instance&.get_experiment(user, experiment_name, options)
   end
 
   ##
@@ -149,7 +149,7 @@ module Statsig
   # @param [String] experiment_name The name of the experiment
   def self.get_experiment_with_exposure_logging_disabled(user, experiment_name)
     ensure_initialized
-    @shared_instance&.get_experiment(user, experiment_name, options: GetExperimentOptions.new(disable_log_exposure: true))
+    @shared_instance&.get_experiment(user, experiment_name, GetExperimentOptions.new(disable_log_exposure: true))
   end
 
   ##
@@ -182,9 +182,9 @@ module Statsig
   # @param [StatsigUser] user A StatsigUser object used for the evaluation
   # @param [String] layer_name The name of the layer
   # @param [GetLayerOptions] options Configuration of how this method call should behave
-  def self.get_layer(user, layer_name, options: nil)
+  def self.get_layer(user, layer_name, options = nil)
     ensure_initialized
-    @shared_instance&.get_layer(user, layer_name, options: options)
+    @shared_instance&.get_layer(user, layer_name, options)
   end
 
   ##
@@ -194,7 +194,7 @@ module Statsig
   # @param layer_name The name of the layer
   def self.get_layer_with_exposure_logging_disabled(user, layer_name)
     ensure_initialized
-    @shared_instance&.get_layer(user, layer_name, options: GetLayerOptions.new(disable_log_exposure: true))
+    @shared_instance&.get_layer(user, layer_name, GetLayerOptions.new(disable_log_exposure: true))
   end
 
   ##

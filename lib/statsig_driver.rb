@@ -64,7 +64,7 @@ class StatsigDriver
     FeatureGate.from_config_result(res)
   end
 
-  def get_gate(user, gate_name, options: nil)
+  def get_gate(user, gate_name, options = nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         get_gate_impl(user, gate_name,
@@ -75,7 +75,7 @@ class StatsigDriver
     }, recover: -> { false }, caller: __method__.to_s)
   end
 
-  def check_gate(user, gate_name, options: nil)
+  def check_gate(user, gate_name, options = nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         get_gate_impl(user, gate_name, disable_log_exposure: options&.disable_log_exposure == true).value
@@ -91,7 +91,7 @@ class StatsigDriver
     })
   end
 
-  def get_config(user, dynamic_config_name, options: nil)
+  def get_config(user, dynamic_config_name, options = nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
@@ -100,7 +100,7 @@ class StatsigDriver
     }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
   end
 
-  def get_experiment(user, experiment_name, options: nil)
+  def get_experiment(user, experiment_name, options = nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, experiment_name, "experiment_name")
@@ -126,7 +126,7 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
-  def get_layer(user, layer_name, options: nil)
+  def get_layer(user, layer_name, options = nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
         user = verify_inputs(user, layer_name, "layer_name")
@@ -136,7 +136,7 @@ class StatsigDriver
           res = Statsig::ConfigResult.new(layer_name)
         end
 
-        exposures_disabled = options&.disable_log_exposure != true
+        exposures_disabled = options&.disable_log_exposure == true
         exposure_log_func = !exposures_disabled ? lambda { |layer, parameter_name|
           @logger.log_layer_exposure(user, layer, parameter_name, res)
         } : nil
