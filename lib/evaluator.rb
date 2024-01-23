@@ -36,29 +36,31 @@ module Statsig
     end
 
     def check_gate(user, gate_name)
-      if @gate_overrides.has_key?(gate_name)
-        return Statsig::ConfigResult.new(
-          gate_name,
-          @gate_overrides[gate_name],
-          @gate_overrides[gate_name],
-          Const::OVERRIDE,
-          [],
-          evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time,
-                                                               @spec_store.initial_config_sync_time)
-        )
+      result = Statsig::ConfigResult.new(gate_name)
+      eval_gate(user, gate_name, result)
+      result
+    end
+
+    def eval_gate(user, gate_name, end_result)
+      if @gate_overrides.key?(gate_name)
+        end_result.gate_value = @gate_overrides[gate_name]
+        end_result.rule_id = Const::OVERRIDE
+        end_result.evaluation_details = EvaluationDetails.local_override(@spec_store.last_config_sync_time,
+                                                                         @spec_store.initial_config_sync_time)
+        return
       end
 
       if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
-        return Statsig::ConfigResult.new(gate_name, evaluation_details: EvaluationDetails.uninitialized)
+        end_result.evaluation_details = EvaluationDetails.uninitialized
+        return
       end
 
       unless @spec_store.has_gate?(gate_name)
-        return unsupported_or_unrecognized(gate_name)
+        unsupported_or_unrecognized(gate_name, end_result)
+        return
       end
 
-      result = Statsig::ConfigResult.new(gate_name)
-      eval_spec(user, @spec_store.get_gate(gate_name), result)
-      result
+      eval_spec(user, @spec_store.get_gate(gate_name), end_result)
     end
 
     def get_config(user, config_name, user_persisted_values: nil)
@@ -83,7 +85,9 @@ module Statsig
       end
 
       unless @spec_store.has_config?(config_name)
-        return unsupported_or_unrecognized(config_name)
+        result = Statsig::ConfigResult.new(config_name)
+        unsupported_or_unrecognized(config_name, result)
+        return result
       end
 
       config = @spec_store.get_config(config_name)
@@ -115,7 +119,9 @@ module Statsig
       end
 
       unless @spec_store.has_layer?(layer_name)
-        return unsupported_or_unrecognized(layer_name)
+        result = Statsig::ConfigResult.new(layer_name)
+        unsupported_or_unrecognized(layer_name, result)
+        return result
       end
 
       result = Statsig::ConfigResult.new(layer_name)
@@ -193,22 +199,17 @@ module Statsig
       @spec_store.shutdown
     end
 
-    def unsupported_or_unrecognized(config_name)
+    def unsupported_or_unrecognized(config_name, end_result)
       if @spec_store.unsupported_configs.include?(config_name)
-        return Statsig::ConfigResult.new(
-          config_name,
-          evaluation_details: EvaluationDetails.unsupported(
-            @spec_store.last_config_sync_time,
-            @spec_store.initial_config_sync_time
-          )
-        )
-      end
-      return Statsig::ConfigResult.new(
-        config_name,
-        evaluation_details: EvaluationDetails.unrecognized(
+        end_result.evaluation_details = EvaluationDetails.unsupported(
           @spec_store.last_config_sync_time,
           @spec_store.initial_config_sync_time
         )
+        return
+      end
+      end_result.evaluation_details = EvaluationDetails.unrecognized(
+        @spec_store.last_config_sync_time,
+        @spec_store.initial_config_sync_time
       )
     end
 
@@ -307,17 +308,14 @@ module Statsig
       when :public
         return true
       when :fail_gate, :pass_gate
-        other_gate_result = check_gate(user, target)
+        eval_gate(user, target, end_result)
 
-        gate_value = other_gate_result.gate_value
+        gate_value = end_result.gate_value
         new_exposure = {
           gate: target,
           gateValue: gate_value ? Const::TRUE : Const::FALSE,
-          ruleID: other_gate_result.rule_id
+          ruleID: end_result.rule_id
         }
-        if other_gate_result.secondary_exposures.length > 0
-          end_result.secondary_exposures.concat(other_gate_result.secondary_exposures)
-        end
         end_result.secondary_exposures.append(new_exposure)
         return type == :pass_gate ? gate_value : !gate_value
       when :ip_based
