@@ -13,7 +13,6 @@ require 'constants'
 
 module Statsig
   class Evaluator
-    UNSUPPORTED_EVALUATION = :unsupported_eval
 
     attr_accessor :spec_store
 
@@ -54,9 +53,7 @@ module Statsig
       end
 
       unless @spec_store.has_gate?(gate_name)
-        return Statsig::ConfigResult.new(gate_name,
-                                         evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time,
-                                                                                            @spec_store.initial_config_sync_time))
+        return unsupported_or_unrecognized(gate_name)
       end
 
       result = Statsig::ConfigResult.new(gate_name)
@@ -86,13 +83,7 @@ module Statsig
       end
 
       unless @spec_store.has_config?(config_name)
-        return Statsig::ConfigResult.new(
-          config_name,
-          evaluation_details: EvaluationDetails.unrecognized(
-            @spec_store.last_config_sync_time,
-            @spec_store.initial_config_sync_time
-          )
-        )
+        return unsupported_or_unrecognized(config_name)
       end
 
       config = @spec_store.get_config(config_name)
@@ -124,9 +115,7 @@ module Statsig
       end
 
       unless @spec_store.has_layer?(layer_name)
-        return Statsig::ConfigResult.new(layer_name,
-                                         evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time,
-                                                                                            @spec_store.initial_config_sync_time))
+        return unsupported_or_unrecognized(layer_name)
       end
 
       result = Statsig::ConfigResult.new(layer_name)
@@ -199,6 +188,25 @@ module Statsig
 
     def shutdown
       @spec_store.shutdown
+    end
+
+    def unsupported_or_unrecognized(config_name)
+      if @spec_store.unsupported_configs.include?(config_name)
+        return Statsig::ConfigResult.new(
+          config_name,
+          evaluation_details: EvaluationDetails.unsupported(
+            @spec_store.last_config_sync_time,
+            @spec_store.initial_config_sync_time
+          )
+        )
+      end
+      return Statsig::ConfigResult.new(
+        config_name,
+        evaluation_details: EvaluationDetails.unrecognized(
+          @spec_store.last_config_sync_time,
+          @spec_store.initial_config_sync_time
+        )
+      )
     end
 
     def override_gate(gate, value)

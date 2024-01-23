@@ -18,6 +18,7 @@ module Statsig
     attr_accessor :experiment_to_layer
     attr_accessor :sdk_keys_to_app_ids
     attr_accessor :hashed_sdk_keys_to_app_ids
+    attr_accessor :unsupported_configs
 
     def initialize(network, options, error_callback, diagnostics, error_boundary, logger, secret_key)
       @init_reason = EvaluationReason::UNINITIALIZED
@@ -40,6 +41,7 @@ module Statsig
       @error_boundary = error_boundary
       @logger = logger
       @secret_key = secret_key
+      @unsupported_configs = Set.new
 
       @id_list_thread_pool = Concurrent::FixedThreadPool.new(
         options.idlist_threadpool_size,
@@ -299,6 +301,7 @@ module Statsig
                           !specs_json[:dynamic_configs].nil? &&
                           !specs_json[:layer_configs].nil?
 
+      @unsupported_configs.clear()
       new_gates = process_configs(specs_json[:feature_gates])
       new_configs = process_configs(specs_json[:dynamic_configs])
       new_layers = process_configs(specs_json[:layer_configs])
@@ -327,7 +330,12 @@ module Statsig
 
     def process_configs(configs)
       configs.each_with_object({}) do |config, new_configs|
-        new_configs[config[:name]] = APIConfig.from_json(config)
+        begin
+          new_configs[config[:name]] = APIConfig.from_json(config)
+        rescue UnsupportedConfigException => e
+          @unsupported_configs.add(config[:name])
+          nil
+        end
       end
     end
 
