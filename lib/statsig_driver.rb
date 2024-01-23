@@ -47,7 +47,7 @@ class StatsigDriver
     if skip_evaluation
       gate = @store.get_gate(gate_name)
       return FeatureGate.new(gate_name) if gate.nil?
-      return FeatureGate.new(gate[:name], target_app_ids: gate[:targetAppIDs])
+      return FeatureGate.new(gate.name, target_app_ids: gate.target_app_ids)
     end
     user = verify_inputs(user, gate_name, 'gate_name')
 

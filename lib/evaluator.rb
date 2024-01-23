@@ -12,9 +12,7 @@ require 'user_persistent_storage_utils'
 require 'constants'
 
 module Statsig
-
   class Evaluator
-
     UNSUPPORTED_EVALUATION = :unsupported_eval
 
     attr_accessor :spec_store
@@ -46,7 +44,9 @@ module Statsig
           @gate_overrides[gate_name],
           Const::OVERRIDE,
           [],
-          evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+          evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time,
+                                                               @spec_store.initial_config_sync_time)
+        )
       end
 
       if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
@@ -54,8 +54,11 @@ module Statsig
       end
 
       unless @spec_store.has_gate?(gate_name)
-        return Statsig::ConfigResult.new(gate_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+        return Statsig::ConfigResult.new(gate_name,
+                                         evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time,
+                                                                                            @spec_store.initial_config_sync_time))
       end
+
       result = Statsig::ConfigResult.new(gate_name)
       eval_spec(user, @spec_store.get_gate(gate_name), result)
       result
@@ -63,7 +66,7 @@ module Statsig
 
     def get_config(user, config_name, user_persisted_values: nil)
       if @config_overrides.key?(config_name)
-        id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)[:idType] : Const::EMPTY_STR
+        id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name).id_type : Const::EMPTY_STR
         return Statsig::ConfigResult.new(
           config_name,
           false,
@@ -95,7 +98,7 @@ module Statsig
       config = @spec_store.get_config(config_name)
 
       # If persisted values is provided and the experiment is active, return sticky values if exists.
-      if !user_persisted_values.nil? && config[:isActive] == true
+      if !user_persisted_values.nil? && config.is_active == true
         sticky_result = Statsig::ConfigResult.from_user_persisted_values(config_name, user_persisted_values)
         return sticky_result unless sticky_result.nil?
 
@@ -104,11 +107,11 @@ module Statsig
         eval_spec(user, config, result)
         if result.is_experiment_group
           @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name, result)
-          @persistent_storage_utils.save_to_storage(user, config[:idType], user_persisted_values)
+          @persistent_storage_utils.save_to_storage(user, config.id_type, user_persisted_values)
         end
         # Otherwise, remove from persisted storage
       else
-        @persistent_storage_utils.remove_experiment_from_storage(user, config[:idType], config_name)
+        @persistent_storage_utils.remove_experiment_from_storage(user, config.id_type, config_name)
         result = Statsig::ConfigResult.new(config_name)
         eval_spec(user, config, result)
       end
@@ -121,7 +124,9 @@ module Statsig
       end
 
       unless @spec_store.has_layer?(layer_name)
-        return Statsig::ConfigResult.new(layer_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
+        return Statsig::ConfigResult.new(layer_name,
+                                         evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time,
+                                                                                            @spec_store.initial_config_sync_time))
       end
 
       result = Statsig::ConfigResult.new(layer_name)
@@ -134,15 +139,15 @@ module Statsig
     end
 
     def list_configs
-      @spec_store.configs.map { |name, config| name if config[:entity] == Const::DYNAMIC_CONFIG }.compact
+      @spec_store.configs.map { |name, config| name if config.entity == :dynamic_config }.compact
     end
 
     def list_experiments
-      @spec_store.configs.map { |name, config| name if config[:entity] == Const::EXPERIMENT }.compact
+      @spec_store.configs.map { |name, config| name if config.entity == :experiment }.compact
     end
 
     def list_autotunes
-      @spec_store.configs.map { |name, config| name if config[:entity] == Const::AUTOTUNE }.compact
+      @spec_store.configs.map { |name, config| name if config.entity == :autotune }.compact
     end
 
     def list_layers
@@ -164,9 +169,12 @@ module Statsig
       end
 
       {
-        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo),
-        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, client_sdk_key, hash_algo),
-        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo),
+        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, client_sdk_key,
+                                                                hash_algo),
+        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, client_sdk_key,
+                                                                  hash_algo),
+        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, client_sdk_key,
+                                                                hash_algo),
         sdkParams: {},
         has_updates: true,
         generator: Const::STATSIG_RUBY_SDK,
@@ -185,7 +193,7 @@ module Statsig
       {
         feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, nil, 'none'),
         dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, nil, 'none'),
-        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, nil, 'none'),
+        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, nil, 'none')
       }
     end
 
@@ -202,31 +210,31 @@ module Statsig
     end
 
     def eval_spec(user, config, end_result)
-      end_result.id_type = config[:idType]
-      end_result.target_app_ids = config[:targetAppIDs]
+      end_result.id_type = config.id_type
+      end_result.target_app_ids = config.target_app_ids
       end_result.evaluation_details = EvaluationDetails.new(
         @spec_store.last_config_sync_time,
         @spec_store.initial_config_sync_time,
         @spec_store.init_reason
       )
       default_rule_id = Const::DEFAULT
-      if config[:enabled]
+      if config.enabled
         i = 0
-        until i >= config[:rules].length do
-          rule = config[:rules][i]
+        until i >= config.rules.length
+          rule = config.rules[i]
           eval_rule(user, rule, end_result)
 
           if end_result.gate_value
-            if eval_delegate(config[:name], user, rule, end_result)
+            if eval_delegate(config.name, user, rule, end_result)
               return
             end
 
-            pass = eval_pass_percent(user, rule, config[:salt])
+            pass = eval_pass_percent(user, rule, config.salt)
             end_result.gate_value = pass
-            end_result.json_value = pass ? rule[:returnValue] : config[:defaultValue]
-            end_result.rule_id = rule[:id]
-            end_result.group_name = rule[:groupName]
-            end_result.is_experiment_group = rule[:isExperimentGroup] == true
+            end_result.json_value = pass ? rule.return_value : config.default_value
+            end_result.rule_id = rule.id
+            end_result.group_name = rule.group_name
+            end_result.is_experiment_group = rule.is_experiment_group == true
             return
           end
 
@@ -238,7 +246,7 @@ module Statsig
 
       end_result.rule_id = default_rule_id
       end_result.gate_value = false
-      end_result.json_value = config[:defaultValue]
+      end_result.json_value = config.default_value
       end_result.evaluation_details = EvaluationDetails.new(
         @spec_store.last_config_sync_time,
         @spec_store.initial_config_sync_time,
@@ -252,8 +260,8 @@ module Statsig
     def eval_rule(user, rule, end_result)
       pass = true
       i = 0
-      until i >= rule[:conditions].length do
-        result = eval_condition(user, rule[:conditions][i], end_result)
+      until i >= rule.conditions.length
+        result = eval_condition(user, rule.conditions[i], end_result)
 
         pass = false if result == false
         i += 1
@@ -263,28 +271,27 @@ module Statsig
     end
 
     def eval_delegate(name, user, rule, end_result)
-      return false unless (delegate = rule[:configDelegate])
+      return false unless (delegate = rule.config_delegate)
       return false unless (config = @spec_store.get_config(delegate))
 
       end_result.undelegated_sec_exps = end_result.secondary_exposures.dup
-      self.eval_spec(user, config, end_result)
+      eval_spec(user, config, end_result)
 
       end_result.name = name
       end_result.config_delegate = delegate
-      end_result.explicit_parameters = config[:explicitParameters]
+      end_result.explicit_parameters = config.explicit_parameters
 
       true
     end
 
     def eval_condition(user, condition, end_result)
       value = nil
-      field = condition[:field]
-      target = condition[:targetValue]
-      type = condition[:type]
-      operator = condition[:operator]
-      additional_values = condition[:additionalValues]
-      additional_values = Hash.new unless additional_values.is_a? Hash
-      id_type = condition[:idType]
+      field = condition.field
+      target = condition.target_value
+      type = condition.type
+      operator = condition.operator
+      additional_values = condition.additional_values
+      id_type = condition.id_type
 
       case type
       when :public
@@ -319,7 +326,7 @@ module Statsig
           unit_id = user.get_unit_id(id_type) || Const::EMPTY_STR
           # there are only 1000 user buckets as opposed to 10k for gate pass %
           value = compute_user_hash("#{salt}.#{unit_id}") % 1000
-        rescue
+        rescue StandardError
           return false
         end
       when :unit_id
@@ -329,56 +336,90 @@ module Statsig
       case operator
         # numerical comparison
       when :gt
-        return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a > b })
+        return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a > b })
       when :gte
-        return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a >= b })
+        return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a >= b })
       when :lt
-        return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a < b })
+        return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a < b })
       when :lte
-        return EvaluationHelpers::compare_numbers(value, target, ->(a, b) { a <= b })
+        return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a <= b })
 
         # version comparison
         # need to check for nil or empty value because Version takes them as valid values
       when :version_gt
         return false if value.to_s.empty?
-        return (Gem::Version.new(value) > Gem::Version.new(target) rescue false)
+
+        return begin
+          Gem::Version.new(value) > Gem::Version.new(target)
+        rescue StandardError
+          false
+        end
       when :version_gte
         return false if value.to_s.empty?
-        return (Gem::Version.new(value) >= Gem::Version.new(target) rescue false)
+
+        return begin
+          Gem::Version.new(value) >= Gem::Version.new(target)
+        rescue StandardError
+          false
+        end
       when :version_lt
         return false if value.to_s.empty?
-        return (Gem::Version.new(value) < Gem::Version.new(target) rescue false)
+
+        return begin
+          Gem::Version.new(value) < Gem::Version.new(target)
+        rescue StandardError
+          false
+        end
       when :version_lte
         return false if value.to_s.empty?
-        return (Gem::Version.new(value) <= Gem::Version.new(target) rescue false)
+
+        return begin
+          Gem::Version.new(value) <= Gem::Version.new(target)
+        rescue StandardError
+          false
+        end
       when :version_eq
         return false if value.to_s.empty?
-        return (Gem::Version.new(value) == Gem::Version.new(target) rescue false)
+
+        return begin
+          Gem::Version.new(value) == Gem::Version.new(target)
+        rescue StandardError
+          false
+        end
       when :version_neq
         return false if value.to_s.empty?
-        return (Gem::Version.new(value) != Gem::Version.new(target) rescue false)
+
+        return begin
+          Gem::Version.new(value) != Gem::Version.new(target)
+        rescue StandardError
+          false
+        end
 
         # array operations
       when :any
-        return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a == b })
+        return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a == b })
       when :none
-        return !EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a == b })
+        return !EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a == b })
       when :any_case_sensitive
-        return EvaluationHelpers::match_string_in_array(target, value, false, ->(a, b) { a == b })
+        return EvaluationHelpers.match_string_in_array(target, value, false, ->(a, b) { a == b })
       when :none_case_sensitive
-        return !EvaluationHelpers::match_string_in_array(target, value, false, ->(a, b) { a == b })
+        return !EvaluationHelpers.match_string_in_array(target, value, false, ->(a, b) { a == b })
 
         # string
       when :str_starts_with_any
-        return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.start_with?(b) })
+        return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.start_with?(b) })
       when :str_ends_with_any
-        return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.end_with?(b) })
+        return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.end_with?(b) })
       when :str_contains_any
-        return EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
+        return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
       when :str_contains_none
-        return !EvaluationHelpers::match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
+        return !EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
       when :str_matches
-        return (value.is_a?(String) && !(value =~ Regexp.new(target)).nil? rescue false)
+        return begin
+          value.is_a?(String) && !(value =~ Regexp.new(target)).nil?
+        rescue StandardError
+          false
+        end
       when :eq
         return value == target
       when :neq
@@ -386,11 +427,13 @@ module Statsig
 
         # dates
       when :before
-        return EvaluationHelpers::compare_times(value, target, ->(a, b) { a < b })
+        return EvaluationHelpers.compare_times(value, target, ->(a, b) { a < b })
       when :after
-        return EvaluationHelpers::compare_times(value, target, ->(a, b) { a > b })
+        return EvaluationHelpers.compare_times(value, target, ->(a, b) { a > b })
       when :on
-        return EvaluationHelpers::compare_times(value, target, ->(a, b) { a.year == b.year && a.month == b.month && a.day == b.day })
+        return EvaluationHelpers.compare_times(value, target, lambda { |a, b|
+                                                                a.year == b.year && a.month == b.month && a.day == b.day
+                                                              })
       when :in_segment_list, :not_in_segment_list
         begin
           is_in_list = false
@@ -400,8 +443,9 @@ module Statsig
             is_in_list = id_list.ids.include?(hashed_id)
           end
           return is_in_list if operator == :in_segment_list
+
           return !is_in_list
-        rescue
+        rescue StandardError
           return false
         end
       end
@@ -424,8 +468,6 @@ module Statsig
                 user.locale
               when Const::APPVERSION, Const::APP_VERSION
                 user.app_version
-              else
-                nil
               end
       if value.nil?
         value = user.custom[field] if user.custom.is_a?(Hash)
@@ -438,6 +480,7 @@ module Statsig
 
     def get_value_from_environment(user, field)
       return nil unless user.statsig_environment.is_a? Hash
+
       user.statsig_environment.each do |key, value|
         return value if key.to_s.downcase == (field)
       end
@@ -446,6 +489,7 @@ module Statsig
 
     def get_value_from_ip(user, field)
       return nil unless field == Const::COUNTRY
+
       ip = get_value_from_user(user, Const::IP)
       return nil unless ip.is_a?(String)
 
@@ -469,25 +513,20 @@ module Statsig
       when Const::BROWSERVERSION, Const::BROWSER_VERSION
         parsed = UAParser.parse_ua(ua)
         return parsed.version.to_s
-      else
-        nil
       end
     end
 
     def eval_pass_percent(user, rule, config_salt)
-      return false unless config_salt.is_a?(String) && !rule[:passPercentage].nil?
-      begin
-        unit_id = user.get_unit_id(rule[:idType]) || Const::EMPTY_STR
-        rule_salt = rule[:salt] || rule[:id] || Const::EMPTY_STR
-        hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
-        return (hash % 10000) < (rule[:passPercentage].to_f * 100)
-      rescue
-        return false
-      end
+      unit_id = user.get_unit_id(rule.id_type) || Const::EMPTY_STR
+      rule_salt = rule.salt || rule.id || Const::EMPTY_STR
+      hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
+      return (hash % 10_000) < (rule.pass_percentage * 100)
+    rescue StandardError
+      return false
     end
 
     def compute_user_hash(user_hash)
-      Digest::SHA256.digest(user_hash).unpack(Const::Q_RIGHT_CHEVRON)[0]
+      Digest::SHA256.digest(user_hash).unpack1(Const::Q_RIGHT_CHEVRON)
     end
   end
 end

@@ -1,14 +1,13 @@
-
 require 'net/http'
 require 'uri'
 require 'evaluation_details'
 require 'id_list'
 require 'concurrent-ruby'
 require 'hash_utils'
+require 'api_config'
 
 module Statsig
   class SpecStore
-
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
@@ -46,7 +45,7 @@ module Statsig
         options.idlist_threadpool_size,
         name: 'statsig-idlist',
         max_queue: 100,
-        fallback_policy: :discard,
+        fallback_policy: :discard
       )
 
       unless @options.bootstrap_values.nil?
@@ -58,7 +57,7 @@ module Statsig
             if process_specs(options.bootstrap_values)
               @init_reason = EvaluationReason::BOOTSTRAP
             end
-          rescue
+          rescue StandardError
             puts 'the provided bootstrapValues is not a valid JSON string'
           ensure
             tracker.end(success: @init_reason == EvaluationReason::BOOTSTRAP)
@@ -114,16 +113,19 @@ module Statsig
 
     def get_gate(gate_name)
       return nil unless has_gate?(gate_name)
+
       @gates[gate_name]
     end
 
     def get_config(config_name)
       return nil unless has_config?(config_name)
+
       @configs[config_name]
     end
 
     def get_layer(layer_name)
       return nil unless has_layer?(layer_name)
+
       @layers[layer_name]
     end
 
@@ -143,12 +145,15 @@ module Statsig
       if sdk_key.nil?
         return nil
       end
+
       hashed_sdk_key = Statsig::HashUtils.djb2(sdk_key).to_sym
       if has_hashed_sdk_key?(hashed_sdk_key)
         return @hashed_sdk_keys_to_app_ids[hashed_sdk_key]
       end
+
       key = sdk_key.to_sym
       return nil unless has_sdk_key?(key)
+
       @sdk_keys_to_app_ids[key]
     end
 
@@ -203,6 +208,7 @@ module Statsig
       if @options.data_store.nil?
         return
       end
+
       @options.data_store.set(Interfaces::IDataStore::CONFIG_SPECS_KEY, specs_string)
     end
 
@@ -256,7 +262,10 @@ module Statsig
             end
             tracker.end(success: @init_reason == EvaluationReason::NETWORK)
 
-            @rules_updated_callback.call(response.body.to_s, @last_config_sync_time) unless response.body.nil? or @rules_updated_callback.nil?
+            unless response.body.nil? or @rules_updated_callback.nil?
+              @rules_updated_callback.call(response.body.to_s,
+                                           @last_config_sync_time)
+            end
           end
 
           nil
@@ -275,7 +284,7 @@ module Statsig
         return false
       end
 
-      specs_json = JSON.parse(specs_string, {:symbolize_names => true})
+      specs_json = JSON.parse(specs_string, { symbolize_names: true })
       return false unless specs_json.is_a? Hash
 
       hashed_sdk_key_used = specs_json[:hashed_sdk_key_used]
@@ -286,10 +295,9 @@ module Statsig
 
       @last_config_sync_time = specs_json[:time] || @last_config_sync_time
       return false unless specs_json[:has_updates] == true &&
-        !specs_json[:feature_gates].nil? &&
-        !specs_json[:dynamic_configs].nil? &&
-        !specs_json[:layer_configs].nil?
-
+                          !specs_json[:feature_gates].nil? &&
+                          !specs_json[:dynamic_configs].nil? &&
+                          !specs_json[:layer_configs].nil?
 
       new_gates = process_configs(specs_json[:feature_gates])
       new_configs = process_configs(specs_json[:dynamic_configs])
@@ -299,9 +307,9 @@ module Statsig
       specs_json[:diagnostics]&.each { |key, value| @diagnostics.sample_rates[key.to_s] = value }
 
       if specs_json[:layers].is_a?(Hash)
-        specs_json[:layers].each { |layer_name, experiments|
+        specs_json[:layers].each do |layer_name, experiments|
           experiments.each { |experiment_name| new_exp_to_layer[experiment_name] = layer_name }
-        }
+        end
       end
 
       @gates = new_gates
@@ -319,35 +327,7 @@ module Statsig
 
     def process_configs(configs)
       configs.each_with_object({}) do |config, new_configs|
-        new_configs[config[:name]] = process_config(config)
-      end
-    end
-
-    def process_config(config)
-      config[:rules] = process_rules(config[:rules]) if config.key?(:rules)
-      config
-    end
-
-    def process_rules(rules)
-      rules.map do |rule|
-        rule[:conditions] = process_conditions(rule[:conditions]) if rule.key?(:conditions)
-        rule
-      end
-    end
-
-    def process_conditions(conditions)
-      conditions.map do |condition|
-        # try symbols for perf
-        condition[:operator] = condition[:operator].downcase.to_sym unless condition[:operator].nil?
-        condition[:type] = condition[:type].downcase.to_sym unless condition[:type].nil?
-
-        if condition[:targetValue].is_a?(Array)
-          # target values are really sets, which will be more performant for evaluation
-          # for now, create the set
-          condition[:targetValue] = condition[:targetValue].to_set
-        end
-
-        condition
+        new_configs[config[:name]] = APIConfig.from_json(config)
       end
     end
 
@@ -369,6 +349,7 @@ module Statsig
       if @options.data_store.nil?
         return
       end
+
       @options.data_store.set(Interfaces::IDataStore::ID_LISTS_KEY, id_lists_raw_json)
     end
 
@@ -381,7 +362,7 @@ module Statsig
       end
       success = e.nil? && !response.nil?
       tracker.end(statusCode: code, success: success, sdkRegion: response&.headers&.[]('X-Statsig-Region'))
-      if !success
+      unless success
         return
       end
 
@@ -389,7 +370,7 @@ module Statsig
         server_id_lists = JSON.parse(response)
         process_id_lists(server_id_lists)
         save_id_lists_to_adapter(response.body.to_s)
-      rescue
+      rescue StandardError
         # Ignored, will try again
       end
     end
@@ -399,6 +380,7 @@ module Statsig
       if !new_id_lists.is_a?(Hash) || !local_id_lists.is_a?(Hash)
         return
       end
+
       tasks = []
 
       tracker = @diagnostics.track(
@@ -413,7 +395,7 @@ module Statsig
       end
 
       delete_lists = []
-      local_id_lists.each do |list_name, list|
+      local_id_lists.each do |list_name, _list|
         unless new_id_lists.key? list_name
           delete_lists.push list_name
         end
@@ -449,7 +431,7 @@ module Statsig
           next
         end
 
-        tasks << Concurrent::Promise.execute(:executor => @id_list_thread_pool) do
+        tasks << Concurrent::Promise.execute(executor: @id_list_thread_pool) do
           if from_adapter
             get_single_id_list_from_adapter(local_list)
           else
@@ -492,7 +474,7 @@ module Statsig
         content = res.body.to_s
         success = process_single_id_list(list, content, content_length)
         save_single_id_list_to_adapter(list.name, content) unless success.nil? || !success
-      rescue
+      rescue StandardError
         tracker.end(success: false)
         nil
       end
@@ -512,6 +494,7 @@ module Statsig
         lines.each do |li|
           line = li.strip
           next if line.length <= 1
+
           op = line[0]
           id = line[1..line.length]
           if op == '+'
@@ -528,11 +511,10 @@ module Statsig
                     end
         tracker.end(success: true)
         return true
-      rescue
+      rescue StandardError
         tracker.end(success: false)
         return false
       end
     end
-
   end
 end
