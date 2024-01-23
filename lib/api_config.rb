@@ -117,18 +117,12 @@ module Statsig
 
       new(
         type: json[:type],
-        target_value: process_target_value(json[:targetValue], json[:operator], json[:type]),
+        target_value: json[:targetValue],
         operator: json[:operator],
         field: json[:field],
         additional_values: json[:additionalValues],
         id_type: json[:idType]
       )
-    end
-
-    def self.process_target_value(target_value, _operator, _type)
-      return target_value unless target_value.is_a?(Array)
-
-      target_value.to_set
     end
   end
 end

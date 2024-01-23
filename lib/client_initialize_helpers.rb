@@ -4,11 +4,11 @@ require 'constants'
 
 module Statsig
   class ResponseFormatter
-    def self.get_responses(entities, evaluator, user, client_sdk_key, hash_algo)
+    def self.get_responses(entities, evaluator, user, client_sdk_key, hash_algo, include_exposures: true)
       result = {}
 
       entities.each do |name, spec|
-        hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo)
+        hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo, include_exposures)
         if !hashed_name.nil? && !value.nil?
           result[hashed_name] = value
         end
@@ -17,7 +17,7 @@ module Statsig
       result
     end
 
-    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo)
+    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures)
       target_app_id = evaluator.spec_store.get_app_id_for_sdk_key(client_sdk_key)
       config_target_apps = config_spec.target_app_ids
 
@@ -31,7 +31,7 @@ module Statsig
         return nil
       end
 
-      eval_result = ConfigResult.new(config_name)
+      eval_result = ConfigResult.new(config_name, disable_evaluation_details: true)
       evaluator.eval_spec(user, config_spec, eval_result)
 
       result = {}
@@ -58,7 +58,7 @@ module Statsig
       end
 
       if entity_type == :layer
-        populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo)
+        populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo, include_exposures)
         result.delete(:id_type) # not exposed for layer configs in /initialize
       end
 
@@ -66,7 +66,10 @@ module Statsig
 
       result[:name] = hashed_name
       result[:rule_id] = eval_result.rule_id
-      result[:secondary_exposures] = clean_exposures(eval_result.secondary_exposures)
+
+      if include_exposures
+        result[:secondary_exposures] = clean_exposures(eval_result.secondary_exposures)
+      end
 
       [hashed_name, result]
     end
@@ -101,7 +104,7 @@ module Statsig
       result[:value] = layer[:defaultValue].merge(result[:value])
     end
 
-    def self.populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo)
+    def self.populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo, include_exposures)
       delegate = eval_result.config_delegate
       result[:explicit_parameters] = config_spec.explicit_parameters || []
 
@@ -114,7 +117,9 @@ module Statsig
         result[:explicit_parameters] = delegate_spec.explicit_parameters || []
       end
 
-      result[:undelegated_secondary_exposures] = clean_exposures(eval_result.undelegated_sec_exps || [])
+      if include_exposures
+        result[:undelegated_secondary_exposures] = clean_exposures(eval_result.undelegated_sec_exps || [])
+      end
     end
 
     def self.hash_name(name, hash_algo)

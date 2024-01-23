@@ -158,12 +158,12 @@ module Statsig
       end
 
       {
-        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, client_sdk_key,
-                                                                hash_algo),
-        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, client_sdk_key,
-                                                                  hash_algo),
-        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, client_sdk_key,
-                                                                hash_algo),
+        feature_gates: Statsig::ResponseFormatter
+                         .get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo),
+        dynamic_configs: Statsig::ResponseFormatter
+                           .get_responses(@spec_store.configs, self, user, client_sdk_key, hash_algo),
+        layer_configs: Statsig::ResponseFormatter
+                         .get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo),
         sdkParams: {},
         has_updates: true,
         generator: Const::STATSIG_RUBY_SDK,
@@ -180,9 +180,12 @@ module Statsig
       end
 
       {
-        feature_gates: Statsig::ResponseFormatter.get_responses(@spec_store.gates, self, user, nil, 'none'),
-        dynamic_configs: Statsig::ResponseFormatter.get_responses(@spec_store.configs, self, user, nil, 'none'),
-        layer_configs: Statsig::ResponseFormatter.get_responses(@spec_store.layers, self, user, nil, 'none')
+        feature_gates: Statsig::ResponseFormatter
+                         .get_responses(@spec_store.gates, self, user, nil, 'none', include_exposures: false),
+        dynamic_configs: Statsig::ResponseFormatter
+                           .get_responses(@spec_store.configs, self, user, nil, 'none', include_exposures: false),
+        layer_configs: Statsig::ResponseFormatter
+                         .get_responses(@spec_store.layers, self, user, nil, 'none', include_exposures: false)
       }
     end
 
@@ -220,11 +223,15 @@ module Statsig
     def eval_spec(user, config, end_result)
       end_result.id_type = config.id_type
       end_result.target_app_ids = config.target_app_ids
-      end_result.evaluation_details = EvaluationDetails.new(
-        @spec_store.last_config_sync_time,
-        @spec_store.initial_config_sync_time,
-        @spec_store.init_reason
-      )
+
+      if end_result.disable_evaluation_details != true
+        end_result.evaluation_details = EvaluationDetails.new(
+          @spec_store.last_config_sync_time,
+          @spec_store.initial_config_sync_time,
+          @spec_store.init_reason
+        )
+      end
+
       default_rule_id = Const::DEFAULT
       if config.enabled
         i = 0
@@ -255,11 +262,6 @@ module Statsig
       end_result.rule_id = default_rule_id
       end_result.gate_value = false
       end_result.json_value = config.default_value
-      end_result.evaluation_details = EvaluationDetails.new(
-        @spec_store.last_config_sync_time,
-        @spec_store.initial_config_sync_time,
-        @spec_store.init_reason
-      )
       end_result.group_name = nil
     end
 
@@ -271,7 +273,7 @@ module Statsig
       until i >= rule.conditions.length
         result = eval_condition(user, rule.conditions[i], end_result)
 
-        pass = false if result == false
+        pass = false if result != true
         i += 1
       end
 
@@ -358,60 +360,60 @@ module Statsig
         return false if value.to_s.empty?
 
         return begin
-          Gem::Version.new(value) > Gem::Version.new(target)
-        rescue StandardError
-          false
-        end
+                 Gem::Version.new(value) > Gem::Version.new(target)
+               rescue StandardError
+                 false
+               end
       when :version_gte
         return false if value.to_s.empty?
 
         return begin
-          Gem::Version.new(value) >= Gem::Version.new(target)
-        rescue StandardError
-          false
-        end
+                 Gem::Version.new(value) >= Gem::Version.new(target)
+               rescue StandardError
+                 false
+               end
       when :version_lt
         return false if value.to_s.empty?
 
         return begin
-          Gem::Version.new(value) < Gem::Version.new(target)
-        rescue StandardError
-          false
-        end
+                 Gem::Version.new(value) < Gem::Version.new(target)
+               rescue StandardError
+                 false
+               end
       when :version_lte
         return false if value.to_s.empty?
 
         return begin
-          Gem::Version.new(value) <= Gem::Version.new(target)
-        rescue StandardError
-          false
-        end
+                 Gem::Version.new(value) <= Gem::Version.new(target)
+               rescue StandardError
+                 false
+               end
       when :version_eq
         return false if value.to_s.empty?
 
         return begin
-          Gem::Version.new(value) == Gem::Version.new(target)
-        rescue StandardError
-          false
-        end
+                 Gem::Version.new(value) == Gem::Version.new(target)
+               rescue StandardError
+                 false
+               end
       when :version_neq
         return false if value.to_s.empty?
 
         return begin
-          Gem::Version.new(value) != Gem::Version.new(target)
-        rescue StandardError
-          false
-        end
+                 Gem::Version.new(value) != Gem::Version.new(target)
+               rescue StandardError
+                 false
+               end
 
         # array operations
       when :any
-        return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a == b })
+        return EvaluationHelpers::equal_string_in_array(target, value, true)
       when :none
-        return !EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a == b })
+        return !EvaluationHelpers::equal_string_in_array(target, value, true)
       when :any_case_sensitive
-        return EvaluationHelpers.match_string_in_array(target, value, false, ->(a, b) { a == b })
+        return EvaluationHelpers::equal_string_in_array(target, value, false)
       when :none_case_sensitive
-        return !EvaluationHelpers.match_string_in_array(target, value, false, ->(a, b) { a == b })
+        return !EvaluationHelpers::equal_string_in_array(target, value, false)
 
         # string
       when :str_starts_with_any
@@ -424,10 +426,10 @@ module Statsig
         return !EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
       when :str_matches
         return begin
-          value.is_a?(String) && !(value =~ Regexp.new(target)).nil?
-        rescue StandardError
-          false
-        end
+                 value&.is_a?(String) && !(value =~ Regexp.new(target)).nil?
+               rescue StandardError
+                 false
+               end
       when :eq
         return value == target
       when :neq
@@ -440,8 +442,8 @@ module Statsig
         return EvaluationHelpers.compare_times(value, target, ->(a, b) { a > b })
       when :on
         return EvaluationHelpers.compare_times(value, target, lambda { |a, b|
-                                                                a.year == b.year && a.month == b.month && a.day == b.day
-                                                              })
+          a.year == b.year && a.month == b.month && a.day == b.day
+        })
       when :in_segment_list, :not_in_segment_list
         begin
           is_in_list = false
@@ -461,22 +463,9 @@ module Statsig
     end
 
     def get_value_from_user(user, field)
-      value = case field.downcase
-              when Const::USERID, Const::USER_ID
-                user.user_id
-              when Const::EMAIL
-                user.email
-              when Const::IP
-                user.ip
-              when Const::USERAGENT, Const::USER_AGENT
-                user.user_agent
-              when Const::COUNTRY
-                user.country
-              when Const::LOCALE
-                user.locale
-              when Const::APPVERSION, Const::APP_VERSION
-                user.app_version
-              end
+      value = get_value_from_user_field(user, field)
+      value ||= get_value_from_user_field(user, field.downcase)
+
       if value.nil?
         value = user.custom[field] if user.custom.is_a?(Hash)
         value = user.custom[field.to_sym] if value.nil? && user.custom.is_a?(Hash)
@@ -484,6 +473,27 @@ module Statsig
         value = user.private_attributes[field.to_sym] if value.nil? && user.private_attributes.is_a?(Hash)
       end
       value
+    end
+
+    def get_value_from_user_field(user, field)
+      case field
+      when Const::USERID, Const::USER_ID
+        user.user_id
+      when Const::EMAIL
+        user.email
+      when Const::IP
+        user.ip
+      when Const::USERAGENT, Const::USER_AGENT
+        user.user_agent
+      when Const::COUNTRY
+        user.country
+      when Const::LOCALE
+        user.locale
+      when Const::APPVERSION, Const::APP_VERSION
+        user.app_version
+      else
+        nil
+      end
     end
 
     def get_value_from_environment(user, field)
@@ -536,5 +546,6 @@ module Statsig
     def compute_user_hash(user_hash)
       Digest::SHA256.digest(user_hash).unpack1(Const::Q_RIGHT_CHEVRON)
     end
+
   end
 end

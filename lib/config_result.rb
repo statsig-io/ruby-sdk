@@ -14,6 +14,7 @@ module Statsig
     attr_accessor :group_name
     attr_accessor :id_type
     attr_accessor :target_app_ids
+    attr_accessor :disable_evaluation_details
 
     def initialize(
       name,
@@ -27,7 +28,8 @@ module Statsig
       evaluation_details: nil,
       group_name: nil,
       id_type: '',
-      target_app_ids: nil)
+      target_app_ids: nil,
+      disable_evaluation_details: false)
       @name = name
       @gate_value = gate_value
       @json_value = json_value
@@ -41,6 +43,7 @@ module Statsig
       @group_name = group_name
       @id_type = id_type
       @target_app_ids = target_app_ids
+      @disable_evaluation_details = disable_evaluation_details
     end
 
     def self.from_user_persisted_values(config_name, user_persisted_values)
