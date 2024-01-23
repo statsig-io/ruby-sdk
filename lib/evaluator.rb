@@ -56,7 +56,9 @@ module Statsig
       unless @spec_store.has_gate?(gate_name)
         return Statsig::ConfigResult.new(gate_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
-      eval_spec(user, @spec_store.get_gate(gate_name))
+      result = Statsig::ConfigResult.new(gate_name)
+      eval_spec(user, @spec_store.get_gate(gate_name), result)
+      result
     end
 
     def get_config(user, config_name, user_persisted_values: nil)
@@ -98,17 +100,19 @@ module Statsig
         return sticky_result unless sticky_result.nil?
 
         # If it doesn't exist, then save to persisted storage if the user was assigned to an experiment group.
-        evaluation = eval_spec(user, config)
-        if evaluation.is_experiment_group
-          @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name, evaluation)
+        result = Statsig::ConfigResult.new(config_name)
+        eval_spec(user, config, result)
+        if result.is_experiment_group
+          @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name, result)
           @persistent_storage_utils.save_to_storage(user, config[:idType], user_persisted_values)
         end
         # Otherwise, remove from persisted storage
       else
         @persistent_storage_utils.remove_experiment_from_storage(user, config[:idType], config_name)
-        evaluation = eval_spec(user, config)
+        result = Statsig::ConfigResult.new(config_name)
+        eval_spec(user, config, result)
       end
-      evaluation
+      result
     end
 
     def get_layer(user, layer_name)
@@ -120,7 +124,9 @@ module Statsig
         return Statsig::ConfigResult.new(layer_name, evaluation_details: EvaluationDetails.unrecognized(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time))
       end
 
-      eval_spec(user, @spec_store.get_layer(layer_name))
+      result = Statsig::ConfigResult.new(layer_name)
+      eval_spec(user, @spec_store.get_layer(layer_name), result)
+      result
     end
 
     def list_gates
@@ -195,53 +201,33 @@ module Statsig
       @config_overrides[config] = value
     end
 
-    def eval_spec(user, config)
+    def eval_spec(user, config, end_result)
+      end_result.id_type = config[:idType]
+      end_result.target_app_ids = config[:targetAppIDs]
+      end_result.evaluation_details = EvaluationDetails.new(
+        @spec_store.last_config_sync_time,
+        @spec_store.initial_config_sync_time,
+        @spec_store.init_reason
+      )
       default_rule_id = Const::DEFAULT
-      exposures = []
       if config[:enabled]
         i = 0
         until i >= config[:rules].length do
           rule = config[:rules][i]
-          result = eval_rule(user, rule)
-          return Statsig::ConfigResult.new(
-            config[:name],
-            false,
-            config[:defaultValue],
-            Const::EMPTY_STR,
-            exposures,
-            evaluation_details: EvaluationDetails.new(
-              @spec_store.last_config_sync_time,
-              @spec_store.initial_config_sync_time,
-              EvaluationReason::UNSUPPORTED,
-            ),
-            group_name: nil,
-            id_type: config[:idType],
-            target_app_ids: config[:targetAppIDs]
-          ) if result == UNSUPPORTED_EVALUATION
-          exposures = exposures + result.secondary_exposures
-          if result.gate_value
+          eval_rule(user, rule, end_result)
 
-            if (delegated_result = eval_delegate(config[:name], user, rule, exposures))
-              return delegated_result
+          if end_result.gate_value
+            if eval_delegate(config[:name], user, rule, end_result)
+              return
             end
 
             pass = eval_pass_percent(user, rule, config[:salt])
-            return Statsig::ConfigResult.new(
-              config[:name],
-              pass,
-              pass ? result.json_value : config[:defaultValue],
-              result.rule_id,
-              exposures,
-              evaluation_details: EvaluationDetails.new(
-                @spec_store.last_config_sync_time,
-                @spec_store.initial_config_sync_time,
-                @spec_store.init_reason
-              ),
-              is_experiment_group: result.is_experiment_group,
-              group_name: result.group_name,
-              id_type: config[:idType],
-              target_app_ids: config[:targetAppIDs]
-            )
+            end_result.gate_value = pass
+            end_result.json_value = pass ? rule[:returnValue] : config[:defaultValue]
+            end_result.rule_id = rule[:id]
+            end_result.group_name = rule[:groupName]
+            end_result.is_experiment_group = rule[:isExperimentGroup] == true
+            return
           end
 
           i += 1
@@ -250,76 +236,47 @@ module Statsig
         default_rule_id = Const::DISABLED
       end
 
-      Statsig::ConfigResult.new(
-        config[:name],
-        false,
-        config[:defaultValue],
-        default_rule_id,
-        exposures,
-        evaluation_details: EvaluationDetails.new(
-          @spec_store.last_config_sync_time,
-          @spec_store.initial_config_sync_time,
-          @spec_store.init_reason
-        ),
-        group_name: nil,
-        id_type: config[:idType],
-        target_app_ids: config[:targetAppIDs]
+      end_result.rule_id = default_rule_id
+      end_result.gate_value = false
+      end_result.json_value = config[:defaultValue]
+      end_result.evaluation_details = EvaluationDetails.new(
+        @spec_store.last_config_sync_time,
+        @spec_store.initial_config_sync_time,
+        @spec_store.init_reason
       )
+      end_result.group_name = nil
     end
 
     private
 
-    def eval_rule(user, rule)
-      exposures = []
+    def eval_rule(user, rule, end_result)
       pass = true
       i = 0
       until i >= rule[:conditions].length do
-        result = eval_condition(user, rule[:conditions][i])
-        if result == UNSUPPORTED_EVALUATION
-          return UNSUPPORTED_EVALUATION
-        end
+        result = eval_condition(user, rule[:conditions][i], end_result)
 
-        if result.is_a?(Hash)
-          exposures = exposures + result[:exposures]
-          pass = false if result[:value] == false
-        elsif result == false
-          pass = false
-        end
+        pass = false if result == false
         i += 1
       end
 
-      Statsig::ConfigResult.new(
-        Const::EMPTY_STR,
-        pass,
-        rule[:returnValue],
-        rule[:id],
-        exposures,
-        evaluation_details: EvaluationDetails.new(
-          @spec_store.last_config_sync_time,
-          @spec_store.initial_config_sync_time,
-          @spec_store.init_reason
-        ),
-        is_experiment_group: rule[:isExperimentGroup] == true,
-        group_name: rule[:groupName]
-      )
+      end_result.gate_value = pass
     end
 
-    def eval_delegate(name, user, rule, exposures)
-      return nil unless (delegate = rule[:configDelegate])
-      return nil unless (config = @spec_store.get_config(delegate))
+    def eval_delegate(name, user, rule, end_result)
+      return false unless (delegate = rule[:configDelegate])
+      return false unless (config = @spec_store.get_config(delegate))
 
-      delegated_result = self.eval_spec(user, config)
-      return UNSUPPORTED_EVALUATION if delegated_result == UNSUPPORTED_EVALUATION
+      end_result.undelegated_sec_exps = end_result.secondary_exposures.dup
+      self.eval_spec(user, config, end_result)
 
-      delegated_result.name = name
-      delegated_result.config_delegate = delegate
-      delegated_result.secondary_exposures = exposures + delegated_result.secondary_exposures
-      delegated_result.undelegated_sec_exps = exposures
-      delegated_result.explicit_parameters = config[:explicitParameters]
-      delegated_result
+      end_result.name = name
+      end_result.config_delegate = delegate
+      end_result.explicit_parameters = config[:explicitParameters]
+
+      true
     end
 
-    def eval_condition(user, condition)
+    def eval_condition(user, condition, end_result)
       value = nil
       field = condition[:field]
       target = condition[:targetValue]
@@ -334,19 +291,18 @@ module Statsig
         return true
       when :fail_gate, :pass_gate
         other_gate_result = check_gate(user, target)
-        return UNSUPPORTED_EVALUATION if other_gate_result == UNSUPPORTED_EVALUATION
 
-        gate_value = other_gate_result&.gate_value == true
+        gate_value = other_gate_result.gate_value
         new_exposure = {
           gate: target,
           gateValue: gate_value ? Const::TRUE : Const::FALSE,
-          ruleID: other_gate_result&.rule_id
+          ruleID: other_gate_result.rule_id
         }
-        exposures = other_gate_result&.secondary_exposures&.append(new_exposure)
-        return {
-          value: type == :pass_gate ? gate_value : !gate_value,
-          exposures: exposures
-        }
+        if other_gate_result.secondary_exposures.length > 0
+          end_result.secondary_exposures.concat(other_gate_result.secondary_exposures)
+        end
+        end_result.secondary_exposures.append(new_exposure)
+        return type == :pass_gate ? gate_value : !gate_value
       when :ip_based
         value = get_value_from_user(user, field) || get_value_from_ip(user, field)
       when :ua_based
@@ -368,8 +324,6 @@ module Statsig
         end
       when :unit_id
         value = user.get_unit_id(id_type)
-      else
-        return UNSUPPORTED_EVALUATION
       end
 
       case operator
@@ -450,9 +404,8 @@ module Statsig
         rescue
           return false
         end
-      else
-        return UNSUPPORTED_EVALUATION
       end
+      return false
     end
 
     def get_value_from_user(user, field)

@@ -32,10 +32,8 @@ module Statsig
         return nil
       end
 
-      eval_result = evaluator.eval_spec(user, config_spec)
-      if eval_result.nil?
-        return nil
-      end
+      eval_result = ConfigResult.new(config_spec[:name])
+      evaluator.eval_spec(user, config_spec, eval_result)
 
       result = {}
 
@@ -61,7 +59,7 @@ module Statsig
       end
 
       if entity_type == Statsig::Const::LAYER
-        populate_layer_fields(config_spec, eval_result, result, evaluator, user, hash_algo)
+        populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo)
         result.delete(:id_type) # not exposed for layer configs in /initialize
       end
 
@@ -106,16 +104,15 @@ module Statsig
       result[:value] = layer[:defaultValue].merge(result[:value])
     end
 
-    def self.populate_layer_fields(config_spec, eval_result, result, evaluator, user, hash_algo)
+    def self.populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo)
       delegate = eval_result.config_delegate
       result[:explicit_parameters] = config_spec[:explicitParameters] || []
 
       if delegate.nil? == false && delegate.empty? == false
         delegate_spec = evaluator.spec_store.configs[delegate]
-        delegate_result = evaluator.eval_spec(user, delegate_spec)
 
         result[:allocated_experiment_name] = hash_name(delegate, hash_algo)
-        result[:is_user_in_experiment] = delegate_result.is_experiment_group
+        result[:is_user_in_experiment] = eval_result.is_experiment_group
         result[:is_experiment_active] = delegate_spec[:isActive] == true
         result[:explicit_parameters] = delegate_spec[:explicitParameters] || []
       end
