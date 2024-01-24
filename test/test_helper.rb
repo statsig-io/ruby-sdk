@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'simplecov'
 require 'simplecov-lcov'
 require 'simplecov-cobertura'

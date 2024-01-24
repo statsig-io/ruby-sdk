@@ -2,9 +2,9 @@ name: build-and-test
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, performance-improvements]
   pull_request:
-    branches: [main]
+    branches: [main, performance-improvements]
 
 env:
   COVERAGE: true
@@ -28,10 +28,6 @@ jobs:
         run: |
           bundle config set --local without 'rubocop'
           bundle install
-
-      # If you add a new dependency, be sure to run `bundle exec srb rbi update`
-      - name: Typecheck
-        run: bundle exec srb tc
 
       - name: Run tests
         run: rake test

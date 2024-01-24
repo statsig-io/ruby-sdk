@@ -1,4 +1,4 @@
-# typed: true
+
 class StatsigEvent
   attr_accessor :value, :metadata, :statsig_metadata, :secondary_exposures
   attr_reader :user
@@ -21,13 +21,13 @@ class StatsigEvent
 
   def serialize
     {
-      'eventName' => @event_name,
-      'metadata' => @metadata,
-      'value' => @value,
-      'user' => @user,
-      'time' => @time,
-      'statsigMetadata' => @statsig_metadata,
-      'secondaryExposures' => @secondary_exposures
+      :eventName => @event_name,
+      :metadata => @metadata,
+      :value => @value,
+      :user => @user,
+      :time => @time,
+      :statsigMetadata => @statsig_metadata,
+      :secondaryExposures => @secondary_exposures
     }
   end
 end

@@ -1,4 +1,4 @@
-# typed: true
+
 
 require_relative 'test_helper'
 require 'json'
@@ -83,23 +83,23 @@ class ManualExposureTest < BaseTest
     assert_equal(4, events.size)
 
     gate_exposure = events[0]
-    assert_equal('statsig::gate_exposure', gate_exposure['eventName'])
-    assert_equal('always_on_gate', gate_exposure['metadata']['gate'])
-    assert_equal('true', gate_exposure['metadata']['isManualExposure'])
+    assert_equal('statsig::gate_exposure', gate_exposure[:eventName])
+    assert_equal('always_on_gate', gate_exposure[:metadata][:gate])
+    assert_equal('true', gate_exposure[:metadata][:isManualExposure])
 
     config_exposure = events[1]
-    assert_equal('statsig::config_exposure', config_exposure['eventName'])
-    assert_equal('test_config', config_exposure['metadata']['config'])
-    assert_equal('true', config_exposure['metadata']['isManualExposure'])
+    assert_equal('statsig::config_exposure', config_exposure[:eventName])
+    assert_equal('test_config', config_exposure[:metadata][:config])
+    assert_equal('true', config_exposure[:metadata][:isManualExposure])
 
     experiment_exposure = events[2]
-    assert_equal('statsig::config_exposure', experiment_exposure['eventName'])
-    assert_equal('sample_experiment', experiment_exposure['metadata']['config'])
-    assert_equal('true', experiment_exposure['metadata']['isManualExposure'])
+    assert_equal('statsig::config_exposure', experiment_exposure[:eventName])
+    assert_equal('sample_experiment', experiment_exposure[:metadata][:config])
+    assert_equal('true', experiment_exposure[:metadata][:isManualExposure])
 
     layer_exposure = events[3]
-    assert_equal('statsig::layer_exposure', layer_exposure['eventName'])
-    assert_equal('a_layer', layer_exposure['metadata']['config'])
-    assert_equal('true', layer_exposure['metadata']['isManualExposure'])
+    assert_equal('statsig::layer_exposure', layer_exposure[:eventName])
+    assert_equal('a_layer', layer_exposure[:metadata][:config])
+    assert_equal('true', layer_exposure[:metadata][:isManualExposure])
   end
 end

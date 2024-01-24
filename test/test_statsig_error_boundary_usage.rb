@@ -103,12 +103,18 @@ class StatsigErrorBoundaryUsageTest < BaseTest
 
   def test_errors_with_initialize
     opts = MiniTest::Mock.new
-    (0..1).each {
+    2.times do
       opts.expect(:is_a?, true, [StatsigOptions])
-    }
-    (0..3).each {
+    end
+    4.times do
       opts.expect(:nil?, false)
-    }
+    end
+
+    opts.expect(:local_mode, false, [])
+    opts.expect(:network_timeout, nil, [])
+    opts.expect(:post_logs_retry_backoff, nil, [])
+    opts.expect(:post_logs_retry_limit, nil, [])
+    opts.expect(:logger_threadpool_size, nil, [])
 
     opts.expect(:instance_of?, true, [StatsigOptions])
 

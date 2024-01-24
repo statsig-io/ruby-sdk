@@ -1,4 +1,4 @@
-# typed: true
+
 
 require_relative 'test_helper'
 require 'minitest'
@@ -32,8 +32,8 @@ class LayerTest < BaseTest
     assert(@layer.get_typed('number', 0) == 2)
     assert(@layer.get_typed('string', 'default') == 'string')
     assert(@layer.get_typed("object", {}) == {
-      key: 'value',
-      key2: 123,
+      "key" => 'value',
+      "key2" => 123,
     })
     assert(@layer.get_typed("arr", []) == [1, 2, 'three'])
 
@@ -50,8 +50,8 @@ class LayerTest < BaseTest
     assert(@layer.get('number', 0) == 2)
     assert(@layer.get('string', 'default') == 'string')
     assert(@layer.get("object", {}) == {
-      key: 'value',
-      key2: 123,
+      "key" => 'value',
+      "key2" => 123,
     })
     assert(@layer.get("arr", []) == [1, 2, 'three'])
 
@@ -60,8 +60,8 @@ class LayerTest < BaseTest
     assert(@layer.get("string", 6) == 'string')
     assert(@layer.get("numberStr2", 3.3) == '3.3')
     assert(@layer.get("object", "string") == {
-      key: 'value',
-      key2: 123,
+      "key" => 'value',
+      "key2" => 123,
     })
     assert(@layer.get("arr", 12) == [1, 2, 'three'])
   end
