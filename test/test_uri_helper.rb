@@ -24,7 +24,7 @@ class TestURIHelper < BaseTest
     stub_download_config_specs('https://custom_dcs_url').to_return do |req|
       @dcs_counter[:custom_dcs_url] += 1
     end
-    @diagnostics = Statsig::Diagnostics.new('test')
+    @diagnostics = Statsig::Diagnostics.new()
     @error_boundary = Statsig::ErrorBoundary.new('secret-key')
   end
 

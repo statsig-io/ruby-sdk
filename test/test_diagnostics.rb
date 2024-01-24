@@ -224,6 +224,52 @@ class InitDiagnosticsTest < BaseTest
     assert_equal(0, @events.length)
   end
 
+  def test_diagnostics_disabled
+    json_file = File.read("#{__dir__}/data/download_config_specs.json")
+    @mock_response = JSON.parse(json_file)
+    @mock_response['diagnostics'] = {
+      "download_config_specs": 5000,
+      "get_id_list": 5000,
+      "get_id_list_sources": 5000
+    }
+
+    stub_download_config_specs.to_return(
+      status: 200,
+      body: @mock_response.to_json,
+      headers: { 'x-statsig-region' => 'az-westus-2' }
+    )
+    driver = StatsigDriver.new(
+      SDK_KEY,
+      StatsigOptions.new(
+        disable_diagnostics_logging: true
+      )
+    )
+    diagnostics = driver.instance_variable_get('@diagnostics')
+    logger = driver.instance_variable_get('@logger')
+    logger.flush
+
+    assert_equal(0, @events.length)
+    assert_equal(0, diagnostics.markers['initialize'].length)
+
+    10.times do
+      driver.manually_sync_rulesets
+    end
+    logger.flush
+
+    assert_equal(0, @events.length)
+    assert_equal(0, diagnostics.markers['config_sync'].length)
+
+    10.times do
+      driver.manually_sync_idlists
+    end
+    logger.flush
+
+    assert_equal(0, @events.length)
+    assert_equal(0, diagnostics.markers['config_sync'].length)
+
+    driver.shutdown
+  end
+
   def test_diagnostics_sampling
     json_file = File.read("#{__dir__}/data/download_config_specs.json")
     @mock_response = JSON.parse(json_file)
@@ -246,12 +292,14 @@ class InitDiagnosticsTest < BaseTest
         logging_interval_seconds: 9999
       )
     )
+    diagnostics = driver.instance_variable_get('@diagnostics')
     logger = driver.instance_variable_get('@logger')
     logger.flush
 
     assert_equal(1, @events.length)
     event = @events[0]
     assert_equal('statsig::diagnostics', event['eventName'])
+    assert_equal(0, diagnostics.markers['initialize'].length)
 
     metadata = event['metadata']
     assert_equal('initialize', metadata['context'])
@@ -268,6 +316,7 @@ class InitDiagnosticsTest < BaseTest
     )
     event = @events[0]
     assert_equal('statsig::diagnostics', event['eventName'])
+    assert_equal(0, diagnostics.markers['config_sync'].length)
 
     metadata = event['metadata']
     assert_equal('config_sync', metadata['context'])
@@ -284,6 +333,7 @@ class InitDiagnosticsTest < BaseTest
     )
     event = @events[0]
     assert_equal('statsig::diagnostics', event['eventName'])
+    assert_equal(0, diagnostics.markers['config_sync'].length)
 
     metadata = event['metadata']
     assert_equal('config_sync', metadata['context'])

@@ -31,8 +31,8 @@ class StatsigDriver
 
     @err_boundary = Statsig::ErrorBoundary.new(secret_key)
     @err_boundary.capture(task: lambda {
-      @diagnostics = Statsig::Diagnostics.new('initialize')
-      tracker = @diagnostics.track('overall')
+      @diagnostics = Statsig::Diagnostics.new()
+      tracker = @diagnostics.track('initialize', 'overall')
       @options = options || StatsigOptions.new
       @shutdown = false
       @secret_key = secret_key
@@ -43,7 +43,7 @@ class StatsigDriver
       @evaluator = Statsig::Evaluator.new(@store, @options, @persistent_storage_utils)
       tracker.end(success: true)
 
-      @logger.log_diagnostics_event(@diagnostics)
+      @logger.log_diagnostics_event(@diagnostics, 'initialize')
     }, caller: __method__.to_s)
   end
 
@@ -282,8 +282,8 @@ class StatsigDriver
   def run_with_diagnostics(task:, caller:)
     diagnostics = nil
     if Statsig::Diagnostics::API_CALL_KEYS.include?(caller) && Statsig::Diagnostics.sample(1)
-      diagnostics = Statsig::Diagnostics.new('api_call')
-      tracker = diagnostics.track(caller)
+      diagnostics = Statsig::Diagnostics.new()
+      tracker = diagnostics.track('api_call', caller)
     end
     begin
       res = task.call
@@ -292,7 +292,7 @@ class StatsigDriver
       tracker&.end(success: false)
       raise e
     ensure
-      @logger.log_diagnostics_event(diagnostics)
+      @logger.log_diagnostics_event(diagnostics, 'api_call')
     end
     return res
   end

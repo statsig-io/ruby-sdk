@@ -6,18 +6,14 @@ module Statsig
   class Diagnostics
     extend T::Sig
 
-    sig { returns(String) }
-    attr_accessor :context
-
-    sig { returns(T::Array[T::Hash[Symbol, T.untyped]]) }
+    sig { returns(T::Hash[String, T::Array[T::Hash[Symbol, T.untyped]]]) }
     attr_reader :markers
 
     sig { returns(T::Hash[String, Numeric]) }
     attr_accessor :sample_rates
 
-    def initialize(context)
-      @context = context
-      @markers = []
+    def initialize()
+      @markers = {:initialize => [], :api_call => [], :config_sync => []}
       @sample_rates = {}
     end
 
@@ -26,11 +22,12 @@ module Statsig
         key: String,
         action: String,
         step: T.any(String, NilClass),
-        tags: T::Hash[Symbol, T.untyped]
+        tags: T::Hash[Symbol, T.untyped],
+        context: String
       ).void
     end
 
-    def mark(key, action, step, tags)
+    def mark(key, action, step, tags, context)
       marker = {
         key: key,
         action: action,
@@ -44,58 +41,47 @@ module Statsig
           marker[key] = val
         end
       end
-      @markers.push(marker)
+      if @markers[context].nil?
+        @markers[context] = []
+      end
+      @markers[context].push(marker)
     end
 
     sig do
       params(
+        context: String,
         key: String,
         step: T.any(String, NilClass),
         tags: T::Hash[Symbol, T.untyped]
       ).returns(Tracker)
     end
-    def track(key, step = nil, tags = {})
-      tracker = Tracker.new(self, key, step, tags)
+    def track(context, key, step = nil, tags = {})
+      tracker = Tracker.new(self, context, key, step, tags)
       tracker.start(**tags)
       tracker
     end
 
-    sig { returns(T::Hash[Symbol, T.untyped]) }
-
-    def serialize
-      {
-        context: @context.clone,
-        markers: @markers.clone
-      }
-    end
-
-    def serialize_with_sampling
-      marker_keys = @markers.map { |e| e[:key] }
+    def serialize_with_sampling(context)
+      marker_keys = @markers[context].map { |e| e[:key] }
       unique_marker_keys = marker_keys.uniq { |e| e }
       sampled_marker_keys = unique_marker_keys.select do |key|
         @sample_rates.key?(key) && !self.class.sample(@sample_rates[key])
       end
-      final_markers = @markers.select do |marker|
+      final_markers = @markers[context].select do |marker|
         !sampled_marker_keys.include?(marker[:key])
       end
       {
-        context: @context.clone,
-        markers: final_markers
+        context: context.clone,
+        markers: final_markers.clone
       }
     end
 
-    def clear_markers
-      @markers.clear
+    def clear_markers(context)
+      @markers[context].clear
     end
 
     def self.sample(rate_over_ten_thousand)
       rand * 10_000 < rate_over_ten_thousand
-    end
-
-    class Context
-      INITIALIZE = 'initialize'.freeze
-      CONFIG_SYNC = 'config_sync'.freeze
-      API_CALL = 'api_call'.freeze
     end
 
     API_CALL_KEYS = %w[check_gate get_config get_experiment get_layer].freeze
@@ -106,24 +92,26 @@ module Statsig
       sig do
         params(
           diagnostics: Diagnostics,
+          context: String,
           key: String,
           step: T.any(String, NilClass),
           tags: T::Hash[Symbol, T.untyped]
         ).void
       end
-      def initialize(diagnostics, key, step, tags = {})
+      def initialize(diagnostics, context, key, step, tags = {})
         @diagnostics = diagnostics
+        @context = context
         @key = key
         @step = step
         @tags = tags
       end
 
       def start(**tags)
-        @diagnostics.mark(@key, 'start', @step, tags.nil? ? {} : tags.merge(@tags))
+        @diagnostics.mark(@key, 'start', @step, tags.nil? ? {} : tags.merge(@tags), @context)
       end
 
       def end(**tags)
-        @diagnostics.mark(@key, 'end', @step, tags.nil? ? {} : tags.merge(@tags))
+        @diagnostics.mark(@key, 'end', @step, tags.nil? ? {} : tags.merge(@tags), @context)
       end
     end
   end
