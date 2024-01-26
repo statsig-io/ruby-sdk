@@ -1,4 +1,3 @@
-# typed: true
 require 'time'
 
 module EvaluationHelpers
@@ -9,9 +8,41 @@ module EvaluationHelpers
 
   # returns true if array has any element that evaluates to true with value using func lambda, ignoring case
   def self.match_string_in_array(array, value, ignore_case, func)
-    return false unless array.is_a?(Array) && !value.nil?
     str_value = value.to_s
-    array.any?{ |s| !s.nil? && ((ignore_case && func.call(str_value.downcase, s.to_s.downcase)) || func.call(str_value, s.to_s)) } rescue false
+    str_value_downcased = nil
+
+    return false if array.nil?
+
+    return array.any? do |item|
+      next false if item.nil?
+      item_str = item.to_s
+
+      return true if func.call(str_value, item_str)
+      next false unless ignore_case
+
+      str_value_downcased ||= str_value.downcase
+      func.call(str_value_downcased, item_str.downcase)
+    end
+  end
+
+  def self.equal_string_in_array(array, value, ignore_case)
+    str_value = value.to_s
+    str_value_downcased = nil
+
+    return false if array.nil?
+
+    return array.any? do |item|
+      next false if item.nil?
+      item_str = item.to_s
+
+      next false unless item_str.length == str_value.length
+
+      return true if item_str == str_value
+      next false unless ignore_case
+
+      str_value_downcased ||= str_value.downcase
+      item_str.downcase == str_value_downcased
+    end
   end
 
   def self.compare_times(a, b, func)
@@ -27,6 +58,7 @@ module EvaluationHelpers
   private
 
   def self.is_numeric(v)
+    return true if v.is_a?(Numeric)
     !(v.to_s =~ /\A[-+]?\d*\.?\d+\z/).nil?
   end
 

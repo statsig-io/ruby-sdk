@@ -1,4 +1,4 @@
-# typed: true
+
 
 require 'interfaces/data_store'
 

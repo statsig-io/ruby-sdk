@@ -1,4 +1,4 @@
-# typed: true
+
 
 require_relative 'test_helper'
 require 'json'
@@ -143,12 +143,12 @@ class LayerExposureTest < BaseTest
       :post,
       'https://statsigapi.net/v1/log_event',
       :body => hash_including(
-        'events' => [
+        :events => [
           hash_including(
-            'eventName' => 'statsig::layer_exposure',
-            'user' => {
-              'userID' => 'dloomb',
-              'email' => 'dan@loomb.com',
+            :eventName => 'statsig::layer_exposure',
+            :user => {
+              :userID => 'dloomb',
+              :email => 'dan@loomb.com',
             },
           ),
         ]),

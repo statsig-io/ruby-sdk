@@ -1,4 +1,4 @@
-# typed: false
+
 
 require_relative 'test_helper'
 require 'minitest'
@@ -117,7 +117,7 @@ class TestLogging < BaseTest
          'ruleID' => 'another_rule_id'
        }],
       unrecognized_eval,
-      { 'is_manual_exposure' => true },
+      { :is_manual_exposure => true },
     )
 
     logger.log_config_exposure(
@@ -130,14 +130,14 @@ class TestLogging < BaseTest
          'ruleID' => 'another_rule_id_2'
        }],
       override_eval,
-      { 'is_manual_exposure' => false },
+      { :is_manual_exposure => false },
     )
 
     logger.log_layer_exposure(
       StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' } }),
       Layer.new('test_layer', { 'foo' => 1 }, 'layer_rule_id'),
       'test_parameter',
-      Statsig::ConfigResult.new('test_layer', evaluation_details: network_eval)
+      Statsig::ConfigResult.new(name: 'test_layer', evaluation_details: network_eval)
     )
 
     Spy.on(logger, :flush_async).and_return do
@@ -150,7 +150,7 @@ class TestLogging < BaseTest
     assert_instance_of(Array, events)
     assert_equal(3, events.size)
 
-    gate_exposure = events[0]
+    gate_exposure = JSON.parse(JSON.generate(events[0]))
     assert(gate_exposure['eventName'] == 'statsig::gate_exposure')
     assert_equal(
       {
@@ -172,7 +172,7 @@ class TestLogging < BaseTest
          'ruleID' => 'another_rule_id'
        }], gate_exposure['secondaryExposures'])
 
-    config_exposure = events[1]
+    config_exposure = JSON.parse(JSON.generate(events[1]))
     assert(config_exposure['eventName'] == 'statsig::config_exposure')
     assert_equal(
       {
@@ -192,7 +192,7 @@ class TestLogging < BaseTest
        }],
       config_exposure['secondaryExposures'])
 
-    layer_exposure = events[2]
+    layer_exposure = JSON.parse(JSON.generate(events[2]))
     assert_equal('statsig::layer_exposure', layer_exposure['eventName'])
     assert_equal(
       {

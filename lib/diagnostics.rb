@@ -1,30 +1,12 @@
-# typed: true
-
-require 'sorbet-runtime'
-
 module Statsig
   class Diagnostics
-    extend T::Sig
-
-    sig { returns(T::Hash[String, T::Array[T::Hash[Symbol, T.untyped]]]) }
     attr_reader :markers
 
-    sig { returns(T::Hash[String, Numeric]) }
     attr_accessor :sample_rates
 
     def initialize()
       @markers = {:initialize => [], :api_call => [], :config_sync => []}
       @sample_rates = {}
-    end
-
-    sig do
-      params(
-        key: String,
-        action: String,
-        step: T.any(String, NilClass),
-        tags: T::Hash[Symbol, T.untyped],
-        context: String
-      ).void
     end
 
     def mark(key, action, step, tags, context)
@@ -47,14 +29,6 @@ module Statsig
       @markers[context].push(marker)
     end
 
-    sig do
-      params(
-        context: String,
-        key: String,
-        step: T.any(String, NilClass),
-        tags: T::Hash[Symbol, T.untyped]
-      ).returns(Tracker)
-    end
     def track(context, key, step = nil, tags = {})
       tracker = Tracker.new(self, context, key, step, tags)
       tracker.start(**tags)
@@ -87,17 +61,6 @@ module Statsig
     API_CALL_KEYS = %w[check_gate get_config get_experiment get_layer].freeze
 
     class Tracker
-      extend T::Sig
-
-      sig do
-        params(
-          diagnostics: Diagnostics,
-          context: String,
-          key: String,
-          step: T.any(String, NilClass),
-          tags: T::Hash[Symbol, T.untyped]
-        ).void
-      end
       def initialize(diagnostics, context, key, step, tags = {})
         @diagnostics = diagnostics
         @context = context

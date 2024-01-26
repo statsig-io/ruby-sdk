@@ -1,4 +1,4 @@
-# typed: ignore
+
 require 'sinatra/base'
 
 MIN_DCS_REQUEST_TIME = 3

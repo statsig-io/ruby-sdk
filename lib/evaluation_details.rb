@@ -1,4 +1,3 @@
-# typed: true
 module Statsig
 
   module EvaluationReason
@@ -23,6 +22,10 @@ module Statsig
       @init_time = init_time
       @reason = reason
       @server_time = (Time.now.to_i * 1000).to_s
+    end
+
+    def self.unsupported(config_sync_time, init_time)
+      EvaluationDetails.new(config_sync_time, init_time, EvaluationReason::UNSUPPORTED)
     end
 
     def self.unrecognized(config_sync_time, init_time)

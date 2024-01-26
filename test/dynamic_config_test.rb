@@ -1,4 +1,4 @@
-# typed: true
+
 
 require_relative 'test_helper'
 require 'minitest'
@@ -16,8 +16,8 @@ class DynamicConfigTest < BaseTest
       "number" => 2,
       "string" => 'string',
       "object" =>  {
-        key: 'value',
-        key2: 123,
+        "key": 'value',
+        "key2": 123,
       },
       "boolStr1" => 'true',
       "boolStr2" => 'FALSE',
@@ -33,8 +33,8 @@ class DynamicConfigTest < BaseTest
     assert(@config.get_typed('number', 0) == 2)
     assert(@config.get_typed('string', 'default') == 'string')
     assert(@config.get_typed("object", {}) == {
-      key: 'value',
-      key2: 123,
+      "key": 'value',
+      "key2": 123,
     })
     assert(@config.get_typed("arr", []) == [1, 2, 'three'])
 
@@ -51,18 +51,17 @@ class DynamicConfigTest < BaseTest
     assert(@config.get('number', 0) == 2)
     assert(@config.get('string', 'default') == 'string')
     assert(@config.get("object", {}) == {
-      key: 'value',
-      key2: 123,
+      "key": 'value',
+      "key2": 123,
     })
     assert(@config.get("arr", []) == [1, 2, 'three'])
-
     assert(@config.get("bool", "string") == true)
     assert(@config.get("number", "string") == 2)
     assert(@config.get("string", 6) == 'string')
     assert(@config.get("numberStr2", 3.3) == '3.3')
     assert(@config.get("object", "string") == {
-      key: 'value',
-      key2: 123,
+      "key": 'value',
+      "key2": 123,
     })
     assert(@config.get("arr", 12) == [1, 2, 'three'])
   end

@@ -1,4 +1,4 @@
-# typed: true
+require 'constants'
 require 'statsig_event'
 require 'concurrent-ruby'
 
@@ -6,7 +6,7 @@ $gate_exposure_event = 'statsig::gate_exposure'
 $config_exposure_event = 'statsig::config_exposure'
 $layer_exposure_event = 'statsig::layer_exposure'
 $diagnostics_event = 'statsig::diagnostics'
-$ignored_metadata_keys = ['serverTime', 'configSyncTime', 'initTime', 'reason']
+$ignored_metadata_keys = [:serverTime, :configSyncTime, :initTime, :reason]
 module Statsig
   class StatsigLogger
     def initialize(network, options, error_boundary)
@@ -41,9 +41,9 @@ module Statsig
       event = StatsigEvent.new($gate_exposure_event)
       event.user = user
       metadata = {
-        'gate' => gate_name,
-        'gateValue' => value.to_s,
-        'ruleID' => rule_id,
+        gate: gate_name,
+        gateValue: value.to_s,
+        ruleID: rule_id || Statsig::Const::EMPTY_STR,
       }
       return false if not is_unique_exposure(user, $gate_exposure_event, metadata)
       event.metadata = metadata
@@ -59,8 +59,8 @@ module Statsig
       event = StatsigEvent.new($config_exposure_event)
       event.user = user
       metadata = {
-        'config' => config_name,
-        'ruleID' => rule_id,
+        config: config_name,
+        ruleID: rule_id || Statsig::Const::EMPTY_STR,
       }
       return false if not is_unique_exposure(user, $config_exposure_event, metadata)
       event.metadata = metadata
@@ -72,8 +72,8 @@ module Statsig
     end
 
     def log_layer_exposure(user, layer, parameter_name, config_evaluation, context = nil)
-      exposures = config_evaluation.undelegated_sec_exps
-      allocated_experiment = ''
+      exposures = config_evaluation.undelegated_sec_exps || []
+      allocated_experiment = Statsig::Const::EMPTY_STR
       is_explicit = (config_evaluation.explicit_parameters&.include? parameter_name) || false
       if is_explicit
         allocated_experiment = config_evaluation.config_delegate
@@ -83,13 +83,13 @@ module Statsig
       event = StatsigEvent.new($layer_exposure_event)
       event.user = user
       metadata = {
-        'config' => layer.name,
-        'ruleID' => layer.rule_id,
-        'allocatedExperiment' => allocated_experiment,
-        'parameterName' => parameter_name,
-        'isExplicitParameter' => String(is_explicit),
+        config: layer.name,
+        ruleID: layer.rule_id || Statsig::Const::EMPTY_STR,
+        allocatedExperiment: allocated_experiment,
+        parameterName: parameter_name,
+        isExplicitParameter: String(is_explicit)
       }
-      return false if not is_unique_exposure(user, $layer_exposure_event, metadata)
+      return false unless is_unique_exposure(user, $layer_exposure_event, metadata)
       event.metadata = metadata
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
 
@@ -167,10 +167,10 @@ module Statsig
         return
       end
 
-      event.metadata['reason'] = eval_details.reason
-      event.metadata['configSyncTime'] = eval_details.config_sync_time
-      event.metadata['initTime'] = eval_details.init_time
-      event.metadata['serverTime'] = eval_details.server_time
+      event.metadata[:reason] = eval_details.reason
+      event.metadata[:configSyncTime] = eval_details.config_sync_time
+      event.metadata[:initTime] = eval_details.init_time
+      event.metadata[:serverTime] = eval_details.server_time
     end
 
     def safe_add_exposure_context(context, event)
@@ -178,8 +178,8 @@ module Statsig
         return
       end
 
-      if context['is_manual_exposure']
-        event.metadata['isManualExposure'] = 'true'
+      if context[:is_manual_exposure]
+        event.metadata[:isManualExposure] = 'true'
       end
     end
 

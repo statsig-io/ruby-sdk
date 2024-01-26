@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'test_helper'
 require_relative './dummy_data_adapter'
 

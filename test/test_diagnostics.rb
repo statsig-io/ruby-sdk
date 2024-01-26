@@ -1,4 +1,4 @@
-# typed: true
+
 
 require_relative 'test_helper'
 require 'minitest'
@@ -30,7 +30,7 @@ class InitDiagnosticsTest < BaseTest
 
     @events = []
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda { |request|
-      @events.push(*JSON.parse(request.body)['events'])
+      @events.push(*JSON.parse(request.body)["events"])
       return ''
     })
   end
@@ -309,7 +309,6 @@ class InitDiagnosticsTest < BaseTest
       driver.manually_sync_rulesets
     end
     logger.flush
-
     assert(
       @events.length < 10 && @events.length.positive?,
       "Expected between 0 and 10 events, received #{@events.length}"

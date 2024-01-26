@@ -1,13 +1,9 @@
-# typed: true
-
 require 'statsig_driver'
-require 'sorbet-runtime'
+
 require 'statsig_errors'
 
 module Statsig
-  extend T::Sig
 
-  sig { params(secret_key: String, options: T.any(StatsigOptions, NilClass), error_callback: T.any(Method, Proc, NilClass)).void }
   ##
   # Initializes the Statsig SDK.
   #
@@ -21,46 +17,54 @@ module Statsig
       return @shared_instance
     end
 
-    self.bind_sorbet_loggers(options)
-
     @shared_instance = StatsigDriver.new(secret_key, options, error_callback)
   end
 
-  class GetGateOptions < T::Struct
-    prop :disable_log_exposure, T::Boolean, default: false
-    prop :skip_evaluation, T::Boolean, default: false
+  class GetGateOptions
+    attr_accessor :disable_log_exposure, :skip_evaluation, :disable_evaluation_details
+
+    def initialize(disable_log_exposure: false, skip_evaluation: false, disable_evaluation_details: false)
+      @disable_log_exposure = disable_log_exposure
+      @skip_evaluation = skip_evaluation
+      @disable_evaluation_details = disable_evaluation_details
+    end
   end
 
-  sig { params(user: StatsigUser, gate_name: String, options: GetGateOptions).returns(FeatureGate) }
   ##
   # Gets the gate, evaluated against the given user. An exposure event will automatically be logged for the gate.
   #
-  # @param user A StatsigUser object used for the evaluation
-  # @param gate_name The name of the gate being checked
-  # @param options Additional options for evaluating the gate
-  def self.get_gate(user, gate_name, options = GetGateOptions.new)
+  # @param [StatsigUser] user A StatsigUser object used for the evaluation
+  # @param [String] gate_name The name of the gate being checked
+  # @param [GetGateOptions] options Additional options for evaluating the gate
+  # @return [FeatureGate]
+  def self.get_gate(user, gate_name, options)
     ensure_initialized
     @shared_instance&.get_gate(user, gate_name, options)
   end
 
-  class CheckGateOptions < T::Struct
-    prop :disable_log_exposure, T::Boolean, default: false
+  class CheckGateOptions
+    attr_accessor :disable_log_exposure, :disable_evaluation_details
+
+    def initialize(disable_log_exposure: false, disable_evaluation_details: false)
+      @disable_log_exposure = disable_log_exposure
+      @disable_evaluation_details = disable_evaluation_details
+    end
   end
 
-  sig { params(user: StatsigUser, gate_name: String, options: CheckGateOptions).returns(T::Boolean) }
   ##
   # Gets the boolean result of a gate, evaluated against the given user. An exposure event will automatically be logged for the gate.
   #
-  # @param user A StatsigUser object used for the evaluation
-  # @param gate_name The name of the gate being checked
-  # @param options Additional options for evaluating the gate
-  def self.check_gate(user, gate_name, options = CheckGateOptions.new)
+  # @param [StatsigUser] user A StatsigUser object used for the evaluation
+  # @param [String] gate_name The name of the gate being checked
+  # @param [CheckGateOptions] options Additional options for evaluating the gate
+  # @return [Boolean]
+  def self.check_gate(user, gate_name, options = nil)
     ensure_initialized
     @shared_instance&.check_gate(user, gate_name, options)
   end
 
-  sig { params(user: StatsigUser, gate_name: String).returns(T::Boolean) }
   ##
+  # @deprecated - use check_gate(user, gate, options) and disable_exposure_logging in options
   # Gets the boolean result of a gate, evaluated against the given user.
   #
   # @param user A StatsigUser object used for the evaluation
@@ -70,7 +74,6 @@ module Statsig
     @shared_instance&.check_gate(user, gate_name, CheckGateOptions.new(disable_log_exposure: true))
   end
 
-  sig { params(user: StatsigUser, gate_name: String).void }
   ##
   # Logs an exposure event for the gate
   #
@@ -81,34 +84,39 @@ module Statsig
     @shared_instance&.manually_log_gate_exposure(user, gate_name)
   end
 
-  class GetConfigOptions < T::Struct
-    prop :disable_log_exposure, T::Boolean, default: false
+  class GetConfigOptions
+    attr_accessor :disable_log_exposure, :disable_evaluation_details
+
+    def initialize(disable_log_exposure: false, disable_evaluation_details: false)
+      @disable_log_exposure = disable_log_exposure
+      @disable_evaluation_details = disable_evaluation_details
+    end
   end
 
-  sig { params(user: StatsigUser, dynamic_config_name: String, options: GetConfigOptions).returns(DynamicConfig) }
   ##
   # Get the values of a dynamic config, evaluated against the given user. An exposure event will automatically be logged for the dynamic config.
   #
-  # @param user A StatsigUser object used for the evaluation
-  # @param dynamic_config_name The name of the dynamic config
-  # @param options Additional options for evaluating the config
-  def self.get_config(user, dynamic_config_name, options = GetConfigOptions.new)
+  # @param [StatsigUser] user A StatsigUser object used for the evaluation
+  # @param [String] dynamic_config_name The name of the dynamic config
+  # @param [GetConfigOptions] options Additional options for evaluating the config
+  # @return [DynamicConfig]
+  def self.get_config(user, dynamic_config_name, options = nil)
     ensure_initialized
     @shared_instance&.get_config(user, dynamic_config_name, options)
   end
 
-  sig { params(user: StatsigUser, dynamic_config_name: String).returns(DynamicConfig) }
   ##
+  # @deprecated - use get_config(user, config, options) and disable_exposure_logging in options
   # Get the values of a dynamic config, evaluated against the given user.
   #
-  # @param user A StatsigUser object used for the evaluation
-  # @param dynamic_config_name The name of the dynamic config
+  # @param [StatsigUser] user A StatsigUser object used for the evaluation
+  # @param [String] dynamic_config_name The name of the dynamic config
+  # @return [DynamicConfig]
   def self.get_config_with_exposure_logging_disabled(user, dynamic_config_name)
     ensure_initialized
     @shared_instance&.get_config(user, dynamic_config_name, GetConfigOptions.new(disable_log_exposure: true))
   end
 
-  sig { params(user: StatsigUser, dynamic_config: String).void }
   ##
   # Logs an exposure event for the dynamic config
   #
@@ -119,35 +127,38 @@ module Statsig
     @shared_instance&.manually_log_config_exposure(user, dynamic_config)
   end
 
-  class GetExperimentOptions < T::Struct
-    prop :disable_log_exposure, T::Boolean, default: false
-    prop :user_persisted_values, T.nilable(T::Hash[String, Hash]), default: nil
+  class GetExperimentOptions
+    attr_accessor :disable_log_exposure, :user_persisted_values, :disable_evaluation_details
+
+    def initialize(disable_log_exposure: false, user_persisted_values: nil, disable_evaluation_details: false)
+      @disable_log_exposure = disable_log_exposure
+      @user_persisted_values = user_persisted_values
+      @disable_evaluation_details = disable_evaluation_details
+    end
   end
 
-  sig { params(user: StatsigUser, experiment_name: String, options: GetExperimentOptions).returns(DynamicConfig) }
   ##
   # Get the values of an experiment, evaluated against the given user. An exposure event will automatically be logged for the experiment.
   #
-  # @param user A StatsigUser object used for the evaluation
-  # @param experiment_name The name of the experiment
-  # @param options Additional options for evaluating the experiment
-  def self.get_experiment(user, experiment_name, options = GetExperimentOptions.new)
+  # @param [StatsigUser] user A StatsigUser object used for the evaluation
+  # @param [String] experiment_name The name of the experiment
+  # @param [GetExperimentOptions] options Additional options for evaluating the experiment
+  def self.get_experiment(user, experiment_name, options = nil)
     ensure_initialized
     @shared_instance&.get_experiment(user, experiment_name, options)
   end
 
-  sig { params(user: StatsigUser, experiment_name: String).returns(DynamicConfig) }
   ##
+  # @deprecated - use get_experiment(user, experiment, options) and disable_exposure_logging in options
   # Get the values of an experiment, evaluated against the given user.
   #
-  # @param user A StatsigUser object used for the evaluation
-  # @param experiment_name The name of the experiment
+  # @param [StatsigUser] user A StatsigUser object used for the evaluation
+  # @param [String] experiment_name The name of the experiment
   def self.get_experiment_with_exposure_logging_disabled(user, experiment_name)
     ensure_initialized
     @shared_instance&.get_experiment(user, experiment_name, GetExperimentOptions.new(disable_log_exposure: true))
   end
 
-  sig { params(user: StatsigUser, experiment_name: String).void }
   ##
   # Logs an exposure event for the experiment
   #
@@ -158,30 +169,34 @@ module Statsig
     @shared_instance&.manually_log_config_exposure(user, experiment_name)
   end
 
-  sig { params(user: StatsigUser, id_type: String).returns(UserPersistedValues) }
   def self.get_user_persisted_values(user, id_type)
     ensure_initialized
     @shared_instance&.get_user_persisted_values(user, id_type)
   end
 
-  class GetLayerOptions < T::Struct
-    prop :disable_log_exposure, T::Boolean, default: false
+  class GetLayerOptions
+    attr_accessor :disable_log_exposure, :disable_evaluation_details
+
+    def initialize(disable_log_exposure: false, disable_evaluation_details: false)
+      @disable_log_exposure = disable_log_exposure
+      @disable_evaluation_details = disable_evaluation_details
+    end
   end
 
-  sig { params(user: StatsigUser, layer_name: String, options: GetLayerOptions).returns(Layer) }
   ##
   # Get the values of a layer, evaluated against the given user.
   # Exposure events will be fired when get or get_typed is called on the resulting Layer class.
   #
-  # @param user A StatsigUser object used for the evaluation
-  # @param layer_name The name of the layer
-  def self.get_layer(user, layer_name, options = GetLayerOptions.new)
+  # @param [StatsigUser] user A StatsigUser object used for the evaluation
+  # @param [String] layer_name The name of the layer
+  # @param [GetLayerOptions] options Configuration of how this method call should behave
+  def self.get_layer(user, layer_name, options = nil)
     ensure_initialized
     @shared_instance&.get_layer(user, layer_name, options)
   end
 
-  sig { params(user: StatsigUser, layer_name: String).returns(Layer) }
   ##
+  # @deprecated - use get_layer(user, gate, options) and disable_exposure_logging in options
   # Get the values of a layer, evaluated against the given user.
   #
   # @param user A StatsigUser object used for the evaluation
@@ -191,7 +206,6 @@ module Statsig
     @shared_instance&.get_layer(user, layer_name, GetLayerOptions.new(disable_log_exposure: true))
   end
 
-  sig { params(user: StatsigUser, layer_name: String, parameter_name: String).void }
   ##
   # Logs an exposure event for the parameter in the given layer
   #
@@ -203,10 +217,6 @@ module Statsig
     @shared_instance&.manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
   end
 
-  sig { params(user: StatsigUser,
-               event_name: String,
-               value: T.any(String, Integer, Float, NilClass),
-               metadata: T.any(T::Hash[String, T.untyped], NilClass)).void }
   ##
   # Logs an event to Statsig with the provided values.
   #
@@ -229,7 +239,6 @@ module Statsig
     @shared_instance&.manually_sync_idlists
   end
 
-  sig { returns(T::Array[String]) }
   ##
   # Returns a list of all gate names
   #
@@ -238,7 +247,6 @@ module Statsig
     @shared_instance&.list_gates
   end
 
-  sig { returns(T::Array[String]) }
   ##
   # Returns a list of all config names
   #
@@ -247,7 +255,6 @@ module Statsig
     @shared_instance&.list_configs
   end
 
-  sig { returns(T::Array[String]) }
   ##
   # Returns a list of all experiment names
   #
@@ -256,7 +263,6 @@ module Statsig
     @shared_instance&.list_experiments
   end
 
-  sig { returns(T::Array[String]) }
   ##
   # Returns a list of all autotune names
   #
@@ -265,7 +271,6 @@ module Statsig
     @shared_instance&.list_autotunes
   end
 
-  sig { returns(T::Array[String]) }
   ##
   # Returns a list of all layer names
   #
@@ -274,7 +279,6 @@ module Statsig
     @shared_instance&.list_layers
   end
 
-  sig { void }
   ##
   # Stops all Statsig activity and flushes any pending events.
   def self.shutdown
@@ -284,7 +288,6 @@ module Statsig
     @shared_instance = nil
   end
 
-  sig { params(gate_name: String, gate_value: T::Boolean).void }
   ##
   # Sets a value to be returned for the given gate instead of the actual evaluated value.
   #
@@ -295,7 +298,6 @@ module Statsig
     @shared_instance&.override_gate(gate_name, gate_value)
   end
 
-  sig { params(config_name: String, config_value: Hash).void }
   ##
   # Sets a value to be returned for the given dynamic config/experiment instead of the actual evaluated value.
   #
@@ -306,7 +308,6 @@ module Statsig
     @shared_instance&.override_config(config_name, config_value)
   end
 
-  sig { params(user: StatsigUser, hash: String, client_sdk_key: T.any(String, NilClass)).returns(T.any(T::Hash[String, T.untyped], NilClass)) }
   ##
   # Gets all evaluated values for the given user.
   # These values can then be given to a Statsig Client SDK via bootstrapping.
@@ -321,7 +322,6 @@ module Statsig
     @shared_instance&.get_client_initialize_response(user, hash, client_sdk_key)
   end
 
-  sig { returns(T::Hash[String, String]) }
   ##
   # Internal Statsig metadata for this SDK
   def self.get_statsig_metadata
@@ -338,31 +338,6 @@ module Statsig
     if not defined? @shared_instance or @shared_instance.nil?
       raise Statsig::UninitializedError.new
     end
-  end
-
-  sig { params(options: T.any(StatsigOptions, NilClass)).void }
-  def self.bind_sorbet_loggers(options)
-    if options&.disable_sorbet_logging_handlers == true
-      return
-    end
-
-    T::Configuration.call_validation_error_handler = lambda do |signature, opts|
-      puts "[Type Error] " + opts[:pretty_message]
-    end
-
-    T::Configuration.inline_type_error_handler = lambda do |error, opts|
-      puts "[Type Error] " + error.message
-    end
-
-    T::Configuration.sig_builder_error_handler = lambda do |error, location|
-      puts "[Type Error] " + error.message
-    end
-
-    T::Configuration.sig_validation_error_handler = lambda do |error, opts|
-      puts "[Type Error] " + error.message
-    end
-
-    return
   end
 
 end
