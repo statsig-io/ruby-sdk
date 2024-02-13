@@ -257,12 +257,13 @@ class StatsigDriver
 
   # @param [StatsigUser] user
   # @param [String | nil] client_sdk_key
+  # @param [Boolean] include_local_overrides
   # @return [Hash]
-  def get_client_initialize_response(user, hash, client_sdk_key)
+  def get_client_initialize_response(user, hash, client_sdk_key, include_local_overrides)
     @err_boundary.capture(task: lambda {
       validate_user(user)
       normalize_user(user)
-      @evaluator.get_client_initialize_response(user, hash, client_sdk_key)
+      @evaluator.get_client_initialize_response(user, hash, client_sdk_key, include_local_overrides)
     }, recover: -> { nil }, caller: __method__.to_s)
   end
 

@@ -315,11 +315,17 @@ module Statsig
   # @param user A StatsigUser object used for the evaluation
   # @param hash The type of hashing algorithm to use ('sha256', 'djb2', 'none')
   # @param client_sdk_key A optional client sdk key to be used for the evaluation
+  # @param include_local_overrides Option to include local overrides
   #
   # @note See Ruby Documentation: https://docs.statsig.com/server/rubySDK)
-  def self.get_client_initialize_response(user, hash: 'sha256', client_sdk_key: nil)
+  def self.get_client_initialize_response(
+    user,
+    hash: 'sha256',
+    client_sdk_key: nil,
+    include_local_overrides: false
+  )
     ensure_initialized
-    @shared_instance&.get_client_initialize_response(user, hash, client_sdk_key)
+    @shared_instance&.get_client_initialize_response(user, hash, client_sdk_key, include_local_overrides)
   end
 
   ##

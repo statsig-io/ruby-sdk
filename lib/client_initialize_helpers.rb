@@ -4,10 +4,18 @@ require 'constants'
 
 module Statsig
   class ResponseFormatter
-    def self.get_responses(entities, evaluator, user, client_sdk_key, hash_algo, include_exposures: true)
+    def self.get_responses(
+      entities,
+      evaluator,
+      user,
+      client_sdk_key,
+      hash_algo,
+      include_exposures: true,
+      include_local_overrides: false
+    )
       result = {}
       entities.each do |name, spec|
-        hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo, include_exposures)
+        hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
         if !hashed_name.nil? && !value.nil?
           result[hashed_name] = value
         end
@@ -16,7 +24,7 @@ module Statsig
       result
     end
 
-    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures)
+    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
       target_app_id = evaluator.spec_store.get_app_id_for_sdk_key(client_sdk_key)
       config_target_apps = config_spec.target_app_ids
 
@@ -30,12 +38,25 @@ module Statsig
         return nil
       end
 
-      eval_result = ConfigResult.new(
-        name: config_name,
-        disable_evaluation_details: true,
-        disable_exposures: !include_exposures
-      )
-      evaluator.eval_spec(user, config_spec, eval_result)
+      if include_local_overrides
+        case category
+        when :feature_gate
+          local_override = evaluator.lookup_gate_override(config_name)
+        when :dynamic_config
+          local_override = evaluator.lookup_config_override(config_name)
+        end
+      end
+
+      if local_override.nil?
+        eval_result = ConfigResult.new(
+          name: config_name,
+          disable_evaluation_details: true,
+          disable_exposures: !include_exposures
+        )
+        evaluator.eval_spec(user, config_spec, eval_result)
+      else
+        eval_result = local_override
+      end
 
       result = {}
 

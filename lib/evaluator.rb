@@ -16,6 +16,10 @@ module Statsig
 
     attr_accessor :spec_store
 
+    attr_accessor :gate_overrides
+
+    attr_accessor :config_overrides
+
     attr_accessor :options
 
     attr_accessor :persistent_storage_utils
@@ -35,15 +39,45 @@ module Statsig
       @spec_store.maybe_restart_background_threads
     end
 
-    def check_gate(user, gate_name, end_result)
+    def lookup_gate_override(gate_name)
       if @gate_overrides.key?(gate_name)
-        end_result.gate_value = @gate_overrides[gate_name]
-        end_result.rule_id = Const::OVERRIDE
-        unless end_result.disable_evaluation_details
-          end_result.evaluation_details = EvaluationDetails.local_override(
+        return ConfigResult.new(
+          name: gate_name,
+          gate_value: @gate_overrides[gate_name],
+          rule_id: Const::OVERRIDE,
+          id_type: @spec_store.has_gate?(gate_name) ? @spec_store.get_gate(gate_name).id_type : Const::EMPTY_STR,
+          evaluation_details: EvaluationDetails.local_override(
             @spec_store.last_config_sync_time,
             @spec_store.initial_config_sync_time
           )
+        )
+      end
+      return nil
+    end
+
+    def lookup_config_override(config_name)
+      if @config_overrides.key?(config_name)
+        return ConfigResult.new(
+          name: config_name,
+          json_value: @config_overrides[config_name],
+          rule_id: Const::OVERRIDE,
+          id_type: @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name).id_type : Const::EMPTY_STR,
+          evaluation_details: EvaluationDetails.local_override(
+            @spec_store.last_config_sync_time,
+            @spec_store.initial_config_sync_time
+          )
+        )
+      end
+      return nil
+    end
+
+    def check_gate(user, gate_name, end_result)
+      local_override = lookup_gate_override(gate_name)
+      unless local_override.nil?
+        end_result.gate_value = local_override.gate_value
+        end_result.rule_id = local_override.rule_id
+        unless end_result.disable_evaluation_details
+          end_result.evaluation_details = local_override.evaluation_details
         end
         return
       end
@@ -64,16 +98,13 @@ module Statsig
     end
 
     def get_config(user, config_name, end_result, user_persisted_values: nil)
-      if @config_overrides.key?(config_name)
-        id_type = @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name).id_type : Const::EMPTY_STR
-        end_result.id_type = id_type
-        end_result.rule_id = Const::OVERRIDE
-        end_result.json_value = @config_overrides[config_name]
+      local_override = lookup_config_override(config_name)
+      unless local_override.nil?
+        end_result.id_type = local_override.id_type
+        end_result.rule_id = local_override.rule_id
+        end_result.json_value = local_override.json_value
         unless end_result.disable_evaluation_details
-          end_result.evaluation_details = EvaluationDetails.local_override(
-            @spec_store.last_config_sync_time,
-            @spec_store.initial_config_sync_time
-          )
+          end_result.evaluation_details = local_override.evaluation_details
         end
         return
       end
@@ -162,7 +193,7 @@ module Statsig
       @spec_store.layers.map { |name, _| name }
     end
 
-    def get_client_initialize_response(user, hash_algo, client_sdk_key)
+    def get_client_initialize_response(user, hash_algo, client_sdk_key, include_local_overrides)
       if @spec_store.is_ready_for_checks == false
         return nil
       end
@@ -178,11 +209,11 @@ module Statsig
 
       {
         feature_gates: Statsig::ResponseFormatter
-                         .get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo),
+                         .get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo, include_local_overrides: include_local_overrides),
         dynamic_configs: Statsig::ResponseFormatter
-                           .get_responses(@spec_store.configs, self, user, client_sdk_key, hash_algo),
+                           .get_responses(@spec_store.configs, self, user, client_sdk_key, hash_algo, include_local_overrides: include_local_overrides),
         layer_configs: Statsig::ResponseFormatter
-                         .get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo),
+                         .get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo, include_local_overrides: include_local_overrides),
         sdkParams: {},
         has_updates: true,
         generator: Const::STATSIG_RUBY_SDK,
