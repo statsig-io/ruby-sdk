@@ -253,8 +253,24 @@ module Statsig
       @gate_overrides[gate] = value
     end
 
+    def remove_gate_override(gate)
+      @gate_overrides.delete(gate)
+    end
+
+    def clear_gate_overrides
+      @gate_overrides.clear
+    end
+
     def override_config(config, value)
       @config_overrides[config] = value
+    end
+
+    def remove_config_override(config)
+      @config_overrides.delete(config)
+    end
+
+    def clear_config_overrides
+      @config_overrides.clear
     end
 
     def eval_spec(user, config, end_result)

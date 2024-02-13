@@ -249,9 +249,33 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
+  def remove_gate_override(gate_name)
+    @err_boundary.capture(task: lambda {
+      @evaluator.remove_gate_override(gate_name)
+    }, caller: __method__.to_s)
+  end
+
+  def clear_gate_overrides
+    @err_boundary.capture(task: lambda {
+      @evaluator.clear_gate_overrides
+    }, caller: __method__.to_s)
+  end
+
   def override_config(config_name, config_value)
     @err_boundary.capture(task: lambda {
       @evaluator.override_config(config_name, config_value)
+    }, caller: __method__.to_s)
+  end
+
+  def remove_config_override(config_name)
+    @err_boundary.capture(task: lambda {
+      @evaluator.remove_config_override(config_name)
+    }, caller: __method__.to_s)
+  end
+
+  def clear_config_overrides
+    @err_boundary.capture(task: lambda {
+      @evaluator.clear_config_overrides
     }, caller: __method__.to_s)
   end
 

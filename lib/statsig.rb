@@ -298,6 +298,16 @@ module Statsig
     @shared_instance&.override_gate(gate_name, gate_value)
   end
 
+  def self.remove_gate_override(gate_name)
+    ensure_initialized
+    @shared_instance&.remove_gate_override(gate_name)
+  end
+
+  def self.clear_gate_overrides
+    ensure_initialized
+    @shared_instance&.clear_gate_overrides
+  end
+
   ##
   # Sets a value to be returned for the given dynamic config/experiment instead of the actual evaluated value.
   #
@@ -306,6 +316,16 @@ module Statsig
   def self.override_config(config_name, config_value)
     ensure_initialized
     @shared_instance&.override_config(config_name, config_value)
+  end
+
+  def self.remove_config_override(config_name)
+    ensure_initialized
+    @shared_instance&.remove_config_override(config_name)
+  end
+
+  def self.clear_config_overrides
+    ensure_initialized
+    @shared_instance&.clear_config_overrides
   end
 
   ##
