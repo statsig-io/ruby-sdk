@@ -71,15 +71,17 @@ module Statsig
       return nil
     end
 
-    def check_gate(user, gate_name, end_result)
-      local_override = lookup_gate_override(gate_name)
-      unless local_override.nil?
-        end_result.gate_value = local_override.gate_value
-        end_result.rule_id = local_override.rule_id
-        unless end_result.disable_evaluation_details
-          end_result.evaluation_details = local_override.evaluation_details
+    def check_gate(user, gate_name, end_result, ignore_local_overrides: false)
+      unless ignore_local_overrides
+        local_override = lookup_gate_override(gate_name)
+        unless local_override.nil?
+          end_result.gate_value = local_override.gate_value
+          end_result.rule_id = local_override.rule_id
+          unless end_result.disable_evaluation_details
+            end_result.evaluation_details = local_override.evaluation_details
+          end
+          return
         end
-        return
       end
 
       if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
@@ -97,16 +99,18 @@ module Statsig
       eval_spec(user, @spec_store.get_gate(gate_name), end_result)
     end
 
-    def get_config(user, config_name, end_result, user_persisted_values: nil)
-      local_override = lookup_config_override(config_name)
-      unless local_override.nil?
-        end_result.id_type = local_override.id_type
-        end_result.rule_id = local_override.rule_id
-        end_result.json_value = local_override.json_value
-        unless end_result.disable_evaluation_details
-          end_result.evaluation_details = local_override.evaluation_details
+    def get_config(user, config_name, end_result, user_persisted_values: nil, ignore_local_overrides: false)
+      unless ignore_local_overrides
+        local_override = lookup_config_override(config_name)
+        unless local_override.nil?
+          end_result.id_type = local_override.id_type
+          end_result.rule_id = local_override.rule_id
+          end_result.json_value = local_override.json_value
+          unless end_result.disable_evaluation_details
+            end_result.evaluation_details = local_override.evaluation_details
+          end
+          return
         end
-        return
       end
 
       if @spec_store.init_reason == EvaluationReason::UNINITIALIZED

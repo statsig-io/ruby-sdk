@@ -43,11 +43,12 @@ module Statsig
   end
 
   class CheckGateOptions
-    attr_accessor :disable_log_exposure, :disable_evaluation_details
+    attr_accessor :disable_log_exposure, :disable_evaluation_details, :ignore_local_overrides
 
-    def initialize(disable_log_exposure: false, disable_evaluation_details: false)
+    def initialize(disable_log_exposure: false, disable_evaluation_details: false, ignore_local_overrides: false)
       @disable_log_exposure = disable_log_exposure
       @disable_evaluation_details = disable_evaluation_details
+      @ignore_local_overrides = ignore_local_overrides
     end
   end
 
@@ -85,11 +86,12 @@ module Statsig
   end
 
   class GetConfigOptions
-    attr_accessor :disable_log_exposure, :disable_evaluation_details
+    attr_accessor :disable_log_exposure, :disable_evaluation_details, :ignore_local_overrides
 
-    def initialize(disable_log_exposure: false, disable_evaluation_details: false)
+    def initialize(disable_log_exposure: false, disable_evaluation_details: false, ignore_local_overrides: false)
       @disable_log_exposure = disable_log_exposure
       @disable_evaluation_details = disable_evaluation_details
+      @ignore_local_overrides = ignore_local_overrides
     end
   end
 
@@ -128,12 +130,13 @@ module Statsig
   end
 
   class GetExperimentOptions
-    attr_accessor :disable_log_exposure, :user_persisted_values, :disable_evaluation_details
+    attr_accessor :disable_log_exposure, :user_persisted_values, :disable_evaluation_details, :ignore_local_overrides
 
-    def initialize(disable_log_exposure: false, user_persisted_values: nil, disable_evaluation_details: false)
+    def initialize(disable_log_exposure: false, user_persisted_values: nil, disable_evaluation_details: false, ignore_local_overrides: false)
       @disable_log_exposure = disable_log_exposure
       @user_persisted_values = user_persisted_values
       @disable_evaluation_details = disable_evaluation_details
+      @ignore_local_overrides = ignore_local_overrides
     end
   end
 

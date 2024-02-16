@@ -43,7 +43,14 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
-  def get_gate_impl(user, gate_name, disable_log_exposure: false, skip_evaluation: false, disable_evaluation_details: false)
+  def get_gate_impl(
+    user,
+    gate_name,
+    disable_log_exposure: false,
+    skip_evaluation: false,
+    disable_evaluation_details: false,
+    ignore_local_overrides: false
+  )
     if skip_evaluation
       gate = @store.get_gate(gate_name)
       return FeatureGate.new(gate_name) if gate.nil?
@@ -52,7 +59,7 @@ class StatsigDriver
     user = verify_inputs(user, gate_name, 'gate_name')
 
     res = Statsig::ConfigResult.new(name: gate_name, disable_exposures: disable_log_exposure, disable_evaluation_details: disable_evaluation_details)
-    @evaluator.check_gate(user, gate_name, res)
+    @evaluator.check_gate(user, gate_name, res, ignore_local_overrides: ignore_local_overrides)
 
     unless disable_log_exposure
       @logger.log_gate_exposure(
@@ -81,7 +88,8 @@ class StatsigDriver
           user,
           gate_name,
           disable_log_exposure: options&.disable_log_exposure == true,
-          disable_evaluation_details: options&.disable_evaluation_details == true
+          disable_evaluation_details: options&.disable_evaluation_details == true,
+          ignore_local_overrides: options&.ignore_local_overrides == true
         ).value
       }, caller: __method__.to_s)
     }, recover: -> { false }, caller: __method__.to_s)
@@ -104,7 +112,8 @@ class StatsigDriver
           user,
           dynamic_config_name,
           options&.disable_log_exposure == true,
-          disable_evaluation_details: options&.disable_evaluation_details == true
+          disable_evaluation_details: options&.disable_evaluation_details == true,
+          ignore_local_overrides: options&.ignore_local_overrides == true
         )
       }, caller: __method__.to_s)
     }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
@@ -119,7 +128,8 @@ class StatsigDriver
           experiment_name,
           options&.disable_log_exposure == true,
           user_persisted_values: options&.user_persisted_values,
-          disable_evaluation_details: options&.disable_evaluation_details == true
+          disable_evaluation_details: options&.disable_evaluation_details == true,
+          ignore_local_overrides: options&.ignore_local_overrides == true
         )
       }, caller: __method__.to_s)
     }, recover: -> { DynamicConfig.new(experiment_name) }, caller: __method__.to_s)
@@ -333,13 +343,13 @@ class StatsigDriver
     normalize_user(user)
   end
 
-  def get_config_impl(user, config_name, disable_log_exposure, user_persisted_values: nil, disable_evaluation_details: false)
+  def get_config_impl(user, config_name, disable_log_exposure, user_persisted_values: nil, disable_evaluation_details: false, ignore_local_overrides: false)
     res = Statsig::ConfigResult.new(
       name: config_name,
       disable_exposures: disable_log_exposure,
       disable_evaluation_details: disable_evaluation_details
     )
-    @evaluator.get_config(user, config_name, res, user_persisted_values: user_persisted_values)
+    @evaluator.get_config(user, config_name, res, user_persisted_values: user_persisted_values, ignore_local_overrides: ignore_local_overrides)
 
     unless disable_log_exposure
       @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)

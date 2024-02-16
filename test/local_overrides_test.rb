@@ -35,6 +35,12 @@ class StatsigLocalOverridesTest < BaseTest
     val = Statsig.check_gate(StatsigUser.new({ 'userID' => '123' }), "override_me")
     assert(val == true)
 
+    val = Statsig.check_gate(
+      StatsigUser.new({ 'userID' => '123' }), "override_me",
+      Statsig::CheckGateOptions.new(ignore_local_overrides: true)
+    )
+    assert(val == false)
+
     Statsig.override_gate("override_me_2", true)
     Statsig.remove_gate_override("override_me")
     val = Statsig.check_gate(StatsigUser.new({ 'userID' => '123' }), "override_me")
@@ -61,6 +67,13 @@ class StatsigLocalOverridesTest < BaseTest
     val = Statsig.get_config(StatsigUser.new({ 'userID' => '123' }), "override_me")
     assert(val.group_name.nil?)
     assert(val.value == { "hello" => "its no longer me" })
+
+    val = Statsig.get_config(
+      StatsigUser.new({ 'userID' => '123' }), "override_me",
+      Statsig::GetConfigOptions.new(ignore_local_overrides: true)
+    )
+    assert(val.group_name.nil?)
+    assert(val.value == {})
 
     Statsig.override_config("override_me", {})
     val = Statsig.get_config(StatsigUser.new({ 'userID' => '123' }), "override_me")
