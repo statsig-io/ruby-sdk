@@ -356,7 +356,7 @@ module Statsig
   def self.get_statsig_metadata
     {
       'sdkType' => 'ruby-server',
-      'sdkVersion' => '1.32.0',
+      'sdkVersion' => '1.33.0',
       'languageVersion' => RUBY_VERSION
     }
   end
