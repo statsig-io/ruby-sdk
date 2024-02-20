@@ -1,3 +1,5 @@
+require 'set'
+
 module Statsig
   module Const
     EMPTY_STR = ''.freeze
