@@ -161,10 +161,10 @@ module Statsig
 
     def maybe_restart_background_threads
       if @config_sync_thread.nil? || !@config_sync_thread.alive?
-        @config_sync_thread = sync_config_specs
+        @config_sync_thread = spawn_sync_config_specs_thread
       end
       if @id_lists_sync_thread.nil? || !@id_lists_sync_thread.alive?
-        @id_lists_sync_thread = sync_id_lists
+        @id_lists_sync_thread = spawn_sync_id_lists_thread
       end
     end
 
