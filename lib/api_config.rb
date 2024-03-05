@@ -8,22 +8,6 @@ module Statsig
     attr_accessor :name, :type, :is_active, :salt, :default_value, :enabled,
                   :rules, :id_type, :entity, :explicit_parameters, :has_shared_params, :target_app_ids
 
-    def initialize(name:, type:, is_active:, salt:, default_value:, enabled:, rules:, id_type:, entity:,
-                   explicit_parameters: nil, has_shared_params: nil, target_app_ids: nil)
-      @name = name
-      @type = type.to_sym unless entity.nil?
-      @is_active = is_active
-      @salt = salt
-      @default_value = JSON.parse(JSON.generate(default_value))
-      @enabled = enabled
-      @rules = rules
-      @id_type = id_type
-      @entity = entity.to_sym unless entity.nil?
-      @explicit_parameters = explicit_parameters
-      @has_shared_params = has_shared_params
-      @target_app_ids = target_app_ids
-    end
-
     def self.from_json(json)
       new(
         name: json[:name],
@@ -42,28 +26,30 @@ module Statsig
         target_app_ids: json[:targetAppIDs]
       )
     end
-  end
-end
 
-module Statsig
+    private
+
+    def initialize(name:, type:, is_active:, salt:, default_value:, enabled:, rules:, id_type:, entity:,
+                   explicit_parameters: nil, has_shared_params: nil, target_app_ids: nil)
+      @name = name
+      @type = type.to_sym unless type.nil?
+      @is_active = is_active
+      @salt = salt
+      @default_value = JSON.parse(JSON.generate(default_value))
+      @enabled = enabled
+      @rules = rules
+      @id_type = id_type
+      @entity = entity.to_sym unless entity.nil?
+      @explicit_parameters = explicit_parameters
+      @has_shared_params = has_shared_params
+      @target_app_ids = target_app_ids
+    end
+  end
+
   class APIRule
 
     attr_accessor :name, :pass_percentage, :return_value, :id, :salt,
                   :conditions, :id_type, :group_name, :config_delegate, :is_experiment_group
-
-    def initialize(name:, pass_percentage:, return_value:, id:, salt:, conditions:, id_type:,
-                   group_name: nil, config_delegate: nil, is_experiment_group: nil)
-      @name = name
-      @pass_percentage = pass_percentage.to_f
-      @return_value = JSON.parse(JSON.generate(return_value))
-      @id = id
-      @salt = salt
-      @conditions = conditions
-      @id_type = id_type
-      @group_name = group_name
-      @config_delegate = config_delegate
-      @is_experiment_group = is_experiment_group
-    end
 
     def self.from_json(json)
       new(
@@ -81,22 +67,27 @@ module Statsig
         is_experiment_group: json[:isExperimentGroup]
       )
     end
-  end
-end
 
-module Statsig
+    private
+
+    def initialize(name:, pass_percentage:, return_value:, id:, salt:, conditions:, id_type:,
+                   group_name: nil, config_delegate: nil, is_experiment_group: nil)
+      @name = name
+      @pass_percentage = pass_percentage.to_f
+      @return_value = JSON.parse(JSON.generate(return_value))
+      @id = id
+      @salt = salt
+      @conditions = conditions
+      @id_type = id_type
+      @group_name = group_name
+      @config_delegate = config_delegate
+      @is_experiment_group = is_experiment_group
+    end
+  end
+
   class APICondition
 
     attr_accessor :type, :target_value, :operator, :field, :additional_values, :id_type
-
-    def initialize(type:, target_value:, operator:, field:, additional_values:, id_type:)
-      @type = type.to_sym unless type.nil?
-      @target_value = target_value
-      @operator = operator.to_sym unless operator.nil?
-      @field = field
-      @additional_values = additional_values || {}
-      @id_type = id_type
-    end
 
     def self.from_json(json)
       operator = json[:operator]
@@ -123,6 +114,17 @@ module Statsig
         additional_values: json[:additionalValues],
         id_type: json[:idType]
       )
+    end
+
+    private
+
+    def initialize(type:, target_value:, operator:, field:, additional_values:, id_type:)
+      @type = type.to_sym unless type.nil?
+      @target_value = target_value
+      @operator = operator.to_sym unless operator.nil?
+      @field = field
+      @additional_values = additional_values || {}
+      @id_type = id_type
     end
   end
 end
