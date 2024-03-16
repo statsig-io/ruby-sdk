@@ -527,8 +527,7 @@ module Statsig
     def get_value_from_user(user, field)
       return nil unless field.is_a?(String)
 
-      value = get_value_from_user_field(user, field)
-      value ||= get_value_from_user_field(user, field.downcase)
+      value = get_value_from_user_field(user, field.downcase)
 
       if value.nil?
         value = user.custom[field] if user.custom.is_a?(Hash)
