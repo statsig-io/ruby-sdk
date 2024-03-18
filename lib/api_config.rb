@@ -120,6 +120,16 @@ module Statsig
 
     def initialize(type:, target_value:, operator:, field:, additional_values:, id_type:)
       @type = type.to_sym unless type.nil?
+      if operator == "any_case_sensitive" || operator == "none_case_sensitive"
+        if target_value.is_a?(Array)
+            target_value = target_value.map { |item| [item.to_s, true] }.to_h
+        end
+      end
+      if operator == "any" || operator == "none"
+        if target_value.is_a?(Array)
+            target_value = target_value.map { |item| [item.to_s.downcase, true] }.to_h
+        end
+      end
       @target_value = target_value
       @operator = operator.to_sym unless operator.nil?
       @field = field

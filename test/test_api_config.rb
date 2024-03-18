@@ -101,7 +101,7 @@ class APIConfigTest < BaseTest
 
     condition = Statsig::APICondition.from_json(data)
     assert_equal(:environment_field, condition.type)
-    assert_equal(%w[staging development], condition.target_value)
+    assert_equal({"staging" => true, "development" => true}, condition.target_value)
     assert_equal(:any, condition.operator)
     assert_equal({ salt: '5b965836-85f6-4a8d-b9a4-8ef76c5dbd47' }, condition.additional_values)
     assert_equal('userID', condition.id_type)
