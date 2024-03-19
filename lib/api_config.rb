@@ -87,7 +87,7 @@ module Statsig
 
   class APICondition
 
-    attr_accessor :type, :target_value, :operator, :field, :additional_values, :id_type
+    attr_accessor :type, :target_value, :operator, :field, :additional_values, :id_type, :hash
 
     def self.from_json(json)
       operator = json[:operator]
@@ -112,13 +112,16 @@ module Statsig
         operator: json[:operator],
         field: json[:field],
         additional_values: json[:additionalValues],
-        id_type: json[:idType]
+        id_type: json[:idType],
+        hash: Statsig::HashUtils.md5(json.to_s)
       )
     end
 
     private
 
-    def initialize(type:, target_value:, operator:, field:, additional_values:, id_type:)
+    def initialize(type:, target_value:, operator:, field:, additional_values:, id_type:, hash:)
+      @hash = hash
+      
       @type = type.to_sym unless type.nil?
       if operator == "any_case_sensitive" || operator == "none_case_sensitive"
         if target_value.is_a?(Array)

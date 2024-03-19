@@ -59,7 +59,7 @@ class StatsigDriver
     user = verify_inputs(user, gate_name, 'gate_name')
 
     res = Statsig::ConfigResult.new(name: gate_name, disable_exposures: disable_log_exposure, disable_evaluation_details: disable_evaluation_details)
-    @evaluator.check_gate(user, gate_name, res, ignore_local_overrides: ignore_local_overrides)
+    @evaluator.check_gate(user, gate_name, res, {}, ignore_local_overrides: ignore_local_overrides)
 
     unless disable_log_exposure
       @logger.log_gate_exposure(
@@ -98,7 +98,7 @@ class StatsigDriver
   def manually_log_gate_exposure(user, gate_name)
     @err_boundary.capture(task: lambda {
       res = Statsig::ConfigResult.new(name: gate_name)
-      @evaluator.check_gate(user, gate_name, res)
+      @evaluator.check_gate(user, gate_name, res, {})
       context = { :is_manual_exposure => true }
       @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
     })
@@ -138,7 +138,7 @@ class StatsigDriver
   def manually_log_config_exposure(user, config_name)
     @err_boundary.capture(task: lambda {
       res = Statsig::ConfigResult.new(name: config_name)
-      @evaluator.get_config(user, config_name, res)
+      @evaluator.get_config(user, config_name, res, {})
 
       context = { :is_manual_exposure => true }
       @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
@@ -164,7 +164,7 @@ class StatsigDriver
           disable_exposures: exposures_disabled,
           disable_evaluation_details: options&.disable_evaluation_details == true
         )
-        @evaluator.get_layer(user, layer_name, res)
+        @evaluator.get_layer(user, layer_name, res, {})
 
         exposure_log_func = !exposures_disabled ? lambda { |layer, parameter_name|
           @logger.log_layer_exposure(user, layer, parameter_name, res)
@@ -178,7 +178,7 @@ class StatsigDriver
   def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
     @err_boundary.capture(task: lambda {
       res = Statsig::ConfigResult.new(name: layer_name)
-      @evaluator.get_layer(user, layer_name, res)
+      @evaluator.get_layer(user, layer_name, res, {})
 
       layer = Layer.new(layer_name, res.json_value, res.rule_id, res.group_name, res.config_delegate)
       context = { :is_manual_exposure => true }
@@ -349,7 +349,7 @@ class StatsigDriver
       disable_exposures: disable_log_exposure,
       disable_evaluation_details: disable_evaluation_details
     )
-    @evaluator.get_config(user, config_name, res, user_persisted_values: user_persisted_values, ignore_local_overrides: ignore_local_overrides)
+    @evaluator.get_config(user, config_name, res, {}, user_persisted_values: user_persisted_values, ignore_local_overrides: ignore_local_overrides)
 
     unless disable_log_exposure
       @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)

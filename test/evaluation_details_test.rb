@@ -35,51 +35,51 @@ class EvaluationDetailsTest < BaseTest
   def test_uninitialized
     @store.instance_variable_set('@init_reason', "Uninitialized")
     result = Statsig::ConfigResult::new(name: 'not_a_gate')
-    @evaluator.check_gate(@user, 'not_a_gate', result)
+    @evaluator.check_gate(@user, 'not_a_gate', result, {})
     assert_equal("Uninitialized", result.evaluation_details.reason)
     assert_equal(0, result.evaluation_details.config_sync_time)
 
     result = Statsig::ConfigResult::new(name: 'not_a_config')
-    @evaluator.get_config(@user, 'not_a_config', result)
+    @evaluator.get_config(@user, 'not_a_config', result, {})
     assert_equal("Uninitialized", result.evaluation_details.reason)
     assert_equal(0, result.evaluation_details.config_sync_time)
 
     result = Statsig::ConfigResult::new(name: 'not_a_layer')
-    @evaluator.get_layer(@user, 'not_a_layer', result)
+    @evaluator.get_layer(@user, 'not_a_layer', result, {})
     assert_equal("Uninitialized", result.evaluation_details.reason)
     assert_equal(0, result.evaluation_details.config_sync_time)
   end
 
   def test_unrecognized
     result = Statsig::ConfigResult::new(name: 'not_a_gate')
-    @evaluator.check_gate(@user, 'not_a_gate', result)
+    @evaluator.check_gate(@user, 'not_a_gate', result, {})
     assert_equal("Unrecognized", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
 
     result = Statsig::ConfigResult::new(name: 'not_a_config')
-    @evaluator.get_config(@user, 'not_a_config', result)
+    @evaluator.get_config(@user, 'not_a_config', result, {})
     assert_equal("Unrecognized", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
 
     result = Statsig::ConfigResult::new(name: 'not_a_layer')
-    @evaluator.get_layer(@user, 'not_a_layer', result)
+    @evaluator.get_layer(@user, 'not_a_layer', result, {})
     assert_equal("Unrecognized", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
   end
 
   def test_network
     result = Statsig::ConfigResult::new(name: 'always_on_gate')
-    @evaluator.check_gate(@user, 'always_on_gate', result)
+    @evaluator.check_gate(@user, 'always_on_gate', result, {})
     assert_equal("Network", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
 
     result = Statsig::ConfigResult::new(name: 'sample_experiment')
-    @evaluator.get_config(@user, 'sample_experiment', result)
+    @evaluator.get_config(@user, 'sample_experiment', result, {})
     assert_equal("Network", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
 
     result = Statsig::ConfigResult::new(name: 'a_layer')
-    @evaluator.get_layer(@user, 'a_layer', result)
+    @evaluator.get_layer(@user, 'a_layer', result, {})
     assert_equal("Network", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
   end
@@ -87,13 +87,13 @@ class EvaluationDetailsTest < BaseTest
   def test_local_override
     @evaluator.override_gate('always_on_gate', false)
     result = Statsig::ConfigResult::new(name: 'always_on_gate')
-    @evaluator.check_gate(@user, 'always_on_gate', result)
+    @evaluator.check_gate(@user, 'always_on_gate', result, {})
     assert_equal("LocalOverride", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
 
     @evaluator.override_config('sample_experiment', { })
     result = Statsig::ConfigResult::new(name: 'sample_experiment')
-    @evaluator.get_config(@user, 'sample_experiment', result)
+    @evaluator.get_config(@user, 'sample_experiment', result, {})
     assert_equal("LocalOverride", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
   end
@@ -104,7 +104,7 @@ class EvaluationDetailsTest < BaseTest
     boostrap_evaluator = bootstrap_driver.instance_variable_get('@evaluator')
 
     result = Statsig::ConfigResult::new(name: 'always_on_gate')
-    boostrap_evaluator.check_gate(@user, 'always_on_gate', result)
+    boostrap_evaluator.check_gate(@user, 'always_on_gate', result, {})
     assert_equal("Bootstrap", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
     assert_equal(true, result.gate_value)

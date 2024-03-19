@@ -10,12 +10,13 @@ module Statsig
       user,
       client_sdk_key,
       hash_algo,
+      memo,
       include_exposures: true,
       include_local_overrides: false
     )
       result = {}
       entities.each do |name, spec|
-        hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
+        hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides, memo)
         if !hashed_name.nil? && !value.nil?
           result[hashed_name] = value
         end
@@ -24,7 +25,8 @@ module Statsig
       result
     end
 
-    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
+    def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides, memo)
+    
       target_app_id = evaluator.spec_store.get_app_id_for_sdk_key(client_sdk_key)
       config_target_apps = config_spec.target_app_ids
 
@@ -53,7 +55,7 @@ module Statsig
           disable_evaluation_details: true,
           disable_exposures: !include_exposures
         )
-        evaluator.eval_spec(user, config_spec, eval_result)
+        evaluator.eval_spec(user, config_spec, eval_result, memo)
       else
         eval_result = local_override
       end
