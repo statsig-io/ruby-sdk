@@ -332,6 +332,13 @@ module Statsig
   end
 
   ##
+  # @param [HashTable] debug information log with exposure events
+  def self.set_debug_info(debug_info)
+    ensure_initialized
+    @shared_instance&.set_debug_info(debug_info)
+  end
+
+  ##
   # Gets all evaluated values for the given user.
   # These values can then be given to a Statsig Client SDK via bootstrapping.
   #

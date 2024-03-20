@@ -289,6 +289,12 @@ class StatsigDriver
     }, caller: __method__.to_s)
   end
 
+  def set_debug_info(debug_info)
+    @err_boundary.capture(task: lambda {
+      @logger.set_debug_info(debug_info)
+    }, caller: __method__.to_s)
+  end
+
   # @param [StatsigUser] user
   # @param [String | nil] client_sdk_key
   # @param [Boolean] include_local_overrides

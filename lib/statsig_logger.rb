@@ -28,6 +28,7 @@ module Statsig
       @deduper = Concurrent::Set.new()
       @interval = 0
       @flush_mutex = Mutex.new
+      @debug_info = nil
     end
 
     def log_event(event)
@@ -45,6 +46,9 @@ module Statsig
         gateValue: value.to_s,
         ruleID: rule_id || Statsig::Const::EMPTY_STR,
       }
+      if @debug_info != nil
+        metadata[:debugInfo] = @debug_info
+      end
       return false if not is_unique_exposure(user, $gate_exposure_event, metadata)
       event.metadata = metadata
 
@@ -62,6 +66,9 @@ module Statsig
         config: config_name,
         ruleID: rule_id || Statsig::Const::EMPTY_STR,
       }
+      if @debug_info != nil
+        metadata[:debugInfo] = @debug_info
+      end
       return false if not is_unique_exposure(user, $config_exposure_event, metadata)
       event.metadata = metadata
       event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
@@ -89,6 +96,9 @@ module Statsig
         parameterName: parameter_name,
         isExplicitParameter: String(is_explicit)
       }
+      if @debug_info != nil
+        metadata[:debugInfo] = @debug_info
+      end
       return false unless is_unique_exposure(user, $layer_exposure_event, metadata)
       event.metadata = metadata
       event.secondary_exposures = exposures.is_a?(Array) ? exposures : []
@@ -158,6 +168,10 @@ module Statsig
       if @background_flush.nil? || !@background_flush.alive?
         @background_flush = periodic_flush
       end
+    end
+
+    def set_debug_info(debug_info)
+      @debug_info = debug_info
     end
 
     private
