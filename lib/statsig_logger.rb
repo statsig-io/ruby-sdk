@@ -200,21 +200,15 @@ module Statsig
     def is_unique_exposure(user, event_name, metadata)
       return true if user.nil?
       @deduper.clear if @deduper.size > 10000
-      custom_id_key = ''
-      if user.custom_ids.is_a?(Hash)
-        custom_id_key = user.custom_ids.values.join(',')
-      end
+
+      user_key = user.user_key
 
       metadata_key = ''
       if metadata.is_a?(Hash)
         metadata_key = metadata.reject { |key, _| $ignored_metadata_keys.include?(key) }.values.join(',')
       end
-
-      user_id_key = ''
-      unless user.user_id.nil?
-        user_id_key = user.user_id
-      end
-      key = [user_id_key, custom_id_key, event_name, metadata_key].join(',')
+     
+      key = [user_key, event_name, metadata_key].join(',')
 
       return false if @deduper.include?(key)
       @deduper.add(key)

@@ -71,7 +71,7 @@ module Statsig
       return nil
     end
 
-    def check_gate(user, gate_name, end_result, memo, ignore_local_overrides: false)
+    def check_gate(user, gate_name, end_result, ignore_local_overrides: false)
       unless ignore_local_overrides
         local_override = lookup_gate_override(gate_name)
         unless local_override.nil?
@@ -96,10 +96,10 @@ module Statsig
         return
       end
 
-      eval_spec(user, @spec_store.get_gate(gate_name), end_result, memo)
+      eval_spec(user, @spec_store.get_gate(gate_name), end_result)
     end
 
-    def get_config(user, config_name, end_result, memo, user_persisted_values: nil, ignore_local_overrides: false)
+    def get_config(user, config_name, end_result, user_persisted_values: nil, ignore_local_overrides: false)
       unless ignore_local_overrides
         local_override = lookup_config_override(config_name)
         unless local_override.nil?
@@ -148,7 +148,7 @@ module Statsig
         end
 
         # If it doesn't exist, then save to persisted storage if the user was assigned to an experiment group.
-        eval_spec(user, config, end_result, memo)
+        eval_spec(user, config, end_result)
         if end_result.is_experiment_group
           @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name,
                                                                             end_result)
@@ -157,11 +157,11 @@ module Statsig
         # Otherwise, remove from persisted storage
       else
         @persistent_storage_utils.remove_experiment_from_storage(user, config.id_type, config_name)
-        eval_spec(user, config, end_result, memo)
+        eval_spec(user, config, end_result)
       end
     end
 
-    def get_layer(user, layer_name, end_result, memo)
+    def get_layer(user, layer_name, end_result)
       if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
         unless end_result.disable_evaluation_details
           end_result.evaluation_details = EvaluationDetails.uninitialized
@@ -174,7 +174,7 @@ module Statsig
         return
       end
 
-      eval_spec(user, @spec_store.get_layer(layer_name), end_result, memo)
+      eval_spec(user, @spec_store.get_layer(layer_name), end_result)
     end
 
     def list_gates
@@ -209,17 +209,15 @@ module Statsig
 
       if user.custom_ids.nil? == false
         evaluated_keys[:customIDs] = user.custom_ids
-      end
-
-      memo = {}
-
+      end 
+    
       {
         feature_gates: Statsig::ResponseFormatter
-                         .get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo, memo, include_local_overrides: include_local_overrides),
+                         .get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo, include_local_overrides: include_local_overrides),
         dynamic_configs: Statsig::ResponseFormatter
-                           .get_responses(@spec_store.configs, self, user, client_sdk_key, hash_algo, memo, include_local_overrides: include_local_overrides),
+                           .get_responses(@spec_store.configs, self, user, client_sdk_key, hash_algo, include_local_overrides: include_local_overrides),
         layer_configs: Statsig::ResponseFormatter
-                         .get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo, memo, include_local_overrides: include_local_overrides),
+                         .get_responses(@spec_store.layers, self, user, client_sdk_key, hash_algo, include_local_overrides: include_local_overrides),
         sdkParams: {},
         has_updates: true,
         generator: Const::STATSIG_RUBY_SDK,
@@ -279,17 +277,17 @@ module Statsig
       @config_overrides.clear
     end
 
-    def eval_spec(user, config, end_result, memo)
+    def eval_spec(user, config, end_result)
       unless config.enabled
         finalize_eval_result(config, end_result, did_pass: false, rule: nil)
         return
       end
 
       config.rules.each do |rule|
-        eval_rule(user, rule, end_result, memo)
+        eval_rule(user, rule, end_result)
 
         if end_result.gate_value
-          if eval_delegate(config.name, user, rule, end_result, memo)
+          if eval_delegate(config.name, user, rule, end_result)
             return
           end
 
@@ -330,18 +328,20 @@ module Statsig
       end
     end
 
-    def eval_rule(user, rule, end_result, memo)
+    def eval_rule(user, rule, end_result)
       pass = true
       i = 0
+
+      memo = user.get_memo
       until i >= rule.conditions.length
+
         condition = rule.conditions[i]
-        memoized_result = memo[condition.hash]
-        if !memoized_result.nil?
-          result = memoized_result
+
+        if condition.type == :fail_gate || condition.type == :pass_gate
+          result = eval_condition(user, condition, end_result)
         else
-          result = eval_condition(user, condition, end_result, memo)
-          if condition.type != :fail_gate && condition.type != :pass_gate
-            memo[condition.hash] = result
+          result = Memo.for(memo, :eval_rule, condition.hash) do
+            eval_condition(user, condition, end_result)
           end
         end
 
@@ -352,13 +352,13 @@ module Statsig
       end_result.gate_value = pass
     end
 
-    def eval_delegate(name, user, rule, end_result, memo)
+    def eval_delegate(name, user, rule, end_result)
       return false unless (delegate = rule.config_delegate)
       return false unless (config = @spec_store.get_config(delegate))
 
       end_result.undelegated_sec_exps = end_result.secondary_exposures.dup
 
-      eval_spec(user, config, end_result, memo)
+      eval_spec(user, config, end_result)
 
       end_result.name = name
       end_result.config_delegate = delegate
@@ -367,7 +367,7 @@ module Statsig
       true
     end
 
-    def eval_condition(user, condition, end_result, memo)
+    def eval_condition(user, condition, end_result)
       value = nil
       field = condition.field
       target = condition.target_value
@@ -380,7 +380,7 @@ module Statsig
       when :public
         return true
       when :fail_gate, :pass_gate
-        check_gate(user, target, end_result, memo)
+        check_gate(user, target, end_result)
         gate_value = end_result.gate_value
 
         unless end_result.disable_exposures
@@ -593,8 +593,8 @@ module Statsig
       return nil unless field.is_a?(String)
 
       ua = get_value_from_user(user, Const::USER_AGENT)
-      return nil unless ua.is_a?(String)
 
+      return nil unless ua.is_a?(String)
       case field.downcase
       when Const::OSNAME, Const::OS_NAME
         os = UAParser.parse_os(ua)

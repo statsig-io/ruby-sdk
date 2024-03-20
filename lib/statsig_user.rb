@@ -1,39 +1,78 @@
 require 'json'
 require 'constants'
-
 ##
 #  The user object to be evaluated against your Statsig configurations (gates/experiments/dynamic configs).
 class StatsigUser
 
   # An identifier for this user. Evaluated against the User ID criteria. (https://docs.statsig.com/feature-gates/conditions#userid)
-  attr_accessor :user_id
+  attr_reader :user_id
+  def user_id=(value)
+    value_changed()
+    @user_id = value
+  end
 
   # An identifier for this user. Evaluated against the Email criteria. (https://docs.statsig.com/feature-gates/conditions#email)
-  attr_accessor :email
+  attr_reader :email
+  def email=(value)
+    value_changed()
+    @email = value
+  end
 
   # An IP address associated with this user. Evaluated against the IP Address criteria. (https://docs.statsig.com/feature-gates/conditions#ip)
-  attr_accessor :ip
+  attr_reader :ip
+  def ip=(value)
+    value_changed()
+    @ip = value
+  end
 
   # A user agent string associated with this user. Evaluated against Browser Version and Name (https://docs.statsig.com/feature-gates/conditions#browser-version)
-  attr_accessor :user_agent
+  attr_reader :user_agent
+  def user_agent=(value)
+    value_changed()
+    @user_agent = value
+  end
 
   # The country code associated with this user (e.g New Zealand => NZ). Evaluated against the Country criteria. (https://docs.statsig.com/feature-gates/conditions#country)
-  attr_accessor :country
+  attr_reader :country
+  def country=(value)
+    value_changed()
+    @country = value
+  end
 
   # An locale for this user.
-  attr_accessor :locale
+  attr_reader :locale
+  def locale=(value)
+    value_changed()
+    @locale = value
+  end
 
   # The current app version the user is interacting with. Evaluated against the App Version criteria. (https://docs.statsig.com/feature-gates/conditions#app-version)
-  attr_accessor :app_version
+  attr_reader :app_version
+  def app_version=(value)
+    value_changed()
+    @app_version = value
+  end
 
   # A Hash you can use to set environment variables that apply to this user. e.g. { "tier" => "development" }
-  attr_accessor :statsig_environment
+  attr_reader :statsig_environment
+  def statsig_environment=(value)
+    value_changed()
+    @statsig_environment = value
+  end
 
   # Any Custom IDs to associated with the user. (See https://docs.statsig.com/guides/experiment-on-custom-id-types)
-  attr_accessor :custom_ids
+  attr_reader :custom_ids
+  def custom_ids=(value)
+    value_changed()
+    @custom_ids = value
+  end
 
   # Any value you wish to use in evaluation, but do not want logged with events, can be stored in this field.
-  attr_accessor :private_attributes
+  attr_reader :private_attributes
+  def private_attributes=(value)
+    value_changed()
+    @private_attributes = value
+  end
 
   def custom
     @custom
@@ -41,8 +80,11 @@ class StatsigUser
 
   # Any custom fields for this user. Evaluated against the Custom criteria. (https://docs.statsig.com/feature-gates/conditions#custom)
   def custom=(value)
+    value_changed()
     @custom = value.is_a?(Hash) ? value : Hash.new
   end
+
+  attr_accessor :memo_timeout
 
   def initialize(user_hash)
     the_hash = user_hash
@@ -63,6 +105,9 @@ class StatsigUser
     @private_attributes = from_hash(the_hash, [:private_attributes, :privateAttributes], Hash)
     @custom_ids = from_hash(the_hash, [:custom_ids, :customIDs], Hash)
     @statsig_environment = from_hash(the_hash, [:statsig_environment, :statsigEnvironment], Hash)
+    @memo = {}
+    @dirty = true
+    @memo_timeout = 2
   end
 
   def serialize(for_logging)
@@ -138,7 +183,45 @@ class StatsigUser
     @user_id
   end
 
+  def get_memo
+    current_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  
+    if @dirty || current_time - (@memo_access_time ||= current_time) > @memo_timeout
+      if @memo.size() > 0
+        @memo.clear
+      end
+      @dirty = false
+      @memo_access_time = current_time
+    end
+  
+    @memo
+  end
+
+  def clear_memo
+    @memo.clear
+    @dirty = false
+    @memo_access_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  end
+
+  def user_key
+    unless !@dirty && defined? @_user_key
+      custom_id_key = ''
+      if self.custom_ids.is_a?(Hash)
+        custom_id_key = self.custom_ids.values.join(',')
+      end
+      user_id_key = ''
+      unless self.user_id.nil?
+        user_id_key = self.user_id.to_s
+      end
+      @_user_key = user_id_key + ',' + custom_id_key.to_s
+    end
+    @_user_key
+  end
+
   private
+  def value_changed
+    @dirty = true
+  end 
 
   # Pulls fields from the user hash via Symbols and Strings
   def from_hash(user_hash, keys, type)

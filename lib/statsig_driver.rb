@@ -11,7 +11,7 @@ require 'dynamic_config'
 require 'feature_gate'
 require 'error_boundary'
 require 'layer'
-
+require 'memo'
 require 'diagnostics'
 
 class StatsigDriver
@@ -56,18 +56,22 @@ class StatsigDriver
       return FeatureGate.new(gate_name) if gate.nil?
       return FeatureGate.new(gate.name, target_app_ids: gate.target_app_ids)
     end
+   
     user = verify_inputs(user, gate_name, 'gate_name')
+    return Statsig::Memo.for(user.get_memo(), :get_gate_impl, gate_name) do
 
-    res = Statsig::ConfigResult.new(name: gate_name, disable_exposures: disable_log_exposure, disable_evaluation_details: disable_evaluation_details)
-    @evaluator.check_gate(user, gate_name, res, {}, ignore_local_overrides: ignore_local_overrides)
+      res = Statsig::ConfigResult.new(name: gate_name, disable_exposures: disable_log_exposure, disable_evaluation_details: disable_evaluation_details)
+      @evaluator.check_gate(user, gate_name, res, ignore_local_overrides: ignore_local_overrides)
 
-    unless disable_log_exposure
+      unless disable_log_exposure
       @logger.log_gate_exposure(
-        user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details
-      )
+          user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details
+        )
+      end
+      FeatureGate.from_config_result(res)
     end
-    FeatureGate.from_config_result(res)
   end
+
 
   def get_gate(user, gate_name, options = nil)
     @err_boundary.capture(task: lambda {
@@ -98,7 +102,7 @@ class StatsigDriver
   def manually_log_gate_exposure(user, gate_name)
     @err_boundary.capture(task: lambda {
       res = Statsig::ConfigResult.new(name: gate_name)
-      @evaluator.check_gate(user, gate_name, res, {})
+      @evaluator.check_gate(user, gate_name, res)
       context = { :is_manual_exposure => true }
       @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
     })
@@ -138,7 +142,7 @@ class StatsigDriver
   def manually_log_config_exposure(user, config_name)
     @err_boundary.capture(task: lambda {
       res = Statsig::ConfigResult.new(name: config_name)
-      @evaluator.get_config(user, config_name, res, {})
+      @evaluator.get_config(user, config_name, res)
 
       context = { :is_manual_exposure => true }
       @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
@@ -157,20 +161,22 @@ class StatsigDriver
   def get_layer(user, layer_name, options = nil)
     @err_boundary.capture(task: lambda {
       run_with_diagnostics(task: lambda {
-        user = verify_inputs(user, layer_name, "layer_name")
-        exposures_disabled = options&.disable_log_exposure == true
-        res = Statsig::ConfigResult.new(
-          name: layer_name,
-          disable_exposures: exposures_disabled,
-          disable_evaluation_details: options&.disable_evaluation_details == true
-        )
-        @evaluator.get_layer(user, layer_name, res, {})
+        return Statsig::Memo.for(user.get_memo(), :get_layer, layer_name) do
+          user = verify_inputs(user, layer_name, "layer_name")
+          exposures_disabled = options&.disable_log_exposure == true
+          res = Statsig::ConfigResult.new(
+            name: layer_name,
+            disable_exposures: exposures_disabled,
+            disable_evaluation_details: options&.disable_evaluation_details == true
+          )
+          @evaluator.get_layer(user, layer_name, res)
 
-        exposure_log_func = !exposures_disabled ? lambda { |layer, parameter_name|
-          @logger.log_layer_exposure(user, layer, parameter_name, res)
-        } : nil
+          exposure_log_func = !exposures_disabled ? lambda { |layer, parameter_name|
+            @logger.log_layer_exposure(user, layer, parameter_name, res)
+          } : nil
 
-        Layer.new(res.name, res.json_value, res.rule_id, res.group_name, res.config_delegate, exposure_log_func)
+          Layer.new(res.name, res.json_value, res.rule_id, res.group_name, res.config_delegate, exposure_log_func)
+        end
       }, caller: __method__.to_s)
     }, recover: lambda { Layer.new(layer_name) }, caller: __method__.to_s)
   end
@@ -178,7 +184,7 @@ class StatsigDriver
   def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
     @err_boundary.capture(task: lambda {
       res = Statsig::ConfigResult.new(name: layer_name)
-      @evaluator.get_layer(user, layer_name, res, {})
+      @evaluator.get_layer(user, layer_name, res)
 
       layer = Layer.new(layer_name, res.json_value, res.rule_id, res.group_name, res.config_delegate)
       context = { :is_manual_exposure => true }
@@ -340,28 +346,35 @@ class StatsigDriver
 
   def verify_inputs(user, config_name, variable_name)
     validate_user(user)
+    user = Statsig::Memo.for(user.get_memo(), :verify_inputs, 0) do
+      user = normalize_user(user)
+      check_shutdown
+      maybe_restart_background_threads
+      user
+    end
+
     if !config_name.is_a?(String) || config_name.empty?
       raise Statsig::ValueError.new("Invalid #{variable_name} provided")
     end
 
-    check_shutdown
-    maybe_restart_background_threads
-    normalize_user(user)
+    user
   end
 
   def get_config_impl(user, config_name, disable_log_exposure, user_persisted_values: nil, disable_evaluation_details: false, ignore_local_overrides: false)
-    res = Statsig::ConfigResult.new(
-      name: config_name,
-      disable_exposures: disable_log_exposure,
-      disable_evaluation_details: disable_evaluation_details
-    )
-    @evaluator.get_config(user, config_name, res, {}, user_persisted_values: user_persisted_values, ignore_local_overrides: ignore_local_overrides)
+    return Statsig::Memo.for(user.get_memo(), :get_config_impl, config_name) do
+      res = Statsig::ConfigResult.new(
+        name: config_name,
+        disable_exposures: disable_log_exposure,
+        disable_evaluation_details: disable_evaluation_details
+      )
+      @evaluator.get_config(user, config_name, res, user_persisted_values: user_persisted_values, ignore_local_overrides: ignore_local_overrides)
 
-    unless disable_log_exposure
-      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
+      unless disable_log_exposure
+        @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
+      end
+
+      DynamicConfig.new(res.name, res.json_value, res.rule_id, res.group_name, res.id_type, res.evaluation_details)
     end
-
-    DynamicConfig.new(res.name, res.json_value, res.rule_id, res.group_name, res.id_type, res.evaluation_details)
   end
 
   def validate_user(user)

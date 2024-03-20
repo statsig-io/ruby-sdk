@@ -41,6 +41,16 @@ class TestStatsig < BaseTest
     Statsig.get_config(StatsigUser.new({ 'email' => 'jkw@statsig.com', 'custom_ids' => { 'cid' => '1' } }), 'fake_config_name')
   end
 
+  def test_invalid_user_object_raises
+    Statsig.initialize('secret-123')
+    assert_raises { Statsig.get_gate({ userID => 'jkw@statsig.com' }, 'test_email') }
+    assert_raises { Statsig.get_gate({ 'email' => 'jkw@statsig.com' }, 'test_email') }
+    assert_raises { Statsig.check_gate({ 'email' => 'jkw@statsig.com' }, 'test_email') }
+    assert_raises { Statsig.get_config({ 'email' => 'jkw@statsig.com' }, 'fake_config_name') }
+    assert_raises { Statsig.check_gate({ 'email' => 'jkw@statsig.com', 'custom_ids' => {} }, 'test_email') }
+    assert_raises { Statsig.get_config({ 'email' => 'jkw@statsig.com', 'custom_ids' => {} }, 'fake_config_name') }
+  end
+
   def test_error_callback_called
     Statsig.initialize('secret-fake', nil, (-> (e) {
       assert(e.message.include?('Unauthorized'))

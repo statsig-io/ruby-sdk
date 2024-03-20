@@ -111,6 +111,11 @@ class StatsigDataAdapterTest < BaseTest
       spy_sync_rulesets.finished? && spy_sync_id_lists.finished?
     end
 
+    @user.clear_memo
+    @user_in_idlist_1.clear_memo
+    @user_in_idlist_2.clear_memo
+    @user_not_in_idlist.clear_memo
+
     result = driver.check_gate(@user, 'gate_from_adapter')
     assert(result == false)
     result = driver.check_gate(@user_in_idlist_1, 'test_id_list')
@@ -141,6 +146,9 @@ class StatsigDataAdapterTest < BaseTest
     wait_for(timeout: 1.9) do
       spy_sync_rulesets.finished? && spy_sync_id_lists.finished?
     end
+
+    @user.clear_memo
+    @user_in_idlist_1.clear_memo
 
     result = driver.check_gate(@user, 'gate_from_adapter')
     assert(result == false)

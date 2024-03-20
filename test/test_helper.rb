@@ -41,6 +41,7 @@ Minitest::Suite.order = %i[
   LayerTest
   StatsigLocalOverridesTest
   ManualExposureTest
+  MemoTest
   ServerSDKConsistencyTest
   SorbetTest
   StatsigE2ETest
@@ -58,6 +59,7 @@ Minitest::Suite.order = %i[
   TestSymbolHashes
   TestURIHelper
   UserFieldsTest
+  UserTest
 ]
 
 class BaseTest < Minitest::Test

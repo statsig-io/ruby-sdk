@@ -7,9 +7,11 @@ class TestUserPersistedValues < BaseTest
   def setup
     @json_file = File.read("#{__dir__}/data/download_config_specs_sticky_experiments.json")
     @user_in_control = StatsigUser.new({ 'userID' => 'vj' })
+    @user_in_control.memo_timeout = 0
     @user_in_test = StatsigUser.new({ 'userID' => 'hunter2' })
+    @user_in_test.memo_timeout = 0
     @user_not_in_exp = StatsigUser.new({ 'userID' => 'gb' })
-
+    @user_not_in_exp.memo_timeout = 0
   end
 
   def teardown

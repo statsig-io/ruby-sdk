@@ -15,7 +15,9 @@ class StatsigEvent
 
   def user=(value)
     if value.is_a?(StatsigUser)
-      @user = value.serialize(true)
+      @user = Statsig::Memo.for(value.get_memo(), :serialize, 0) do
+        value.serialize(true)
+      end
     end
   end
 

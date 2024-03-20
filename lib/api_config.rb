@@ -88,33 +88,35 @@ module Statsig
   class APICondition
 
     attr_accessor :type, :target_value, :operator, :field, :additional_values, :id_type, :hash
-
     def self.from_json(json)
-      operator = json[:operator]
-      unless operator.nil?
-        operator = operator&.downcase&.to_sym
-        unless Const::SUPPORTED_OPERATORS.include?(operator)
-          raise UnsupportedConfigException
+      hash = Statsig::HashUtils.md5(json.to_s).to_sym
+      return Statsig::Memo.for_global(:api_condition_from_json, hash) do
+        operator = json[:operator]
+        unless operator.nil?
+          operator = operator&.downcase&.to_sym
+          unless Const::SUPPORTED_OPERATORS.include?(operator)
+            raise UnsupportedConfigException
+          end
         end
-      end
 
-      type = json[:type]
-      unless type.nil?
-        type = type&.downcase&.to_sym
-        unless Const::SUPPORTED_CONDITION_TYPES.include?(type)
-          raise UnsupportedConfigException
+        type = json[:type]
+        unless type.nil?
+          type = type&.downcase&.to_sym
+          unless Const::SUPPORTED_CONDITION_TYPES.include?(type)
+            raise UnsupportedConfigException
+          end
         end
-      end
 
-      new(
-        type: json[:type],
-        target_value: json[:targetValue],
-        operator: json[:operator],
-        field: json[:field],
-        additional_values: json[:additionalValues],
-        id_type: json[:idType],
-        hash: Statsig::HashUtils.md5(json.to_s)
-      )
+        new(
+          type: json[:type],
+          target_value: json[:targetValue],
+          operator: json[:operator],
+          field: json[:field],
+          additional_values: json[:additionalValues],
+          id_type: json[:idType],
+          hash: hash
+        )
+      end
     end
 
     private
