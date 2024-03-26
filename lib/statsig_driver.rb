@@ -26,7 +26,7 @@ class StatsigDriver
     end
 
     @err_boundary = Statsig::ErrorBoundary.new(secret_key)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @diagnostics = Statsig::Diagnostics.new()
       tracker = @diagnostics.track('initialize', 'overall')
       @options = options || StatsigOptions.new
@@ -40,7 +40,7 @@ class StatsigDriver
       tracker.end(success: true)
 
       @logger.log_diagnostics_event(@diagnostics, 'initialize')
-    }, caller: __method__.to_s)
+    end
   end
 
   def get_gate_impl(
@@ -74,7 +74,7 @@ class StatsigDriver
 
 
   def get_gate(user, gate_name, options = nil)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__, recover: -> {false}) do
       run_with_diagnostics(caller: :get_gate) do
         get_gate_impl(user, gate_name,
                       disable_log_exposure: options&.disable_log_exposure == true,
@@ -82,11 +82,11 @@ class StatsigDriver
                       disable_evaluation_details: options&.disable_evaluation_details == true
         )
       end
-    }, recover: -> { false }, caller: __method__.to_s)
+    end
   end
 
   def check_gate(user, gate_name, options = nil)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__, recover: -> {false}) do
       run_with_diagnostics(caller: :check_gate) do 
         get_gate_impl(
           user,
@@ -96,20 +96,20 @@ class StatsigDriver
           ignore_local_overrides: options&.ignore_local_overrides == true
         ).value
       end
-    }, recover: -> { false }, caller: __method__.to_s)
+    end
   end
 
   def manually_log_gate_exposure(user, gate_name)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       res = Statsig::ConfigResult.new(name: gate_name)
       @evaluator.check_gate(user, gate_name, res)
       context = { :is_manual_exposure => true }
       @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
-    })
+    end
   end
 
   def get_config(user, dynamic_config_name, options = nil)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__, recover: -> { DynamicConfig.new(dynamic_config_name) }) do
       run_with_diagnostics(caller: :get_config) do
         user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
         get_config_impl(
@@ -120,11 +120,11 @@ class StatsigDriver
           ignore_local_overrides: options&.ignore_local_overrides == true
         )
       end
-    }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
+    end
   end
 
   def get_experiment(user, experiment_name, options = nil)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__, recover: -> { DynamicConfig.new(experiment_name) }) do
       run_with_diagnostics(caller: :get_experiment) do
         user = verify_inputs(user, experiment_name, "experiment_name")
         get_config_impl(
@@ -136,30 +136,30 @@ class StatsigDriver
           ignore_local_overrides: options&.ignore_local_overrides == true
         )
       end
-    }, recover: -> { DynamicConfig.new(experiment_name) }, caller: __method__.to_s)
+    end
   end
 
   def manually_log_config_exposure(user, config_name)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       res = Statsig::ConfigResult.new(name: config_name)
       @evaluator.get_config(user, config_name, res)
 
       context = { :is_manual_exposure => true }
       @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
-    }, caller: __method__.to_s)
+    end
   end
 
   def get_user_persisted_values(user, id_type)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__,) do
       persisted_values = @persistent_storage_utils.get_user_persisted_values(user, id_type)
       return {} if persisted_values.nil?
 
       persisted_values
-    }, caller: __method__.to_s)
+    end
   end
 
   def get_layer(user, layer_name, options = nil)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__, recover: -> { Layer.new(layer_name) }) do
       run_with_diagnostics(caller: :get_layer) do
         Statsig::Memo.for(user.get_memo(), :get_layer, layer_name) do
           user = verify_inputs(user, layer_name, "layer_name")
@@ -178,22 +178,22 @@ class StatsigDriver
           Layer.new(res.name, res.json_value, res.rule_id, res.group_name, res.config_delegate, exposure_log_func)
         end
       end
-    }, recover: lambda { Layer.new(layer_name) }, caller: __method__.to_s)
+    end
   end
 
   def manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       res = Statsig::ConfigResult.new(name: layer_name)
       @evaluator.get_layer(user, layer_name, res)
 
       layer = Layer.new(layer_name, res.json_value, res.rule_id, res.group_name, res.config_delegate)
       context = { :is_manual_exposure => true }
       @logger.log_layer_exposure(user, layer, parameter_name, res, context)
-    }, caller: __method__.to_s)
+    end
   end
 
   def log_event(user, event_name, value = nil, metadata = nil)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       if !user.nil? && !user.instance_of?(StatsigUser)
         raise Statsig::ValueError.new('Must provide a valid StatsigUser or nil')
       end
@@ -206,99 +206,99 @@ class StatsigDriver
       event.value = value
       event.metadata = metadata
       @logger.log_event(event)
-    }, caller: __method__.to_s)
+    end
   end
 
   def manually_sync_rulesets
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.spec_store.sync_config_specs
-    }, caller: __method__.to_s)
+    end
   end
 
   def manually_sync_idlists
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.spec_store.sync_id_lists
-    }, caller: __method__.to_s)
+    end
   end
 
   def list_gates
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.list_gates
-    }, caller: __method__.to_s)
+    end
   end
 
   def list_configs
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.list_configs
-    }, caller: __method__.to_s)
+    end
   end
 
   def list_experiments
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.list_experiments
-    }, caller: __method__.to_s)
+    end
   end
 
   def list_autotunes
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.list_autotunes
-    }, caller: __method__.to_s)
+    end
   end
 
   def list_layers
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.list_layers
-    }, caller: __method__.to_s)
+    end
   end
 
   def shutdown
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @shutdown = true
       @logger.shutdown
       @evaluator.shutdown
-    }, caller: __method__.to_s)
+    end
   end
 
   def override_gate(gate_name, gate_value)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.override_gate(gate_name, gate_value)
-    }, caller: __method__.to_s)
+    end
   end
 
   def remove_gate_override(gate_name)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.remove_gate_override(gate_name)
-    }, caller: __method__.to_s)
+    end
   end
 
   def clear_gate_overrides
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.clear_gate_overrides
-    }, caller: __method__.to_s)
+    end
   end
 
   def override_config(config_name, config_value)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.override_config(config_name, config_value)
-    }, caller: __method__.to_s)
+    end
   end
 
   def remove_config_override(config_name)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.remove_config_override(config_name)
-    }, caller: __method__.to_s)
+    end
   end
 
   def clear_config_overrides
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.clear_config_overrides
-    }, caller: __method__.to_s)
+    end
   end
 
   def set_debug_info(debug_info)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @logger.set_debug_info(debug_info)
-    }, caller: __method__.to_s)
+    end
   end
 
   # @param [StatsigUser] user
@@ -306,11 +306,11 @@ class StatsigDriver
   # @param [Boolean] include_local_overrides
   # @return [Hash]
   def get_client_initialize_response(user, hash, client_sdk_key, include_local_overrides)
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__, recover: -> { nil }) do
       validate_user(user)
       normalize_user(user)
       @evaluator.get_client_initialize_response(user, hash, client_sdk_key, include_local_overrides)
-    }, recover: -> { nil }, caller: __method__.to_s)
+    end
   end
 
   def maybe_restart_background_threads
@@ -318,10 +318,10 @@ class StatsigDriver
       return
     end
 
-    @err_boundary.capture(task: lambda {
+    @err_boundary.capture(caller: __method__) do
       @evaluator.maybe_restart_background_threads
       @logger.maybe_restart_background_threads
-    }, caller: __method__.to_s)
+    end
   end
 
   private

@@ -127,14 +127,14 @@ module Statsig
 
     def periodic_flush
       Thread.new do
-        @error_boundary.capture(task: lambda {
+        @error_boundary.capture() do
           loop do
             sleep @options.logging_interval_seconds
             flush_async
             @interval += 1
             @deduper.clear if @interval % 2 == 0
           end
-        })
+        end
       end
     end
 

@@ -218,12 +218,12 @@ module Statsig
       end
 
       Thread.new do
-        @error_boundary.capture(task: lambda {
+        @error_boundary.capture() do
           loop do
             sleep @options.rulesets_sync_interval
             sync_config_specs
           end
-        })
+        end
       end
     end
 
@@ -233,12 +233,12 @@ module Statsig
       end
 
       Thread.new do
-        @error_boundary.capture(task: lambda {
+        @error_boundary.capture() do
           loop do
             sleep @id_lists_sync_interval
             sync_id_lists
           end
-        })
+        end
       end
     end
 

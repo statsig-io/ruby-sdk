@@ -10,9 +10,9 @@ module Statsig
       @seen = Set.new
     end
 
-    def capture(task:, recover: -> {}, caller: nil)
+    def capture(recover: -> {}, caller: nil)
       begin
-        res = task.call
+        res = yield
       rescue StandardError, SystemStackError => e
         if e.is_a?(Statsig::UninitializedError) || e.is_a?(Statsig::ValueError)
           raise e
@@ -20,7 +20,7 @@ module Statsig
 
         puts '[Statsig]: An unexpected exception occurred.'
         puts e.message
-        log_exception(e, tag: caller)
+        log_exception(e, tag: caller&.to_s)
         res = recover.call
       end
       return res
