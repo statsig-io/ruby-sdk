@@ -207,8 +207,11 @@ class InitDiagnosticsTest < BaseTest
       metadata = event['metadata']
       assert_equal('api_call', metadata['context'])
       markers = metadata['markers']
-      assert_marker_equal(markers[0], keys[index], 'start')
-      assert_marker_equal(markers[1], keys[index], 'end', nil, { 'success' => true })
+      key_name = markers[0]['key'].to_sym
+      assert_equal(true, keys[key_name])
+
+      assert_marker_equal(markers[0], key_name.to_s, 'start')
+      assert_marker_equal(markers[1], key_name.to_s, 'end', nil, { 'success' => true })
     end
   end
 

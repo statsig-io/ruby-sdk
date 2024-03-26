@@ -58,7 +58,12 @@ module Statsig
       rand * 10_000 < rate_over_ten_thousand
     end
 
-    API_CALL_KEYS = %w[check_gate get_config get_experiment get_layer].freeze
+    API_CALL_KEYS = {
+      :check_gate => true,
+      :get_config => true,
+      :get_experiment => true,
+      :get_layer => true
+    }.freeze
 
     class Tracker
       def initialize(diagnostics, context, key, step, tags = {})

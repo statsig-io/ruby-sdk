@@ -75,19 +75,19 @@ class StatsigDriver
 
   def get_gate(user, gate_name, options = nil)
     @err_boundary.capture(task: lambda {
-      run_with_diagnostics(task: lambda {
+      run_with_diagnostics(caller: :get_gate) do
         get_gate_impl(user, gate_name,
                       disable_log_exposure: options&.disable_log_exposure == true,
                       skip_evaluation: options&.skip_evaluation == true,
                       disable_evaluation_details: options&.disable_evaluation_details == true
         )
-      }, caller: __method__.to_s)
+      end
     }, recover: -> { false }, caller: __method__.to_s)
   end
 
   def check_gate(user, gate_name, options = nil)
     @err_boundary.capture(task: lambda {
-      run_with_diagnostics(task: lambda {
+      run_with_diagnostics(caller: :check_gate) do 
         get_gate_impl(
           user,
           gate_name,
@@ -95,7 +95,7 @@ class StatsigDriver
           disable_evaluation_details: options&.disable_evaluation_details == true,
           ignore_local_overrides: options&.ignore_local_overrides == true
         ).value
-      }, caller: __method__.to_s)
+      end
     }, recover: -> { false }, caller: __method__.to_s)
   end
 
@@ -110,7 +110,7 @@ class StatsigDriver
 
   def get_config(user, dynamic_config_name, options = nil)
     @err_boundary.capture(task: lambda {
-      run_with_diagnostics(task: lambda {
+      run_with_diagnostics(caller: :get_config) do
         user = verify_inputs(user, dynamic_config_name, "dynamic_config_name")
         get_config_impl(
           user,
@@ -119,13 +119,13 @@ class StatsigDriver
           disable_evaluation_details: options&.disable_evaluation_details == true,
           ignore_local_overrides: options&.ignore_local_overrides == true
         )
-      }, caller: __method__.to_s)
+      end
     }, recover: -> { DynamicConfig.new(dynamic_config_name) }, caller: __method__.to_s)
   end
 
   def get_experiment(user, experiment_name, options = nil)
     @err_boundary.capture(task: lambda {
-      run_with_diagnostics(task: lambda {
+      run_with_diagnostics(caller: :get_experiment) do
         user = verify_inputs(user, experiment_name, "experiment_name")
         get_config_impl(
           user,
@@ -135,7 +135,7 @@ class StatsigDriver
           disable_evaluation_details: options&.disable_evaluation_details == true,
           ignore_local_overrides: options&.ignore_local_overrides == true
         )
-      }, caller: __method__.to_s)
+      end
     }, recover: -> { DynamicConfig.new(experiment_name) }, caller: __method__.to_s)
   end
 
@@ -160,8 +160,8 @@ class StatsigDriver
 
   def get_layer(user, layer_name, options = nil)
     @err_boundary.capture(task: lambda {
-      run_with_diagnostics(task: lambda {
-        return Statsig::Memo.for(user.get_memo(), :get_layer, layer_name) do
+      run_with_diagnostics(caller: :get_layer) do
+        Statsig::Memo.for(user.get_memo(), :get_layer, layer_name) do
           user = verify_inputs(user, layer_name, "layer_name")
           exposures_disabled = options&.disable_log_exposure == true
           res = Statsig::ConfigResult.new(
@@ -177,7 +177,7 @@ class StatsigDriver
 
           Layer.new(res.name, res.json_value, res.rule_id, res.group_name, res.config_delegate, exposure_log_func)
         end
-      }, caller: __method__.to_s)
+      end
     }, recover: lambda { Layer.new(layer_name) }, caller: __method__.to_s)
   end
 
@@ -326,14 +326,16 @@ class StatsigDriver
 
   private
 
-  def run_with_diagnostics(task:, caller:)
-    diagnostics = nil
-    if Statsig::Diagnostics::API_CALL_KEYS.include?(caller) && Statsig::Diagnostics.sample(1)
-      diagnostics = Statsig::Diagnostics.new()
-      tracker = diagnostics.track('api_call', caller)
+  def run_with_diagnostics(caller:)
+    if !Statsig::Diagnostics::API_CALL_KEYS[caller] || !Statsig::Diagnostics.sample(1)
+      return yield
     end
+
+    diagnostics = Statsig::Diagnostics.new()
+    tracker = diagnostics.track('api_call', caller.to_s)
+
     begin
-      res = task.call
+      res = yield
       tracker&.end(success: true)
     rescue StandardError => e
       tracker&.end(success: false)
