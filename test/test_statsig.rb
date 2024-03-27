@@ -49,6 +49,7 @@ class TestStatsig < BaseTest
     assert_raises { Statsig.get_config({ 'email' => 'jkw@statsig.com' }, 'fake_config_name') }
     assert_raises { Statsig.check_gate({ 'email' => 'jkw@statsig.com', 'custom_ids' => {} }, 'test_email') }
     assert_raises { Statsig.get_config({ 'email' => 'jkw@statsig.com', 'custom_ids' => {} }, 'fake_config_name') }
+    assert_raises { Statsig.get_layer({ 'email' => 'jkw@statsig.com', 'custom_ids' => {} }, 'fale_layer_name') }
   end
 
   def test_error_callback_called

@@ -161,8 +161,8 @@ class StatsigDriver
   def get_layer(user, layer_name, options = nil)
     @err_boundary.capture(caller: __method__, recover: -> { Layer.new(layer_name) }) do
       run_with_diagnostics(caller: :get_layer) do
+        user = verify_inputs(user, layer_name, "layer_name")
         Statsig::Memo.for(user.get_memo(), :get_layer, layer_name) do
-          user = verify_inputs(user, layer_name, "layer_name")
           exposures_disabled = options&.disable_log_exposure == true
           res = Statsig::ConfigResult.new(
             name: layer_name,
