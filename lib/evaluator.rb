@@ -201,6 +201,9 @@ module Statsig
       if @spec_store.is_ready_for_checks == false
         return nil
       end
+      if @spec_store.last_config_sync_time == 0
+        return nil
+      end
 
       evaluated_keys = {}
       if user.user_id.nil? == false
@@ -209,8 +212,8 @@ module Statsig
 
       if user.custom_ids.nil? == false
         evaluated_keys[:customIDs] = user.custom_ids
-      end 
-    
+      end
+      meta = Statsig.get_statsig_metadata
       {
         feature_gates: Statsig::ResponseFormatter
                          .get_responses(@spec_store.gates, self, user, client_sdk_key, hash_algo, include_local_overrides: include_local_overrides),
@@ -222,9 +225,10 @@ module Statsig
         has_updates: true,
         generator: Const::STATSIG_RUBY_SDK,
         evaluated_keys: evaluated_keys,
-        time: 0,
+        time: @spec_store.last_config_sync_time,
         hash_used: hash_algo,
-        user_hash: user.to_hash_without_stable_id
+        user: user.serialize(false),
+        sdkInfo: {sdkType: meta["sdkType"], sdkVersion: meta["sdkVersion"]},
       }
     end
 

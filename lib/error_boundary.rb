@@ -26,9 +26,7 @@ module Statsig
       return res
     end
 
-    private
-
-    def log_exception(exception, tag: nil)
+    def log_exception(exception, tag: nil, extra: {})
       name = exception.class.name
       if @seen.include?(name)
         return
@@ -51,7 +49,8 @@ module Statsig
           'message' => exception.message
         }.to_s,
         'statsigMetadata' => meta,
-        'tag' => tag
+        'tag' => tag,
+        'extra' => extra
       }
       http.post($endpoint, body: JSON.generate(body))
     rescue StandardError

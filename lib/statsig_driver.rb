@@ -56,7 +56,7 @@ class StatsigDriver
       return FeatureGate.new(gate_name) if gate.nil?
       return FeatureGate.new(gate.name, target_app_ids: gate.target_app_ids)
     end
-   
+
     user = verify_inputs(user, gate_name, 'gate_name')
     return Statsig::Memo.for(user.get_memo(), :get_gate_impl, gate_name) do
 
@@ -87,7 +87,7 @@ class StatsigDriver
 
   def check_gate(user, gate_name, options = nil)
     @err_boundary.capture(caller: __method__, recover: -> {false}) do
-      run_with_diagnostics(caller: :check_gate) do 
+      run_with_diagnostics(caller: :check_gate) do
         get_gate_impl(
           user,
           gate_name,
@@ -309,7 +309,11 @@ class StatsigDriver
     @err_boundary.capture(caller: __method__, recover: -> { nil }) do
       validate_user(user)
       normalize_user(user)
-      @evaluator.get_client_initialize_response(user, hash, client_sdk_key, include_local_overrides)
+      response = @evaluator.get_client_initialize_response(user, hash, client_sdk_key, include_local_overrides)
+      if response.nil?
+        @err_boundary.log_exception(Statsig::ValueError.new('Failed to get client initialize response'), tag: 'getClientInitializeResponse', extra: {hash: hash, clientKey: client_sdk_key})
+      end
+      response
     end
   end
 
