@@ -31,4 +31,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'connection_pool', '~> 2.4', '>= 2.4.1'
   s.add_runtime_dependency 'ip3country', '~> 0.2.1'
   s.add_runtime_dependency 'concurrent-ruby', '~> 1.1'
+  s.add_runtime_dependency 'zlib', '~> 3.1.0'
 end

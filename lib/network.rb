@@ -1,6 +1,7 @@
 require 'http'
 require 'json'
 require 'securerandom'
+require 'zlib'
 
 require 'uri_helper'
 require 'connection_pool'
@@ -58,11 +59,11 @@ module Statsig
       request(:GET, endpoint, nil, retries, backoff)
     end
 
-    def post(endpoint, body, retries = 0, backoff = 1)
-      request(:POST, endpoint, body, retries, backoff)
+    def post(endpoint, body, retries = 0, backoff = 1, zipped = false)
+      request(:POST, endpoint, body, retries, backoff, zipped)
     end
 
-    def request(method, endpoint, body, retries = 0, backoff = 1)
+    def request(method, endpoint, body, retries = 0, backoff = 1, zipped = false)
       if @local_mode
         return nil, nil
       end
@@ -78,7 +79,7 @@ module Statsig
       url = URIHelper.build_url(endpoint)
       begin
         res = @connection_pool.with do |conn|
-          request = conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s)
+          request = conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s, 'CONTENT-ENCODING' => zipped ? 'gzip' : nil)
           case method
           when :GET
             request.get(url)
@@ -91,7 +92,7 @@ module Statsig
         return nil, e unless retries.positive?
 
         sleep backoff_adjusted
-        return request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier)
+        return request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier, zipped)
       end
       return res, nil if res.status.success?
 
@@ -102,12 +103,14 @@ module Statsig
 
       ## status code retry
       sleep backoff_adjusted
-      request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier)
+      request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier, zipped)
     end
 
     def post_logs(events)
       json_body = JSON.generate({ events: events, statsigMetadata: Statsig.get_statsig_metadata })
-      post('log_event', json_body, @post_logs_retry_limit)
+      gzip = Zlib::GzipWriter.new(StringIO.new)
+      gzip << json_body
+      post('log_event', gzip.close.string, @post_logs_retry_limit, 1, true)
     rescue StandardError
 
     end

@@ -25,7 +25,6 @@ class StatsigE2ETest < BaseTest
   def before_setup
     super
     stub_download_config_specs.to_return(status: 200, body: @@mock_response)
-    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @statsig_user = StatsigUser.new({ 'userID' => '123', 'email' => 'testuser@statsig.com' })
     @random_user = StatsigUser.new({ 'userID' => 'random' })
@@ -35,6 +34,14 @@ class StatsigE2ETest < BaseTest
   def setup
     super
     WebMock.enable!
+    @events = []
+    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda { |request|
+      gz = Zlib::GzipReader.new(StringIO.new(request.body))
+      parsedBody = gz.read
+      gz.close
+      @events.push(*JSON.parse(parsedBody)['events'])
+      return ''
+    })
   end
 
   def teardown
@@ -75,64 +82,40 @@ class StatsigE2ETest < BaseTest
     assert(driver.check_gate(@random_user, 'on_for_statsig_email') == false)
     assert(driver.check_gate(@random_user, 'email_not_null') == false)
     driver.shutdown
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      body: hash_including(
-        'events' => [
-          hash_including(
-            'eventName' => 'statsig::gate_exposure',
-            'user' => {
-              'userID' => '123',
-              'email' => 'testuser@statsig.com'
-            },
-            'metadata' => hash_including(
-              'gate' => 'always_on_gate',
-              'gateValue' => 'true',
-              'ruleID' => '6N6Z8ODekNYZ7F8gFdoLP5'
-            )
-          ),
-          hash_including(
-            'eventName' => 'statsig::gate_exposure',
-            'metadata' => hash_including(
-              'gate' => 'on_for_statsig_email',
-              'gateValue' => 'true',
-              'ruleID' => '7w9rbTSffLT89pxqpyhuqK'
-            )
-          ),
-          hash_including(
-            'eventName' => 'statsig::gate_exposure',
-            'metadata' => hash_including(
-              'gate' => 'email_not_null',
-              'gateValue' => 'true',
-              'ruleID' => '7w9rbTSffLT89pxqpyhuqK'
-            )
-          ),
-          hash_including(
-            'eventName' => 'statsig::gate_exposure',
-            'user' => {
-              'userID' => 'random'
-            },
-            'metadata' => hash_including(
-              'gate' => 'on_for_statsig_email',
-              'gateValue' => 'false',
-              'ruleID' => 'default'
-            )
-          ),
-          hash_including(
-            'eventName' => 'statsig::gate_exposure',
-            'metadata' => hash_including(
-              'gate' => 'email_not_null',
-              'gateValue' => 'false',
-              'ruleID' => 'default'
-            )
-          )
-        ],
-        'statsigMetadata' =>
-          Statsig.get_statsig_metadata
-      ),
-      times: 1
-    )
+
+    assert_equal(5, @events.length)
+    event = @events[0]
+    assert_equal('statsig::gate_exposure', event['eventName'])
+    assert_equal('always_on_gate', event['metadata']['gate'])
+    assert_equal('6N6Z8ODekNYZ7F8gFdoLP5', event['metadata']['ruleID'])
+    assert_equal('true', event['metadata']['gateValue'])
+    assert_equal('123', event['user']['userID'])
+    assert_equal('testuser@statsig.com', event['user']['email'])
+
+    event = @events[1]
+    assert_equal('statsig::gate_exposure', event['eventName'])
+    assert_equal('on_for_statsig_email', event['metadata']['gate'])
+    assert_equal('7w9rbTSffLT89pxqpyhuqK', event['metadata']['ruleID'])
+    assert_equal('true', event['metadata']['gateValue'])
+
+    event = @events[2]
+    assert_equal('statsig::gate_exposure', event['eventName'])
+    assert_equal('email_not_null', event['metadata']['gate'])
+    assert_equal('7w9rbTSffLT89pxqpyhuqK', event['metadata']['ruleID'])
+    assert_equal('true', event['metadata']['gateValue'])
+
+    event = @events[3]
+    assert_equal('statsig::gate_exposure', event['eventName'])
+    assert_equal('on_for_statsig_email', event['metadata']['gate'])
+    assert_equal('default', event['metadata']['ruleID'])
+    assert_equal('false', event['metadata']['gateValue'])
+    assert_equal('random', event['user']['userID'])
+
+    event = @events[4]
+    assert_equal('statsig::gate_exposure', event['eventName'])
+    assert_equal('email_not_null', event['metadata']['gate'])
+    assert_equal('default', event['metadata']['ruleID'])
+    assert_equal('false', event['metadata']['gateValue'])
   end
 
   def test_dynamic_config
@@ -152,29 +135,16 @@ class StatsigE2ETest < BaseTest
     assert(config.get('boolean', false) == true)
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      body: hash_including(
-        'events' => [
-          hash_including(
-            'eventName' => 'statsig::config_exposure',
-            'metadata' => hash_including(
-              'config' => 'test_config',
-              'ruleID' => '1kNmlB23wylPFZi1M0Divl'
-            )
-          ),
-          hash_including(
-            'eventName' => 'statsig::config_exposure',
-            'metadata' => hash_including(
-              'config' => 'test_config',
-              'ruleID' => 'default'
-            )
-          )
-        ]
-      ),
-      times: 1
-    )
+    assert_equal(2, @events.length)
+    event = @events[0]
+    assert_equal('statsig::config_exposure', event['eventName'])
+    assert_equal('test_config', event['metadata']['config'])
+    assert_equal('1kNmlB23wylPFZi1M0Divl', event['metadata']['ruleID'])
+
+    event = @events[1]
+    assert_equal('statsig::config_exposure', event['eventName'])
+    assert_equal('test_config', event['metadata']['config'])
+    assert_equal('default', event['metadata']['ruleID'])
   end
 
   def test_experiment
@@ -193,29 +163,16 @@ class StatsigE2ETest < BaseTest
 
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      body: hash_including(
-        'events' => [
-          hash_including(
-            'eventName' => 'statsig::config_exposure',
-            'metadata' => hash_including(
-              'config' => 'sample_experiment',
-              'ruleID' => '2RamGsERWbWMIMnSfOlQuX'
-            )
-          ),
-          hash_including(
-            'eventName' => 'statsig::config_exposure',
-            'metadata' => hash_including(
-              'config' => 'sample_experiment',
-              'ruleID' => '2RamGujUou6h2bVNQWhtNZ'
-            )
-          )
-        ]
-      ),
-      times: 1
-    )
+    assert_equal(2, @events.length)
+    event = @events[0]
+    assert_equal('statsig::config_exposure', event['eventName'])
+    assert_equal('sample_experiment', event['metadata']['config'])
+    assert_equal('2RamGsERWbWMIMnSfOlQuX', event['metadata']['ruleID'])
+
+    event = @events[1]
+    assert_equal('statsig::config_exposure', event['eventName'])
+    assert_equal('sample_experiment', event['metadata']['config'])
+    assert_equal('2RamGujUou6h2bVNQWhtNZ', event['metadata']['ruleID'])
   end
 
   def test_log_event
@@ -224,26 +181,13 @@ class StatsigE2ETest < BaseTest
                      { 'price' => '9.99', 'item_name' => 'diet_coke_48_pack' })
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      body: hash_including(
-        'events' => [
-          hash_including(
-            'eventName' => 'add_to_cart',
-            'value' => 'SKU_12345',
-            'metadata' => {
-              'price' => '9.99',
-              'item_name' => 'diet_coke_48_pack'
-            },
-            'user' => hash_including(
-              'userID' => 'random'
-            )
-          )
-        ]
-      ),
-      times: 1
-    )
+    assert_equal(1, @events.length)
+    event = @events[0]
+    assert_equal('add_to_cart', event['eventName'])
+    assert_equal('SKU_12345', event['value'])
+    assert_equal('9.99', event['metadata']['price'])
+    assert_equal('diet_coke_48_pack', event['metadata']['item_name'])
+    assert_equal('random', event['user']['userID'])
   end
 
   def test_bootstrap_option

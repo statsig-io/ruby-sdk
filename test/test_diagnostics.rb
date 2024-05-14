@@ -5,6 +5,7 @@ require 'minitest'
 require 'minitest/autorun'
 require 'webmock/minitest'
 require 'statsig'
+require 'zlib'
 require_relative './dummy_data_adapter'
 
 $expected_sync_time = 1631638014811
@@ -30,7 +31,10 @@ class InitDiagnosticsTest < BaseTest
 
     @events = []
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda { |request|
-      @events.push(*JSON.parse(request.body)["events"])
+      gz = Zlib::GzipReader.new(StringIO.new(request.body))
+      parsedBody = gz.read
+      gz.close
+      @events.push(*JSON.parse(parsedBody)['events'])
       return ''
     })
   end

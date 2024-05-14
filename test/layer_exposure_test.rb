@@ -20,7 +20,6 @@ class LayerExposureTest < BaseTest
     @options = StatsigOptions.new(disable_diagnostics_logging: true)
 
     stub_download_config_specs.to_return(status: 200, body: @mock_response)
-    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
     @user = StatsigUser.new({ 'userID' => 'random' })
   end
@@ -28,6 +27,14 @@ class LayerExposureTest < BaseTest
   def setup
     super
     WebMock.enable!
+    @events = []
+    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda { |request|
+      gz = Zlib::GzipReader.new(StringIO.new(request.body))
+      parsedBody = gz.read
+      gz.close
+      @events.push(*JSON.parse(parsedBody)['events'])
+      return ''
+    })
   end
 
   def teardown
@@ -41,16 +48,7 @@ class LayerExposureTest < BaseTest
     driver.get_layer(@user, 'unallocated_layer')
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      :body => hash_including(
-        'events' => [
-          hash_including(
-            'eventName' => 'statsig::layer_exposure',
-          ),
-        ]),
-      :times => 0)
+    assert_equal(0, @events.length)
   end
 
   def test_does_not_log_on_non_existent_keys
@@ -59,16 +57,7 @@ class LayerExposureTest < BaseTest
     layer.get('a_string', 'err')
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      :body => hash_including(
-        'events' => [
-          hash_including(
-            'eventName' => 'statsig::layer_exposure',
-          ),
-        ]),
-      :times => 0)
+    assert_equal(0, @events.length)
   end
 
   def test_unallocated_layer_logging
@@ -77,23 +66,16 @@ class LayerExposureTest < BaseTest
     layer.get("an_int", 0)
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      :body => hash_including(
-        'events' => [
-          hash_including(
-            'metadata' => hash_including(
-              'config' => 'unallocated_layer',
-              'ruleID' => 'default',
-              'allocatedExperiment' => '',
-              'parameterName' => 'an_int',
-              'isExplicitParameter' => 'false',
-              'reason' => 'Network',
-            ),
-          ),
-        ]),
-      :times => 1)
+    assert_equal(1, @events.length)
+    event = @events[0]
+    assert_equal('statsig::layer_exposure', event['eventName'])
+    metadata = event['metadata']
+    assert_equal('unallocated_layer', metadata['config'])
+    assert_equal('default', metadata['ruleID'])
+    assert_equal('', metadata['allocatedExperiment'])
+    assert_equal('an_int', metadata['parameterName'])
+    assert_equal('false', metadata['isExplicitParameter'])
+    assert_equal('Network', metadata['reason'])
   end
 
   def test_explicit_vs_implicit_parameter_logging
@@ -103,33 +85,26 @@ class LayerExposureTest < BaseTest
     layer.get("a_string", 'err')
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      :body => hash_including(
-        'events' => [
-          hash_including(
-            'metadata' => hash_including(
-              'config' => 'explicit_vs_implicit_parameter_layer',
-              'ruleID' => 'alwaysPass',
-              'allocatedExperiment' => 'experiment',
-              'parameterName' => 'an_int',
-              'isExplicitParameter' => 'true',
-              'reason' => 'Network'
-            ),
-          ),
-          hash_including(
-            'metadata' => hash_including(
-              'config' => 'explicit_vs_implicit_parameter_layer',
-              'ruleID' => 'alwaysPass',
-              'allocatedExperiment' => '',
-              'parameterName' => 'a_string',
-              'isExplicitParameter' => 'false',
-              'reason' => 'Network'
-            ),
-          ),
-        ]),
-      :times => 1)
+    assert_equal(2, @events.length)
+    event = @events[0]
+    assert_equal('statsig::layer_exposure', event['eventName'])
+    metadata = event['metadata']
+    assert_equal('explicit_vs_implicit_parameter_layer', metadata['config'])
+    assert_equal('alwaysPass', metadata['ruleID'])
+    assert_equal('experiment', metadata['allocatedExperiment'])
+    assert_equal('an_int', metadata['parameterName'])
+    assert_equal('true', metadata['isExplicitParameter'])
+    assert_equal('Network', metadata['reason'])
+
+    event = @events[1]
+    assert_equal('statsig::layer_exposure', event['eventName'])
+    metadata = event['metadata']
+    assert_equal('explicit_vs_implicit_parameter_layer', metadata['config'])
+    assert_equal('alwaysPass', metadata['ruleID'])
+    assert_equal('', metadata['allocatedExperiment'])
+    assert_equal('a_string', metadata['parameterName'])
+    assert_equal('false', metadata['isExplicitParameter'])
+    assert_equal('Network', metadata['reason'])
   end
 
   def test_logs_user_and_event_name
@@ -139,19 +114,10 @@ class LayerExposureTest < BaseTest
     layer.get("an_int", 0)
     driver.shutdown
 
-    assert_requested(
-      :post,
-      'https://statsigapi.net/v1/log_event',
-      :body => hash_including(
-        :events => [
-          hash_including(
-            :eventName => 'statsig::layer_exposure',
-            :user => {
-              :userID => 'dloomb',
-              :email => 'dan@loomb.com',
-            },
-          ),
-        ]),
-      :times => 1)
+    assert_equal(1, @events.length)
+    event = @events[0]
+    assert_equal('statsig::layer_exposure', event['eventName'])
+    assert_equal('dloomb', event['user']['userID'])
+    assert_equal('dan@loomb.com', event['user']['email'])
   end
 end
