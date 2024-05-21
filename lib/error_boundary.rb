@@ -26,9 +26,9 @@ module Statsig
       return res
     end
 
-    def log_exception(exception, tag: nil, extra: {})
+    def log_exception(exception, tag: nil, extra: {}, force: false)
       name = exception.class.name
-      if @seen.include?(name)
+      if @seen.include?(name) && !force
         return
       end
 

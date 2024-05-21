@@ -160,7 +160,7 @@ module Statsig
         events_clone = @events
         @events = []
         flush_events = events_clone.map { |e| e.serialize }
-        @network.post_logs(flush_events)
+        @network.post_logs(flush_events, @error_boundary)
       end
     end
 
@@ -207,7 +207,7 @@ module Statsig
       if metadata.is_a?(Hash)
         metadata_key = metadata.reject { |key, _| $ignored_metadata_keys.include?(key) }.values.join(',')
       end
-     
+
       key = [user_key, event_name, metadata_key].join(',')
 
       return false if @deduper.include?(key)
