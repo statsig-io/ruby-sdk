@@ -93,20 +93,10 @@ module Statsig
       result[:rule_id] = eval_result.rule_id
 
       if include_exposures
-        result[:secondary_exposures] = clean_exposures(eval_result.secondary_exposures)
+        result[:secondary_exposures] = eval_result.secondary_exposures
       end
 
       [hashed_name, result]
-    end
-
-    def self.clean_exposures(exposures)
-      seen = {}
-      exposures.reject do |exposure|
-        key = "#{exposure[:gate]}|#{exposure[:gateValue]}|#{exposure[:ruleID]}}"
-        should_reject = seen[key]
-        seen[key] = true
-        should_reject == true
-      end
     end
 
     def self.populate_experiment_fields(config_name, config_spec, eval_result, result, evaluator)
@@ -143,7 +133,7 @@ module Statsig
       end
 
       if include_exposures
-        result[:undelegated_secondary_exposures] = clean_exposures(eval_result.undelegated_sec_exps || [])
+        result[:undelegated_secondary_exposures] = eval_result.undelegated_sec_exps || []
       end
     end
 

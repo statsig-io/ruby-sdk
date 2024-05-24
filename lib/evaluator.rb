@@ -71,7 +71,7 @@ module Statsig
       return nil
     end
 
-    def check_gate(user, gate_name, end_result, ignore_local_overrides: false)
+    def check_gate(user, gate_name, end_result, ignore_local_overrides: false, is_nested: false)
       unless ignore_local_overrides
         local_override = lookup_gate_override(gate_name)
         unless local_override.nil?
@@ -96,7 +96,7 @@ module Statsig
         return
       end
 
-      eval_spec(user, @spec_store.get_gate(gate_name), end_result)
+      eval_spec(user, @spec_store.get_gate(gate_name), end_result, is_nested: is_nested)
     end
 
     def get_config(user, config_name, end_result, user_persisted_values: nil, ignore_local_overrides: false)
@@ -281,9 +281,9 @@ module Statsig
       @config_overrides.clear
     end
 
-    def eval_spec(user, config, end_result)
+    def eval_spec(user, config, end_result, is_nested: false)
       unless config.enabled
-        finalize_eval_result(config, end_result, did_pass: false, rule: nil)
+        finalize_eval_result(config, end_result, did_pass: false, rule: nil, is_nested: is_nested)
         return
       end
 
@@ -292,21 +292,22 @@ module Statsig
 
         if end_result.gate_value
           if eval_delegate(config.name, user, rule, end_result)
+            finalize_secondary_exposures(end_result)
             return
           end
 
           pass = eval_pass_percent(user, rule, config.salt)
-          finalize_eval_result(config, end_result, did_pass: pass, rule: rule)
+          finalize_eval_result(config, end_result, did_pass: pass, rule: rule, is_nested: is_nested)
           return
         end
       end
 
-      finalize_eval_result(config, end_result, did_pass: false, rule: nil)
+      finalize_eval_result(config, end_result, did_pass: false, rule: nil, is_nested: is_nested)
     end
 
     private
 
-    def finalize_eval_result(config, end_result, did_pass:, rule:)
+    def finalize_eval_result(config, end_result, did_pass:, rule:, is_nested: false)
       end_result.id_type = config.id_type
       end_result.target_app_ids = config.target_app_ids
       end_result.gate_value = did_pass
@@ -329,6 +330,29 @@ module Statsig
           @spec_store.initial_config_sync_time,
           @spec_store.init_reason
         )
+      end
+
+      unless is_nested
+        finalize_secondary_exposures(end_result)
+      end
+    end
+
+    def finalize_secondary_exposures(end_result)
+      end_result.secondary_exposures = clean_exposures(end_result.secondary_exposures)
+      end_result.undelegated_sec_exps = clean_exposures(end_result.undelegated_sec_exps)
+    end
+
+    def clean_exposures(exposures)
+      seen = {}
+      exposures.reject do |exposure|
+        if exposure[:gate].to_s.start_with?('segment:')
+          should_reject = true
+        else
+          key = "#{exposure[:gate]}|#{exposure[:gateValue]}|#{exposure[:ruleID]}}"
+          should_reject = seen[key]
+          seen[key] = true
+        end
+        should_reject == true
       end
     end
 
@@ -362,7 +386,7 @@ module Statsig
 
       end_result.undelegated_sec_exps = end_result.secondary_exposures.dup
 
-      eval_spec(user, config, end_result)
+      eval_spec(user, config, end_result, is_nested: true)
 
       end_result.name = name
       end_result.config_delegate = delegate
@@ -384,7 +408,7 @@ module Statsig
       when :public
         return true
       when :fail_gate, :pass_gate
-        check_gate(user, target, end_result)
+        check_gate(user, target, end_result, is_nested: true)
         gate_value = end_result.gate_value
 
         unless end_result.disable_exposures
