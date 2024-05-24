@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main, performance-improvements]
 
-env:
-  COVERAGE: true
-  COVERAGE_FORMAT: "cobertura"
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -34,6 +30,8 @@ jobs:
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
+          COVERAGE: ${{ matrix.version == '3.2.0' }}
+          COVERAGE_FORMAT: "cobertura"
 
       - name: Run tests in parallel
         run: bundle exec rake parallel:test
@@ -43,7 +41,7 @@ jobs:
 
       - name: Code Coverage Report
         uses: irongut/CodeCoverageSummary@v1.3.0
-        if: ${{ matrix.version }} == 3.2.0
+        if: ${{ matrix.version == '3.2.0' }}
         with:
           filename: coverage/coverage.xml
           badge: true
@@ -57,7 +55,7 @@ jobs:
 
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request' && ${{ matrix.version }} == 3.2.0
+        if: ${{ github.event_name == 'pull_request' && matrix.version == '3.2.0' }}
         with:
           recreate: true
           path: code-coverage-results.md
