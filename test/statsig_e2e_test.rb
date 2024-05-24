@@ -65,6 +65,7 @@ class StatsigE2ETest < BaseTest
     assert_equal('always_on_gate', gate_without_evaluation.name)
     assert_equal(false, gate_without_evaluation.value)
     assert_equal(true, gate_with_evaluation.value)
+    driver.shutdown
   end
 
   def test_check_feature_gate
