@@ -5,9 +5,10 @@ $endpoint = 'https://statsigapi.net/v1/sdk_exception'
 module Statsig
   class ErrorBoundary
 
-    def initialize(sdk_key)
+    def initialize(sdk_key, local_mode = false)
       @sdk_key = sdk_key
       @seen = Set.new
+      @local_mode = local_mode
     end
 
     def capture(recover: -> {}, caller: nil)
@@ -27,6 +28,9 @@ module Statsig
     end
 
     def log_exception(exception, tag: nil, extra: {}, force: false)
+      if @local_mode
+        return
+      end
       name = exception.class.name
       if @seen.include?(name) && !force
         return

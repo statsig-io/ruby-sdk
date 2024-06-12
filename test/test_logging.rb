@@ -14,7 +14,7 @@ class TestLogging < BaseTest
   def setup
     super
     WebMock.enable!
-    @error_boundary = Statsig::ErrorBoundary.new(SDK_KEY)
+    @error_boundary = Statsig::ErrorBoundary.new(SDK_KEY, StatsigOptions.new)
   end
 
   def teardown

@@ -25,7 +25,7 @@ class StatsigDriver
       raise Statsig::ValueError.new('Invalid options provided. Either provide a valid StatsigOptions object or nil')
     end
 
-    @err_boundary = Statsig::ErrorBoundary.new(secret_key)
+    @err_boundary = Statsig::ErrorBoundary.new(secret_key, !options.nil? && options.local_mode)
     @err_boundary.capture(caller: __method__) do
       @diagnostics = Statsig::Diagnostics.new()
       tracker = @diagnostics.track('initialize', 'overall')

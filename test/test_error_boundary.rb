@@ -15,7 +15,7 @@ class ErrorBoundaryTest < BaseTest
   def setup
     super
     WebMock.enable!
-    @boundary = Statsig::ErrorBoundary.new("secret-key")
+    @boundary = Statsig::ErrorBoundary.new("secret-key", false)
   end
 
   def teardown

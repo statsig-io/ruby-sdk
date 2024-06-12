@@ -13,7 +13,7 @@ class TestStore < BaseTest
     super
     WebMock.enable!
     @diagnostics = Statsig::Diagnostics.new()
-    @error_boundary = Statsig::ErrorBoundary.new('secret-key')
+    @error_boundary = Statsig::ErrorBoundary.new('secret-key', false)
     @id_list_syncing_enabled = false
     @rulesets_syncing_enabled = false
   end

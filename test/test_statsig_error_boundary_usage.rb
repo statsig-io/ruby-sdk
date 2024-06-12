@@ -128,6 +128,28 @@ class StatsigErrorBoundaryUsageTest < BaseTest
     assert_exception('RuntimeError', "exception thrown from 'shutdown'")
   end
 
+  def test_errors_in_local_mode_dont_issue_network_request
+    local_driver = StatsigDriver.new(
+      'secret-key',
+      StatsigOptions.new(
+        local_mode: true,
+        rulesets_sync_interval: 0.5,
+        idlists_sync_interval: 0.5,
+        logging_interval_seconds: 0.5,
+        disable_diagnostics_logging: true
+      )
+    )
+  
+    local_evaluator = local_driver.instance_variable_get('@evaluator')
+    mock_api_raises(local_evaluator, :check_gate)
+
+    res = local_driver.check_gate(@user, 'a_gate')
+    assert_equal(false, res)
+    assert_not_requested(:post, 'https://statsigapi.net/v1/sdk_exception')
+    
+    local_driver.shutdown
+  end
+
   private
 
   def assert_exception(type, trace)

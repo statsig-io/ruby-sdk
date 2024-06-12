@@ -25,7 +25,7 @@ class TestURIHelper < BaseTest
       @dcs_counter[:custom_dcs_url] += 1
     end
     @diagnostics = Statsig::Diagnostics.new()
-    @error_boundary = Statsig::ErrorBoundary.new('secret-key')
+    @error_boundary = Statsig::ErrorBoundary.new('secret-key', false)
   end
 
   def teardown
