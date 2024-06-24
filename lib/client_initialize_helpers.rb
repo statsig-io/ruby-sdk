@@ -14,7 +14,13 @@ module Statsig
       include_local_overrides: false
     )
       result = {}
+      target_app_id = evaluator.spec_store.get_app_id_for_sdk_key(client_sdk_key)
       entities.each do |name, spec|
+        config_target_apps = spec.target_app_ids
+
+        unless target_app_id.nil? || (!config_target_apps.nil? && config_target_apps.include?(target_app_id))
+          next
+        end
         hashed_name, value = to_response(name, spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
         if !hashed_name.nil? && !value.nil?
           result[hashed_name] = value
@@ -25,14 +31,6 @@ module Statsig
     end
 
     def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
-    
-      target_app_id = evaluator.spec_store.get_app_id_for_sdk_key(client_sdk_key)
-      config_target_apps = config_spec.target_app_ids
-
-      unless target_app_id.nil? || (!config_target_apps.nil? && config_target_apps.include?(target_app_id))
-        return nil
-      end
-
       category = config_spec.type
       entity_type = config_spec.entity
       if entity_type == :segment || entity_type == :holdout
