@@ -28,13 +28,16 @@ class Layer
   # @param index The name of parameter being fetched
   # @param default_value The fallback value if the name cannot be found
   def get(index, default_value)
-    return default_value if @value.nil? || !@value.key?(index)
+    return default_value if @value.nil?
+
+    index_sym = index.to_sym
+    return default_value unless @value.key?(index_sym)
 
     if @exposure_log_func.is_a? Proc
       @exposure_log_func.call(self, index)
     end
 
-    @value[index]
+    @value[index_sym]
   end
 
   ##
@@ -44,13 +47,17 @@ class Layer
   # @param index The name of parameter being fetched
   # @param default_value The fallback value if the name cannot be found
   def get_typed(index, default_value)
-    return default_value if @value.nil? || !@value.key?(index)
-    return default_value if @value[index].class != default_value.class and default_value.class != TrueClass and default_value.class != FalseClass
+    return default_value if @value.nil?
+
+    index_sym = index.to_sym
+    return default_value unless @value.key?(index_sym)
+
+    return default_value if @value[index_sym].class != default_value.class and default_value.class != TrueClass and default_value.class != FalseClass
 
     if @exposure_log_func.is_a? Proc
       @exposure_log_func.call(self, index)
     end
 
-    @value[index]
+    @value[index_sym]
   end
 end

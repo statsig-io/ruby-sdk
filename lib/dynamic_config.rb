@@ -33,8 +33,12 @@ class DynamicConfig
   # @param index The name of parameter being fetched
   # @param default_value The fallback value if the name cannot be found
   def get(index, default_value)
-    return default_value if @value.nil? || !@value.key?(index)
-    @value[index]
+    return default_value if @value.nil?
+
+    index_sym = index.to_sym
+    return default_value unless @value.key?(index_sym)
+
+    @value[index_sym]
   end
 
   ##
@@ -44,8 +48,12 @@ class DynamicConfig
   # @param index The name of parameter being fetched
   # @param default_value The fallback value if the name cannot be found
   def get_typed(index, default_value)
-    return default_value if @value.nil? || !@value.key?(index)
-    return default_value if @value[index].class != default_value.class and default_value.class != TrueClass and default_value.class != FalseClass
-    @value[index]
+    return default_value if @value.nil?
+
+    index_sym = index.to_sym
+    return default_value unless @value.key?(index_sym)
+
+    return default_value if @value[index_sym].class != default_value.class and default_value.class != TrueClass and default_value.class != FalseClass
+    @value[index_sym]
   end
 end

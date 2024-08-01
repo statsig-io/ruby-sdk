@@ -16,7 +16,7 @@ module Statsig
       result = {}
       target_app_id = evaluator.spec_store.get_app_id_for_sdk_key(client_sdk_key)
       entities.each do |name, spec|
-        config_target_apps = spec.target_app_ids
+        config_target_apps = spec[:targetAppIDs]
 
         unless target_app_id.nil? || (!config_target_apps.nil? && config_target_apps.include?(target_app_id))
           next
@@ -31,17 +31,18 @@ module Statsig
     end
 
     def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
-      category = config_spec.type
-      entity_type = config_spec.entity
-      if entity_type == :segment || entity_type == :holdout
+      config_name_str = config_name.to_s
+      category = config_spec[:type]
+      entity_type = config_spec[:entity]
+      if entity_type == Const::TYPE_SEGMENT || entity_type == Const::TYPE_HOLDOUT
         return nil
       end
 
       if include_local_overrides
         case category
-        when :feature_gate
+        when Const::TYPE_FEATURE_GATE
           local_override = evaluator.lookup_gate_override(config_name)
-        when :dynamic_config
+        when Const::TYPE_DYNAMIC_CONFIG
           local_override = evaluator.lookup_config_override(config_name)
         end
       end
@@ -52,7 +53,7 @@ module Statsig
           disable_evaluation_details: true,
           disable_exposures: !include_exposures
         )
-        evaluator.eval_spec(user, config_spec, eval_result)
+        evaluator.eval_spec(config_name_str, user, config_spec, eval_result)
       else
         eval_result = local_override
       end
@@ -65,10 +66,10 @@ module Statsig
       end
 
       case category
-      when :feature_gate
+      when Const::TYPE_FEATURE_GATE
         result[:value] = eval_result.gate_value
-      when :dynamic_config
-        id_type = config_spec.id_type
+      when Const::TYPE_DYNAMIC_CONFIG
+        id_type = config_spec[:idType]
         result[:value] = eval_result.json_value
         result[:group] = eval_result.rule_id
         result[:is_device_based] = id_type.is_a?(String) && id_type.downcase == Statsig::Const::STABLEID
@@ -76,16 +77,16 @@ module Statsig
         return nil
       end
 
-      if entity_type == :experiment
+      if entity_type == Const::TYPE_EXPERIMENT
         populate_experiment_fields(name, config_spec, eval_result, result, evaluator)
       end
 
-      if entity_type == :layer
+      if entity_type == Const::TYPE_LAYER
         populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo, include_exposures)
         result.delete(:id_type) # not exposed for layer configs in /initialize
       end
 
-      hashed_name = hash_name(config_name, hash_algo)
+      hashed_name = hash_name(config_name_str, hash_algo)
 
       result[:name] = hashed_name
       result[:rule_id] = eval_result.rule_id
@@ -99,14 +100,14 @@ module Statsig
 
     def self.populate_experiment_fields(config_name, config_spec, eval_result, result, evaluator)
       result[:is_user_in_experiment] = eval_result.is_experiment_group
-      result[:is_experiment_active] = config_spec.is_active == true
+      result[:is_experiment_active] = config_spec[:isActive] == true
 
-      if config_spec.has_shared_params != true
+      if config_spec[:hasSharedParams] != true
         return
       end
 
       result[:is_in_layer] = true
-      result[:explicit_parameters] = config_spec.explicit_parameters || []
+      result[:explicit_parameters] = config_spec[:explicitParameters] || []
 
       layer_name = evaluator.spec_store.experiment_to_layer[config_name]
       if layer_name.nil? || evaluator.spec_store.layers[layer_name].nil?
@@ -119,15 +120,15 @@ module Statsig
 
     def self.populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo, include_exposures)
       delegate = eval_result.config_delegate
-      result[:explicit_parameters] = config_spec.explicit_parameters || []
+      result[:explicit_parameters] = config_spec[:explicitParameters] || []
 
       if delegate.nil? == false && delegate.empty? == false
-        delegate_spec = evaluator.spec_store.configs[delegate]
+        delegate_spec = evaluator.spec_store.configs[delegate.to_sym]
 
         result[:allocated_experiment_name] = hash_name(delegate, hash_algo)
         result[:is_user_in_experiment] = eval_result.is_experiment_group
-        result[:is_experiment_active] = delegate_spec.is_active == true
-        result[:explicit_parameters] = delegate_spec.explicit_parameters || []
+        result[:is_experiment_active] = delegate_spec[:isActive] == true
+        result[:explicit_parameters] = delegate_spec[:explicitParameters] || []
       end
 
       if include_exposures

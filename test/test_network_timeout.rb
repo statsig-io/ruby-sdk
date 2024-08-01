@@ -6,7 +6,7 @@ require 'minitest/autorun'
 require 'statsig'
 require 'webmock/minitest'
 require 'sinatra/base'
-require 'mock_server'
+require_relative 'mock_server'
 
 class TestNetworkTimeout < BaseTest
   suite :TestNetworkTimeout
@@ -26,10 +26,14 @@ class TestNetworkTimeout < BaseTest
   end
 
   def test_network_timeout
-    options = StatsigOptions.new(nil, 'http://localhost:4567/v1', network_timeout: 1, local_mode: false)
+    options = StatsigOptions.new(
+      nil,
+      network_timeout: 1,
+      local_mode: false
+    )
     net = Statsig::Network.new('secret-abc', options, 0)
     start = Time.now
-    net.get('download_config_specs', 0, 0)
+    net.get('http://localhost:4567/v2/download_config_specs', 0, 0)
     stop = Time.now
     elapsed = stop - start
     assert(elapsed < MIN_DCS_REQUEST_TIME, "expected #{elapsed} < #{MIN_DCS_REQUEST_TIME}")
@@ -37,10 +41,10 @@ class TestNetworkTimeout < BaseTest
   end
 
   def test_no_network_timeout
-    options = StatsigOptions.new(nil, 'http://localhost:4567/v1', local_mode: false)
+    options = StatsigOptions.new(nil, local_mode: false)
     net = Statsig::Network.new('secret-abc', options, 0)
     start = Time.now
-    net.get('download_config_specs', 0, 0)
+    net.get('http://localhost:4567/v2/download_config_specs', 0, 0)
     stop = Time.now
     elapsed = stop - start
     assert(elapsed >= MIN_DCS_REQUEST_TIME, "expected #{elapsed} >= #{MIN_DCS_REQUEST_TIME}")

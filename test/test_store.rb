@@ -80,14 +80,15 @@ class TestStore < BaseTest
       if can_sync_rulesets
         dcs_calls += 1
         body = {
-          'dynamic_configs' => [
-            { 'name' => 'config_1' },
-          ],
-          'feature_gates' => [
-            { 'name' => 'gate_1' },
-          ],
-          'layer_configs' => [],
+          'dynamic_configs' => {
+            'config_1' => { 'name' => 'config_1' }
+          },
+          'feature_gates' => {
+            'gate_1' => { 'name' => 'gate_1' }
+          },
+          'layer_configs' => {},
           'has_updates' => true,
+          'time' => 1,
           'id_lists' => {
             'list_1' => true,
             'list_2' => true,
@@ -96,16 +97,17 @@ class TestStore < BaseTest
 
         if dcs_calls == 1
           body = {
-            'dynamic_configs' => [
-              { 'name' => 'config_1' },
-              { 'name' => 'config_2' }
-            ],
-            'feature_gates' => [
-              { 'name' => 'gate_1' },
-              { 'name' => 'gate_2' },
-            ],
-            'layer_configs' => [],
+            'dynamic_configs' => {
+              'config_1' => { 'name' => 'config_1' },
+              'config_2' => { 'name' => 'config_2' }
+            },
+            'feature_gates' => {
+              'gate_1' => { 'name' => 'gate_1' },
+              'gate_2' => { 'name' => 'gate_2' },
+            },
+            'layer_configs' => {},
             'has_updates' => true,
+            'time' => 1,
             'id_lists' => {
               'list_1' => true,
             }

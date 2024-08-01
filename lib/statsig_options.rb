@@ -10,13 +10,14 @@ class StatsigOptions
   # eg. { "tier" => "development" }
   attr_accessor :environment
 
-  # The base url used to make network calls to Statsig.
-  # default: https://statsigapi.net/v1
-  attr_accessor :api_url_base
+  # The url used specifically to call download_config_specs.
+  attr_accessor :download_config_specs_url
 
-  # The base url used specifically to call download_config_specs.
-  # Takes precedence over api_url_base
-  attr_accessor :api_url_download_config_specs
+  # The url used specifically to call log_event.
+  attr_accessor :log_event_url
+
+  # The url used specifically to call get_id_lists.
+  attr_accessor :get_id_lists_url
 
   # The interval (in seconds) to poll for changes to your Statsig configuration
   # default: 10s
@@ -89,8 +90,9 @@ class StatsigOptions
 
   def initialize(
     environment = nil,
-    api_url_base = nil,
-    api_url_download_config_specs: nil,
+    download_config_specs_url: nil,
+    log_event_url: nil,
+    get_id_lists_url: nil,
     rulesets_sync_interval: 10,
     idlists_sync_interval: 60,
     disable_rulesets_sync: false,
@@ -111,8 +113,15 @@ class StatsigOptions
     user_persistent_storage: nil
   )
     @environment = environment.is_a?(Hash) ? environment : nil
-    @api_url_base = api_url_base || 'https://statsigapi.net/v1'
-    @api_url_download_config_specs = api_url_download_config_specs || api_url_base || 'https://api.statsigcdn.com/v1'
+
+    dcs_url = download_config_specs_url || 'https://api.statsigcdn.com/v2/download_config_specs/'
+    unless dcs_url.end_with?('/')
+      dcs_url += '/'
+    end
+    @download_config_specs_url = dcs_url
+
+    @log_event_url = log_event_url || 'https://statsigapi.net/v1/log_event'
+    @get_id_lists_url = get_id_lists_url || 'https://statsigapi.net/v1/get_id_lists'
     @rulesets_sync_interval = rulesets_sync_interval
     @idlists_sync_interval = idlists_sync_interval
     @disable_rulesets_sync = disable_rulesets_sync

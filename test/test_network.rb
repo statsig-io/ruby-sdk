@@ -44,7 +44,7 @@ class TestNetwork < BaseTest
     @net = Statsig::Network.new('secret-abc', options, 1)
     spy = Spy.on(@net, :request).and_call_through
 
-    res, _ = @net.post('log_event', '{}', 5, 1)
+    res, _ = @net.post('https://statsigapi.net/v1/log_event', '{}', 5, 1)
 
     assert(spy.calls.size == 3) ## 500, 500, 200
     res.status.success?
@@ -55,7 +55,7 @@ class TestNetwork < BaseTest
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     options = StatsigOptions.new(local_mode: false)
     net = Statsig::Network.new('secret-abc', options)
-    net.post('log_event', '{}', 5, 1)
+    net.post('https://statsigapi.net/v1/log_event', '{}', 5, 1)
     meta = Statsig.get_statsig_metadata
     assert_requested(:post, 'https://statsigapi.net/v1/log_event', :headers => {
       'statsig-api-key' => 'secret-abc',
@@ -71,7 +71,7 @@ class TestNetwork < BaseTest
     @net = Statsig::Network.new('secret-abc', options, 1)
     spy = Spy.on(@net, :request).and_call_through
 
-    res, e = @net.post('log_event', '{}', 5, 1)
+    res, e = @net.post('https://statsigapi.net/v1/log_event', '{}', 5, 1)
     assert(res.nil?)
     assert(spy.calls.size == 6)
     assert(!e.nil?)

@@ -1,5 +1,3 @@
-
-
 require_relative 'test_helper'
 require 'minitest'
 require 'minitest/autorun'
@@ -33,7 +31,7 @@ class TestLogging < BaseTest
 
   def test_retrying_failed_logs
     stub_request(:post, 'https://test_retrying_failed_logs.net/v1/log_event').to_return(status: 500)
-    stub_download_config_specs('https://test_retrying_failed_logs.net/v1').to_return(status: 500)
+    stub_download_config_specs('https://test_retrying_failed_logs.net/v2').to_return(status: 500)
     stub_request(:post, 'https://test_retrying_failed_logs.net/v1/get_id_lists').to_return(status: 200)
     codes = []
     WebMock.after_request do |req, res|
@@ -43,7 +41,13 @@ class TestLogging < BaseTest
       end
     end
 
-    options = StatsigOptions.new(nil, 'https://test_retrying_failed_logs.net/v1/', local_mode: false)
+    options = StatsigOptions.new(
+      nil,
+      download_config_specs_url: 'https://test_retrying_failed_logs.net/v2/download_config_specs',
+      log_event_url: 'https://test_retrying_failed_logs.net/v1/log_event',
+      get_id_lists_url: 'https://test_retrying_failed_logs.net/v1/get_id_lists',
+      local_mode: false
+    )
     net = Statsig::Network.new(SDK_KEY, options)
     logger = Statsig::StatsigLogger.new(net, StatsigOptions.new, @error_boundary)
     logger.log_event(StatsigEvent.new('my_event'))
@@ -61,10 +65,16 @@ class TestLogging < BaseTest
 
   def test_non_blocking_log
     stub_request(:post, 'https://test_non_blocking_log.net/v1/log_event').to_return(status: 500)
-    stub_download_config_specs('https://test_non_blocking_log.net/v1').to_return(status: 500)
+    stub_download_config_specs('https://test_non_blocking_log.net/v2').to_return(status: 500)
     stub_request(:post, 'https://test_non_blocking_log.net/v1/get_id_lists').to_return(status: 200)
 
-    options = StatsigOptions.new(nil, 'https://test_non_blocking_log.net/v1/', local_mode: false)
+    options = StatsigOptions.new(
+      nil,
+      download_config_specs_url: 'https://test_non_blocking_log.net/v2/download_config_specs',
+      log_event_url: 'https://test_non_blocking_log.net/v1/log_event',
+      get_id_lists_url: 'https://test_non_blocking_log.net/v1/get_id_lists',
+      local_mode: false
+    )
     net = Statsig::Network.new(SDK_KEY, options)
     logger = Statsig::StatsigLogger.new(net, StatsigOptions.new(logging_max_buffer_size: 2), @error_boundary)
 
@@ -93,7 +103,13 @@ class TestLogging < BaseTest
     stub_download_config_specs.to_return(status: 500)
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 500)
 
-    options = StatsigOptions.new(nil, 'https://statsigapi.net/v1/', local_mode: true)
+    options = StatsigOptions.new(
+      nil,
+      download_config_specs_url: 'https://statsigapi.net/v2/download_config_specs',
+      log_event_url: 'https://statsigapi.net/v1/log_event',
+      get_id_lists_url: 'https://statsigapi.net/v1/get_id_lists',
+      local_mode: true
+    )
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :post_logs).and_return
     @statsig_metadata = {

@@ -3,7 +3,6 @@ require 'json'
 require 'securerandom'
 require 'zlib'
 
-require 'uri_helper'
 require 'connection_pool'
 
 RETRY_CODES = [408, 500, 502, 503, 504, 522, 524, 599].freeze
@@ -22,7 +21,7 @@ module Statsig
 
     def initialize(server_secret, options, backoff_mult = 10)
       super()
-      URIHelper.initialize(options)
+      @options = options
       @server_secret = server_secret
       @local_mode = options.local_mode
       @timeout = options.network_timeout
@@ -43,6 +42,7 @@ module Statsig
             'Accept-Encoding' => 'gzip'
           }
         ).accept(:json)
+
         if @timeout
           client = client.timeout(@timeout)
         end
@@ -52,18 +52,42 @@ module Statsig
     end
 
     def download_config_specs(since_time)
-      get("download_config_specs/#{@server_secret}.json?sinceTime=#{since_time}")
+      url = @options.download_config_specs_url
+      get("#{url}#{@server_secret}.json?sinceTime=#{since_time}")
     end
 
-    def get(endpoint, retries = 0, backoff = 1)
-      request(:GET, endpoint, nil, retries, backoff)
+    def post_logs(events, error_boundary)
+      url = @options.log_event_url
+      event_count = events.length
+      json_body = JSON.generate({ events: events, statsigMetadata: Statsig.get_statsig_metadata })
+      gzip = Zlib::GzipWriter.new(StringIO.new)
+      gzip << json_body
+
+      response, e = post(url, gzip.close.string, @post_logs_retry_limit, 1, true, event_count)
+      unless e == nil
+        message = "Failed to log #{event_count} events after #{@post_logs_retry_limit} retries"
+        puts "[Statsig]: #{message}"
+        error_boundary.log_exception(e, tag: 'statsig::log_event_failed', extra: { eventCount: event_count, error: message }, force: true)
+        return
+      end
+    rescue StandardError
+
     end
 
-    def post(endpoint, body, retries = 0, backoff = 1, zipped = false, event_count = 0)
-      request(:POST, endpoint, body, retries, backoff, zipped, event_count)
+    def get_id_lists
+      url = @options.get_id_lists_url
+      post(url, JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
     end
 
-    def request(method, endpoint, body, retries = 0, backoff = 1, zipped = false, event_count = 0)
+    def get(url, retries = 0, backoff = 1)
+      request(:GET, url, nil, retries, backoff)
+    end
+
+    def post(url, body, retries = 0, backoff = 1, zipped = false, event_count = 0)
+      request(:POST, url, body, retries, backoff, zipped, event_count)
+    end
+
+    def request(method, url, body, retries = 0, backoff = 1, zipped = false, event_count = 0)
       if @local_mode
         return nil, nil
       end
@@ -75,10 +99,15 @@ module Statsig
           backoff_adjusted = @post_logs_retry_backoff.call(retries)
         end
       end
-      url = URIHelper.build_url(endpoint)
+
       begin
         res = @connection_pool.with do |conn|
-          request = conn.headers('STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s, 'CONTENT-ENCODING' => zipped ? 'gzip' : nil, 'STATSIG-EVENT-COUNT' => event_count == 0 ? nil : event_count.to_s)
+          request = conn.headers(
+            'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
+            'CONTENT-ENCODING' => zipped ? 'gzip' : nil,
+            'STATSIG-EVENT-COUNT' => event_count == 0 ? nil : event_count.to_s
+          )
+
           case method
           when :GET
             request.get(url)
@@ -91,7 +120,7 @@ module Statsig
         return nil, e unless retries.positive?
 
         sleep backoff_adjusted
-        return request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count)
+        return request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count)
       end
       return res, nil if res.status.success?
 
@@ -102,23 +131,7 @@ module Statsig
 
       ## status code retry
       sleep backoff_adjusted
-      request(method, endpoint, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count)
-    end
-
-    def post_logs(events, error_boundary)
-      event_count = events.length
-      json_body = JSON.generate({ events: events, statsigMetadata: Statsig.get_statsig_metadata })
-      gzip = Zlib::GzipWriter.new(StringIO.new)
-      gzip << json_body
-      response, e = post('log_event', gzip.close.string, @post_logs_retry_limit, 1, true, event_count)
-      unless e == nil
-        message = "Failed to log #{event_count} events after #{@post_logs_retry_limit} retries"
-        puts "[Statsig]: #{message}"
-        error_boundary.log_exception(e, tag: 'statsig::log_event_failed', extra: { eventCount: event_count, error: message }, force: true)
-        return
-      end
-    rescue StandardError
-
+      request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count)
     end
   end
 end

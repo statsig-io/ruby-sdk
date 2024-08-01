@@ -40,12 +40,13 @@ module Statsig
     end
 
     def lookup_gate_override(gate_name)
-      if @gate_overrides.key?(gate_name)
+      gate_name_sym = gate_name.to_sym
+      if @gate_overrides.key?(gate_name_sym)
         return ConfigResult.new(
           name: gate_name,
-          gate_value: @gate_overrides[gate_name],
+          gate_value: @gate_overrides[gate_name_sym],
           rule_id: Const::OVERRIDE,
-          id_type: @spec_store.has_gate?(gate_name) ? @spec_store.get_gate(gate_name).id_type : Const::EMPTY_STR,
+          id_type: @spec_store.has_gate?(gate_name) ? @spec_store.get_gate(gate_name)[:idType] : Const::EMPTY_STR,
           evaluation_details: EvaluationDetails.local_override(
             @spec_store.last_config_sync_time,
             @spec_store.initial_config_sync_time
@@ -56,12 +57,13 @@ module Statsig
     end
 
     def lookup_config_override(config_name)
-      if @config_overrides.key?(config_name)
+      config_name_sym = config_name.to_sym
+      if @config_overrides.key?(config_name_sym)
         return ConfigResult.new(
           name: config_name,
-          json_value: @config_overrides[config_name],
+          json_value: @config_overrides[config_name_sym],
           rule_id: Const::OVERRIDE,
-          id_type: @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name).id_type : Const::EMPTY_STR,
+          id_type: @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)[:idType] : Const::EMPTY_STR,
           evaluation_details: EvaluationDetails.local_override(
             @spec_store.last_config_sync_time,
             @spec_store.initial_config_sync_time
@@ -96,7 +98,7 @@ module Statsig
         return
       end
 
-      eval_spec(user, @spec_store.get_gate(gate_name), end_result, is_nested: is_nested)
+      eval_spec(gate_name, user, @spec_store.get_gate(gate_name), end_result, is_nested: is_nested)
     end
 
     def get_config(user, config_name, end_result, user_persisted_values: nil, ignore_local_overrides: false)
@@ -128,7 +130,7 @@ module Statsig
       config = @spec_store.get_config(config_name)
 
       # If persisted values is provided and the experiment is active, return sticky values if exists.
-      if !user_persisted_values.nil? && config.is_active == true
+      if !user_persisted_values.nil? && config[:isActive] == true
         sticky_values = user_persisted_values[config_name]
         unless sticky_values.nil?
           end_result.gate_value = sticky_values[Statsig::Const::GATE_VALUE]
@@ -148,16 +150,16 @@ module Statsig
         end
 
         # If it doesn't exist, then save to persisted storage if the user was assigned to an experiment group.
-        eval_spec(user, config, end_result)
+        eval_spec(config_name, user, config, end_result)
         if end_result.is_experiment_group
           @persistent_storage_utils.add_evaluation_to_user_persisted_values(user_persisted_values, config_name,
                                                                             end_result)
-          @persistent_storage_utils.save_to_storage(user, config.id_type, user_persisted_values)
+          @persistent_storage_utils.save_to_storage(user, config[:idType], user_persisted_values)
         end
         # Otherwise, remove from persisted storage
       else
-        @persistent_storage_utils.remove_experiment_from_storage(user, config.id_type, config_name)
-        eval_spec(user, config, end_result)
+        @persistent_storage_utils.remove_experiment_from_storage(user, config[:idType], config_name)
+        eval_spec(config_name, user, config, end_result)
       end
     end
 
@@ -174,27 +176,44 @@ module Statsig
         return
       end
 
-      eval_spec(user, @spec_store.get_layer(layer_name), end_result)
+      eval_spec(layer_name, user, @spec_store.get_layer(layer_name), end_result)
     end
 
     def list_gates
-      @spec_store.gates.map { |name, _| name }
+      @spec_store.gates.keys.map(&:to_s)
     end
 
     def list_configs
-      @spec_store.configs.map { |name, config| name if config.entity == :dynamic_config }.compact
+      keys = []
+      @spec_store.configs.each do |key, value|
+        if value[:entity] == Const::TYPE_DYNAMIC_CONFIG
+          keys << key.to_s
+        end
+      end
+      keys
     end
 
     def list_experiments
-      @spec_store.configs.map { |name, config| name if config.entity == :experiment }.compact
+      keys = []
+      @spec_store.configs.each do |key, value|
+        if value[:entity] == Const::TYPE_EXPERIMENT
+          keys << key.to_s
+        end
+      end
+      keys
     end
 
     def list_autotunes
-      @spec_store.configs.map { |name, config| name if config.entity == :autotune }.compact
-    end
+      keys = []
+      @spec_store.configs.each do |key, value|
+        if value[:entity] == Const::TYPE_AUTOTUNE
+          keys << key.to_s
+        end
+      end
+      keys    end
 
     def list_layers
-      @spec_store.layers.map { |name, _| name }
+      @spec_store.layers.keys.map(&:to_s)
     end
 
     def get_client_initialize_response(user, hash_algo, client_sdk_key, include_local_overrides)
@@ -258,11 +277,11 @@ module Statsig
     end
 
     def override_gate(gate, value)
-      @gate_overrides[gate] = value
+      @gate_overrides[gate.to_sym] = value
     end
 
     def remove_gate_override(gate)
-      @gate_overrides.delete(gate)
+      @gate_overrides.delete(gate.to_sym)
     end
 
     def clear_gate_overrides
@@ -270,33 +289,28 @@ module Statsig
     end
 
     def override_config(config, value)
-      @config_overrides[config] = value
+      @config_overrides[config.to_sym] = value
     end
 
     def remove_config_override(config)
-      @config_overrides.delete(config)
+      @config_overrides.delete(config.to_sym)
     end
 
     def clear_config_overrides
       @config_overrides.clear
     end
 
-    def eval_spec(user, config, end_result, is_nested: false)
-      unless config.enabled
-        finalize_eval_result(config, end_result, did_pass: false, rule: nil, is_nested: is_nested)
-        return
-      end
-
-      config.rules.each do |rule|
+    def eval_spec(config_name, user, config, end_result, is_nested: false)
+      config[:rules].each do |rule|
         eval_rule(user, rule, end_result)
 
         if end_result.gate_value
-          if eval_delegate(config.name, user, rule, end_result)
+          if eval_delegate(config_name, user, rule, end_result)
             finalize_secondary_exposures(end_result)
             return
           end
 
-          pass = eval_pass_percent(user, rule, config.salt)
+          pass = eval_pass_percent(user, rule, config[:salt])
           finalize_eval_result(config, end_result, did_pass: pass, rule: rule, is_nested: is_nested)
           return
         end
@@ -308,20 +322,20 @@ module Statsig
     private
 
     def finalize_eval_result(config, end_result, did_pass:, rule:, is_nested: false)
-      end_result.id_type = config.id_type
-      end_result.target_app_ids = config.target_app_ids
-      end_result.gate_value = did_pass
+      end_result.id_type = config[:idType]
+      end_result.target_app_ids = config[:targetAppIDs]
+      end_result.gate_value = did_pass ? rule[:returnValue] == true : config[:defaultValue] == true
 
       if rule.nil?
-        end_result.json_value = config.default_value
+        end_result.json_value = config[:defaultValue]
         end_result.group_name = nil
         end_result.is_experiment_group = false
-        end_result.rule_id = config.enabled ? Const::DEFAULT : Const::DISABLED
+        end_result.rule_id = config[:enabled] ? Const::DEFAULT : Const::DISABLED
       else
-        end_result.json_value = did_pass ? rule.return_value : config.default_value
-        end_result.group_name = rule.group_name
-        end_result.is_experiment_group = rule.is_experiment_group == true
-        end_result.rule_id = rule.id
+        end_result.json_value = did_pass ? rule[:returnValue] : config[:defaultValue]
+        end_result.group_name = rule[:groupName]
+        end_result.is_experiment_group = rule[:isExperimentGroup] == true
+        end_result.rule_id = rule[:id]
       end
 
       unless end_result.disable_evaluation_details
@@ -345,7 +359,7 @@ module Statsig
     def clean_exposures(exposures)
       seen = {}
       exposures.reject do |exposure|
-        if exposure[:gate].to_s.start_with?('segment:')
+        if exposure[:gate].to_s.start_with?(Const::SEGMENT_PREFIX)
           should_reject = true
         else
           key = "#{exposure[:gate]}|#{exposure[:gateValue]}|#{exposure[:ruleID]}}"
@@ -360,19 +374,10 @@ module Statsig
       pass = true
       i = 0
 
-      memo = user.get_memo
-      until i >= rule.conditions.length
-
-        condition = rule.conditions[i]
-
-        if condition.type == :fail_gate || condition.type == :pass_gate
-          result = eval_condition(user, condition, end_result)
-        else
-          result = Memo.for(memo, :eval_rule, condition.hash) do
-            eval_condition(user, condition, end_result)
-          end
-        end
-
+      until i >= rule[:conditions].length
+        condition_hash = rule[:conditions][i]
+        condition = @spec_store.get_condition(condition_hash)
+        result = eval_condition(user, condition, end_result)
         pass = false if result != true
         i += 1
       end
@@ -381,82 +386,74 @@ module Statsig
     end
 
     def eval_delegate(name, user, rule, end_result)
-      return false unless (delegate = rule.config_delegate)
-      return false unless (config = @spec_store.get_config(delegate))
+      return false unless (delegate = rule[:configDelegate])
+      return false unless (delegate_config = @spec_store.get_config(delegate))
 
       end_result.undelegated_sec_exps = end_result.secondary_exposures.dup
 
-      eval_spec(user, config, end_result, is_nested: true)
+      eval_spec(delegate, user, delegate_config, end_result, is_nested: true)
 
       end_result.name = name
       end_result.config_delegate = delegate
-      end_result.explicit_parameters = config.explicit_parameters
+      end_result.explicit_parameters = delegate_config[:explicitParameters]
 
       true
     end
 
     def eval_condition(user, condition, end_result)
       value = nil
-      field = condition.field
-      target = condition.target_value
-      type = condition.type
-      operator = condition.operator
-      additional_values = condition.additional_values
-      id_type = condition.id_type
+      field = condition[:field]
+      target = condition[:targetValue]
+      type = condition[:type]
+      operator = condition[:operator]
+      additional_values = condition[:additionalValues]
+      id_type = condition[:idType]
 
       case type
-      when :public
+      when Const::CND_PUBLIC
         return true
-      when :fail_gate, :pass_gate
-        check_gate(user, target, end_result, is_nested: true)
-        gate_value = end_result.gate_value
-
-        unless end_result.disable_exposures
-          new_exposure = {
-            gate: target,
-            gateValue: gate_value ? Const::TRUE : Const::FALSE,
-            ruleID: end_result.rule_id
-          }
-          end_result.secondary_exposures.append(new_exposure)
-        end
-        return type == :pass_gate ? gate_value : !gate_value
-      when :ip_based
+      when Const::CND_PASS_GATE, Const::CND_FAIL_GATE
+        result = eval_nested_gate(target, user, end_result)
+        return type == Const::CND_PASS_GATE ? result : !result
+      when Const::CND_MULTI_PASS_GATE, Const::CND_MULTI_FAIL_GATE
+        return eval_nested_gates(target, type, user, end_result)
+      when Const::CND_IP_BASED
         value = get_value_from_user(user, field) || get_value_from_ip(user, field)
-      when :ua_based
+      when Const::CND_UA_BASED
         value = get_value_from_user(user, field) || get_value_from_ua(user, field)
-      when :user_field
+      when Const::CND_USER_FIELD
         value = get_value_from_user(user, field)
-      when :environment_field
+      when Const::CND_ENVIRONMENT_FIELD
         value = get_value_from_environment(user, field)
-      when :current_time
+      when Const::CND_CURRENT_TIME
         value = Time.now.to_i # epoch time in seconds
-      when :user_bucket
+      when Const::CND_USER_BUCKET
         begin
           salt = additional_values[:salt]
           unit_id = user.get_unit_id(id_type) || Const::EMPTY_STR
           # there are only 1000 user buckets as opposed to 10k for gate pass %
-          value = compute_user_hash("#{salt}.#{unit_id}") % 1000
+          value = (compute_user_hash("#{salt}.#{unit_id}") % 1000).to_s
         rescue StandardError
           return false
         end
-      when :unit_id
+      when Const::CND_UNIT_ID
         value = user.get_unit_id(id_type)
       end
 
       case operator
         # numerical comparison
-      when :gt
+      when Const::OP_GREATER_THAN
         return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a > b })
-      when :gte
+      when Const::OP_GREATER_THAN_OR_EQUAL
         return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a >= b })
-      when :lt
+      when Const::OP_LESS_THAN
         return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a < b })
-      when :lte
+      when Const::OP_LESS_THAN_OR_EQUAL
         return EvaluationHelpers.compare_numbers(value, target, ->(a, b) { a <= b })
 
         # version comparison
         # need to check for nil or empty value because Version takes them as valid values
-      when :version_gt
+      when Const::OP_VERSION_GREATER_THAN
         return false if value.to_s.empty?
 
         return begin
@@ -464,7 +461,7 @@ module Statsig
                rescue StandardError
                  false
                end
-      when :version_gte
+      when Const::OP_VERSION_GREATER_THAN_OR_EQUAL
         return false if value.to_s.empty?
 
         return begin
@@ -472,7 +469,7 @@ module Statsig
                rescue StandardError
                  false
                end
-      when :version_lt
+      when Const::OP_VERSION_LESS_THAN
         return false if value.to_s.empty?
 
         return begin
@@ -480,7 +477,7 @@ module Statsig
                rescue StandardError
                  false
                end
-      when :version_lte
+      when Const::OP_VERSION_LESS_THAN_OR_EQUAL
         return false if value.to_s.empty?
 
         return begin
@@ -488,7 +485,7 @@ module Statsig
                rescue StandardError
                  false
                end
-      when :version_eq
+      when Const::OP_VERSION_EQUAL
         return false if value.to_s.empty?
 
         return begin
@@ -496,7 +493,7 @@ module Statsig
                rescue StandardError
                  false
                end
-      when :version_neq
+      when Const::OP_VERSION_NOT_EQUAL
         return false if value.to_s.empty?
 
         return begin
@@ -506,45 +503,47 @@ module Statsig
                end
 
         # array operations
-      when :any
+      when Const::OP_ANY
         return EvaluationHelpers::equal_string_in_array(target, value, true)
-      when :none
+      when Const::OP_NONE
         return !EvaluationHelpers::equal_string_in_array(target, value, true)
-      when :any_case_sensitive
+      when Const::OP_ANY_CASE_SENSITIVE
         return EvaluationHelpers::equal_string_in_array(target, value, false)
-      when :none_case_sensitive
+      when Const::OP_NONE_CASE_SENSITIVE
         return !EvaluationHelpers::equal_string_in_array(target, value, false)
 
         # string
-      when :str_starts_with_any
+      when Const::OP_STR_STARTS_WITH_ANY
         return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.start_with?(b) })
-      when :str_ends_with_any
+      when Const::OP_STR_END_WITH_ANY
         return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.end_with?(b) })
-      when :str_contains_any
+      when Const::OP_STR_CONTAINS_ANY
         return EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
-      when :str_contains_none
+      when Const::OP_STR_CONTAINS_NONE
         return !EvaluationHelpers.match_string_in_array(target, value, true, ->(a, b) { a.include?(b) })
-      when :str_matches
+      when Const::OP_STR_MATCHES
         return begin
                  value&.is_a?(String) && !(value =~ Regexp.new(target)).nil?
                rescue StandardError
                  false
                end
-      when :eq
+      when Const::OP_EQUAL
         return value == target
-      when :neq
+      when Const::OP_NOT_EQUAL
         return value != target
 
         # dates
-      when :before
+      when Const::OP_BEFORE
         return EvaluationHelpers.compare_times(value, target, ->(a, b) { a < b })
-      when :after
+      when Const::OP_AFTER
         return EvaluationHelpers.compare_times(value, target, ->(a, b) { a > b })
-      when :on
+      when Const::OP_ON
         return EvaluationHelpers.compare_times(value, target, lambda { |a, b|
           a.year == b.year && a.month == b.month && a.day == b.day
         })
-      when :in_segment_list, :not_in_segment_list
+
+        # segments
+      when Const::OP_IN_SEGMENT_LIST, Const::OP_NOT_IN_SEGMENT_LIST
         begin
           is_in_list = false
           id_list = @spec_store.get_id_list(target)
@@ -552,7 +551,7 @@ module Statsig
             hashed_id = Digest::SHA256.base64digest(value.to_s)[0, 8]
             is_in_list = id_list.ids.include?(hashed_id)
           end
-          return is_in_list if operator == :in_segment_list
+          return is_in_list if operator == Const::OP_IN_SEGMENT_LIST
 
           return !is_in_list
         rescue StandardError
@@ -560,6 +559,37 @@ module Statsig
         end
       end
       return false
+    end
+
+    def eval_nested_gate(gate_name, user, end_result)
+      check_gate(user, gate_name, end_result, is_nested: true)
+      gate_value = end_result.gate_value
+
+      unless end_result.disable_exposures
+        new_exposure = {
+          gate: gate_name,
+          gateValue: gate_value ? Const::TRUE : Const::FALSE,
+          ruleID: end_result.rule_id
+        }
+        end_result.secondary_exposures.append(new_exposure)
+      end
+
+      gate_value
+    end
+
+    def eval_nested_gates(gate_names, condition_type, user, end_result)
+      has_passing_gate = false
+      is_multi_pass_gate_type = condition_type == Const::CND_MULTI_PASS_GATE
+      gate_names.each { |gate_name|
+        result = eval_nested_gate(gate_name, user, end_result)
+
+        if is_multi_pass_gate_type == result
+          has_passing_gate = true
+          break
+        end
+      }
+
+      has_passing_gate
     end
 
     def get_value_from_user(user, field)
@@ -640,10 +670,10 @@ module Statsig
     end
 
     def eval_pass_percent(user, rule, config_salt)
-      unit_id = user.get_unit_id(rule.id_type) || Const::EMPTY_STR
-      rule_salt = rule.salt || rule.id || Const::EMPTY_STR
+      unit_id = user.get_unit_id(rule[:idType]) || Const::EMPTY_STR
+      rule_salt = rule[:salt] || rule[:id] || Const::EMPTY_STR
       hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
-      return (hash % 10_000) < (rule.pass_percentage * 100)
+      return (hash % 10_000) < (rule[:passPercentage] * 100)
     end
 
     def compute_user_hash(user_hash)

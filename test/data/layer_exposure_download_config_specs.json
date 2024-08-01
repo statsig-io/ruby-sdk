@@ -1,8 +1,8 @@
 {
   "has_updates": true,
-  "feature_gates": [],
-  "dynamic_configs": [
-    {
+  "feature_gates": {},
+  "dynamic_configs": {
+    "experiment": {
       "__________________________USED_BY_TESTS": [
         "test_explicit_vs_implicit_parameter_logging"
       ],
@@ -20,15 +20,7 @@
           "groupName": "Public",
           "passPercentage": 100,
           "conditions": [
-            {
-              "type": "public",
-              "targetValue": null,
-              "operator": null,
-              "field": null,
-              "additionalValues": {},
-              "isDeviceBased": false,
-              "idType": "userID"
-            }
+            "4250533256"
           ],
           "returnValue": {
             "an_int": 99,
@@ -47,9 +39,9 @@
         "an_int"
       ]
     }
-  ],
-  "layer_configs": [
-    {
+  },
+  "layer_configs": {
+    "unallocated_layer": {
       "__________________________USED_BY_TESTS": [
         "test_does_not_log_on_get_layer",
         "test_does_not_log_on_invalid_type",
@@ -69,7 +61,7 @@
       "idType": "userID",
       "entity": "layer"
     },
-    {
+    "explicit_vs_implicit_parameter_layer": {
       "__________________________USED_BY_TESTS": [
         "test_explicit_vs_implicit_parameter_logging"
       ],
@@ -87,15 +79,7 @@
           "groupName": "Experiment Assignment",
           "passPercentage": 100,
           "conditions": [
-            {
-              "type": "public",
-              "targetValue": null,
-              "operator": null,
-              "field": null,
-              "additionalValues": {},
-              "isDeviceBased": false,
-              "idType": "userID"
-            }
+            "4250533256"
           ],
           "returnValue": {
             "an_int": 0,
@@ -112,7 +96,7 @@
       "idType": "userID",
       "entity": "layer"
     },
-    {
+    "different_object_type_logging_layer": {
       "__________________________USED_BY_TESTS": [
         "test_different_object_type_logging"
       ],
@@ -139,5 +123,18 @@
       "idType": "userID",
       "entity": "layer"
     }
-  ]
+  },
+  "condition_map": {
+    "4250533256": {
+      "type": "public",
+      "targetValue": null,
+      "operator": null,
+      "field": null,
+      "additionalValues": {},
+      "isDeviceBased": false,
+      "idType": "userID"
+    }
+  },
+  "experiment_to_layer": {},
+  "time": 1631638014811
 }

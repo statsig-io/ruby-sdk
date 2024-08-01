@@ -152,8 +152,6 @@ class StatsigE2ETest < BaseTest
     driver = StatsigDriver.new(SDK_KEY, @options)
     experiment = driver.get_experiment(@random_user, 'sample_experiment')
     assert(experiment.get('experiment_param', '') == 'control')
-    puts(experiment.group_name)
-    puts(experiment.rule_id)
     assert(experiment.group_name == 'Control')
     assert(experiment.id_type == 'userID')
 

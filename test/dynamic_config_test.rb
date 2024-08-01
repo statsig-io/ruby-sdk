@@ -12,19 +12,19 @@ class DynamicConfigTest < BaseTest
   def setup
     super
     @config = DynamicConfig.new("test", {
-      "bool" => true,
-      "number" => 2,
-      "string" => 'string',
-      "object" =>  {
+      :bool => true,
+      :number => 2,
+      :string => 'string',
+      :object =>  {
         "key": 'value',
         "key2": 123,
       },
-      "boolStr1" => 'true',
-      "boolStr2" => 'FALSE',
-      "numberStr1" => '3',
-      "numberStr2" => '3.3',
-      "numberStr3" => '3.3.3',
-      "arr" => [1, 2, 'three'],
+      :boolStr1 => 'true',
+      :boolStr2 => 'FALSE',
+      :numberStr1 => '3',
+      :numberStr2 => '3.3',
+      :numberStr3 => '3.3.3',
+      :arr => [1, 2, 'three'],
     })
   end
 

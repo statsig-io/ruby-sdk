@@ -33,6 +33,7 @@ module Statsig
       @gates = {}
       @configs = {}
       @layers = {}
+      @condition_map = {}
       @id_lists = {}
       @experiment_to_layer = {}
       @sdk_keys_to_app_ids = {}
@@ -102,33 +103,39 @@ module Statsig
     end
 
     def has_gate?(gate_name)
-      @gates.key?(gate_name)
+      @gates.key?(gate_name.to_sym)
     end
 
     def has_config?(config_name)
-      @configs.key?(config_name)
+      @configs.key?(config_name.to_sym)
     end
 
     def has_layer?(layer_name)
-      @layers.key?(layer_name)
+      @layers.key?(layer_name.to_sym)
     end
 
     def get_gate(gate_name)
-      return nil unless has_gate?(gate_name)
-
-      @gates[gate_name]
+      gate_sym = gate_name.to_sym
+      return nil unless has_gate?(gate_sym)
+      @gates[gate_sym]
     end
 
     def get_config(config_name)
-      return nil unless has_config?(config_name)
+      config_sym = config_name.to_sym
+      return nil unless has_config?(config_sym)
 
-      @configs[config_name]
+      @configs[config_sym]
     end
 
     def get_layer(layer_name)
-      return nil unless has_layer?(layer_name)
+      layer_sym = layer_name.to_sym
+      return nil unless has_layer?(layer_sym)
 
-      @layers[layer_name]
+      @layers[layer_sym]
+    end
+
+    def get_condition(condition_hash)
+      @condition_map[condition_hash.to_sym]
     end
 
     def get_id_list(list_name)
@@ -169,7 +176,7 @@ module Statsig
     end
 
     def sync_config_specs
-      if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_KEY)
+      if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_V2_KEY)
         load_config_specs_from_storage_adapter('config_sync')
       else
         download_config_specs('config_sync')
@@ -190,7 +197,7 @@ module Statsig
 
     def load_config_specs_from_storage_adapter(context)
       tracker = @diagnostics.track(context, 'data_store_config_specs', 'fetch')
-      cached_values = @options.data_store.get(Interfaces::IDataStore::CONFIG_SPECS_KEY)
+      cached_values = @options.data_store.get(Interfaces::IDataStore::CONFIG_SPECS_V2_KEY)
       tracker.end(success: true)
       return if cached_values.nil?
 
@@ -204,12 +211,12 @@ module Statsig
       download_config_specs(context)
     end
 
-    def save_config_specs_to_storage_adapter(specs_string)
+    def save_rulesets_to_storage_adapter(rulesets_string)
       if @options.data_store.nil?
         return
       end
 
-      @options.data_store.set(Interfaces::IDataStore::CONFIG_SPECS_KEY, specs_string)
+      @options.data_store.set(Interfaces::IDataStore::CONFIG_SPECS_V2_KEY, rulesets_string)
     end
 
     def spawn_sync_config_specs_thread
@@ -293,48 +300,33 @@ module Statsig
         return false
       end
 
-      @last_config_sync_time = specs_json[:time] || @last_config_sync_time
-      return false unless specs_json[:has_updates] == true &&
-                          !specs_json[:feature_gates].nil? &&
-                          !specs_json[:dynamic_configs].nil? &&
-                          !specs_json[:layer_configs].nil?
-
-      @unsupported_configs.clear()
-      new_gates = process_configs(specs_json[:feature_gates])
-      new_configs = process_configs(specs_json[:dynamic_configs])
-      new_layers = process_configs(specs_json[:layer_configs])
-
-      new_exp_to_layer = {}
-      specs_json[:diagnostics]&.each { |key, value| @diagnostics.sample_rates[key.to_s] = value }
-
-      if specs_json[:layers].is_a?(Hash)
-        specs_json[:layers].each do |layer_name, experiments|
-          experiments.each { |experiment_name| new_exp_to_layer[experiment_name] = layer_name }
-        end
+      new_specs_sync_time = specs_json[:time]
+      if new_specs_sync_time.nil? \
+        || new_specs_sync_time < @last_config_sync_time \
+        || specs_json[:has_updates] != true \
+        || specs_json[:feature_gates].nil? \
+        || specs_json[:dynamic_configs].nil? \
+        || specs_json[:layer_configs].nil?
+        return false
       end
 
-      @gates = new_gates
-      @configs = new_configs
-      @layers = new_layers
-      @experiment_to_layer = new_exp_to_layer
+      @last_config_sync_time = new_specs_sync_time
+      @unsupported_configs.clear
+
+      specs_json[:diagnostics]&.each { |key, value| @diagnostics.sample_rates[key.to_s] = value }
+
+      @gates = specs_json[:feature_gates]
+      @configs = specs_json[:dynamic_configs]
+      @layers = specs_json[:layer_configs]
+      @condition_map = specs_json[:condition_map]
+      @experiment_to_layer = specs_json[:experiment_to_layer]
       @sdk_keys_to_app_ids = specs_json[:sdk_keys_to_app_ids] || {}
       @hashed_sdk_keys_to_app_ids = specs_json[:hashed_sdk_keys_to_app_ids] || {}
 
       unless from_adapter
-        save_config_specs_to_storage_adapter(specs_string)
+        save_rulesets_to_storage_adapter(specs_string)
       end
       true
-    end
-
-    def process_configs(configs)
-      configs.each_with_object({}) do |config, new_configs|
-        begin
-          new_configs[config[:name]] = APIConfig.from_json(config)
-        rescue UnsupportedConfigException => e
-          @unsupported_configs.add(config[:name])
-          nil
-        end
-      end
     end
 
     def get_id_lists_from_adapter(context)
@@ -361,7 +353,7 @@ module Statsig
 
     def get_id_lists_from_network(context)
       tracker = @diagnostics.track(context, 'get_id_list_sources', 'network_request')
-      response, e = @network.post('get_id_lists', JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
+      response, e = @network.get_id_lists
       code = response&.status.to_i
       if e.is_a? NetworkError
         code = e.http_code

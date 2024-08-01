@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'minitest-reporters', '~> 1.6'
   s.add_development_dependency 'minitest-suite', '~> 0.0.3'
   s.add_development_dependency 'spy', '~> 1.0'
+  s.add_development_dependency 'mutex_m', '~> 0.2.0'
   s.add_development_dependency 'tapioca', '~> 0.4.27'
   s.add_development_dependency 'sinatra', '~> 2.2'
   s.add_development_dependency 'puma', '~> 6.0'

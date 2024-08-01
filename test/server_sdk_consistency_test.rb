@@ -25,11 +25,11 @@ class ServerSDKConsistencyTest < BaseTest
   end
 
   def test_prod
-    validate_consistency('https://statsigapi.net/v1')
+    validate_consistency('https://statsigapi.net')
   end
 
   def test_staging
-    validate_consistency('https://staging.statsigapi.net/v1')
+    validate_consistency('https://staging.statsigapi.net')
   end
 
   def validate_consistency(api_override)
@@ -40,10 +40,15 @@ class ServerSDKConsistencyTest < BaseTest
         'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
         'Content-Type' => 'application/json; charset=UTF-8' }
     ).accept(:json)
-    response = http.post("#{api_override}/rulesets_e2e_test", body: JSON.generate({}))
+    response = http.post("#{api_override}/v1/rulesets_e2e_test", body: JSON.generate({}))
     data = JSON.parse(response, { symbolize_names: true })[:data]
 
-    options = StatsigOptions.new(nil, api_override)
+    options = StatsigOptions.new(
+      nil,
+      download_config_specs_url: "#{api_override}/v2/download_config_specs",
+      log_event_url: "#{api_override}/v1/log_event",
+      get_id_lists_url: "#{api_override}/v1/get_id_lists"
+    )
     driver = StatsigDriver.new(@secret, options)
 
     i = 0

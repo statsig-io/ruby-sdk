@@ -48,18 +48,18 @@ class StatsigDataAdapterTest < BaseTest
       spy_sync_rulesets.finished? && spy_sync_id_lists.finished?
     end
 
-    adapter_specs = options.data_store&.get(Statsig::Interfaces::IDataStore::CONFIG_SPECS_KEY)
+    adapter_specs = options.data_store&.get(Statsig::Interfaces::IDataStore::CONFIG_SPECS_V2_KEY)
     specs_json = JSON.parse(adapter_specs)
     assert(specs_json == JSON.parse(@mock_dcs))
-    assert(specs_json['feature_gates'].size === 4)
-    assert(specs_json['feature_gates'][0]['name'] === 'email_not_null')
+    assert(specs_json['feature_gates'].size == 4)
+    assert(specs_json['feature_gates']['email_not_null'].nil? == false)
 
     adapter_idlists = options.data_store&.get(Statsig::Interfaces::IDataStore::ID_LISTS_KEY)
     idlists_json = JSON.parse(adapter_idlists)
     assert(idlists_json == JSON.parse(@mock_get_id_lists))
-    assert(idlists_json.size === 1)
-    assert(idlists_json['idlist1']['size'] === 12)
-    assert(idlists_json['idlist1']['fileID'] === '123')
+    assert(idlists_json.size == 1)
+    assert(idlists_json['idlist1']['size'] == 12)
+    assert(idlists_json['idlist1']['fileID'] == '123')
 
     result = driver.check_gate(@user, 'gate_from_adapter')
     assert(result == false)

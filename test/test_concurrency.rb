@@ -21,6 +21,14 @@ class TestConcurrency < BaseTest
   @@download_idlist_count = 0
   @@download_idlist_count_mutex = Mutex.new
 
+  def gunzip(data)
+    string_io = StringIO.new(data)
+    gzip_reader = Zlib::GzipReader.new(string_io)
+    decompressed_data = gzip_reader.read
+    gzip_reader.close
+    decompressed_data
+  end
+
   def setup
     super
     WebMock.enable!
@@ -29,7 +37,8 @@ class TestConcurrency < BaseTest
     stub_download_config_specs.to_return(status: 200, body: @@mock_response)
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200, body: lambda {|request|
       @@flushed_event_count_mutex.synchronize do
-        @@flushed_event_count += JSON.parse(request.body)["events"].length
+        body = gunzip(request.body)
+        @@flushed_event_count += JSON.parse(body)["events"].length
         return ''
       end
     })
@@ -81,7 +90,11 @@ class TestConcurrency < BaseTest
 
     Statsig.initialize(
       SDK_KEY,
-      StatsigOptions.new(rulesets_sync_interval: 0.01, idlists_sync_interval: 0.01, disable_diagnostics_logging: true)
+      StatsigOptions.new(
+        rulesets_sync_interval: 0.01,
+        idlists_sync_interval: 0.01,
+        disable_diagnostics_logging: true,
+      )
     )
     threads = []
     10.times do

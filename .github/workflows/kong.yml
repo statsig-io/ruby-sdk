@@ -33,4 +33,4 @@ jobs:
         run: npm run kong -- build ruby -v
 
       - name: Run Tests
-        run: npm run kong -- test ruby -v -r
+        run: npm run kong -- test ruby -r

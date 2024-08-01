@@ -54,20 +54,25 @@ class StatsigDriver
     if skip_evaluation
       gate = @store.get_gate(gate_name)
       return FeatureGate.new(gate_name) if gate.nil?
-      return FeatureGate.new(gate.name, target_app_ids: gate.target_app_ids)
+      return FeatureGate.new(gate_name, target_app_ids: gate[:targetAppIDs])
     end
 
     user = verify_inputs(user, gate_name, 'gate_name')
-    return Statsig::Memo.for(user.get_memo(), :get_gate_impl, gate_name) do
 
-      res = Statsig::ConfigResult.new(name: gate_name, disable_exposures: disable_log_exposure, disable_evaluation_details: disable_evaluation_details)
+    Statsig::Memo.for(user.get_memo, :get_gate_impl, gate_name) do
+      res = Statsig::ConfigResult.new(
+        name: gate_name,
+        disable_exposures: disable_log_exposure,
+        disable_evaluation_details: disable_evaluation_details
+      )
       @evaluator.check_gate(user, gate_name, res, ignore_local_overrides: ignore_local_overrides)
 
       unless disable_log_exposure
-      @logger.log_gate_exposure(
+        @logger.log_gate_exposure(
           user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details
         )
       end
+
       FeatureGate.from_config_result(res)
     end
   end
@@ -162,7 +167,7 @@ class StatsigDriver
     @err_boundary.capture(caller: __method__, recover: -> { Layer.new(layer_name) }) do
       run_with_diagnostics(caller: :get_layer) do
         user = verify_inputs(user, layer_name, "layer_name")
-        Statsig::Memo.for(user.get_memo(), :get_layer, layer_name) do
+        Statsig::Memo.for(user.get_memo, :get_layer, layer_name) do
           exposures_disabled = options&.disable_log_exposure == true
           res = Statsig::ConfigResult.new(
             name: layer_name,
@@ -367,7 +372,7 @@ class StatsigDriver
   end
 
   def get_config_impl(user, config_name, disable_log_exposure, user_persisted_values: nil, disable_evaluation_details: false, ignore_local_overrides: false)
-    return Statsig::Memo.for(user.get_memo(), :get_config_impl, config_name) do
+    Statsig::Memo.for(user.get_memo, :get_config_impl, config_name) do
       res = Statsig::ConfigResult.new(
         name: config_name,
         disable_exposures: disable_log_exposure,

@@ -38,7 +38,9 @@ class TestURIHelper < BaseTest
   def test_custom_api_url_base
     options = StatsigOptions.new(
       nil,
-      'https://custom_base_url',
+      download_config_specs_url: 'https://custom_base_url/download_config_specs',
+      log_event_url: 'https://custom_base_url/log_event',
+      get_id_lists_url: 'https://custom_base_url/get_id_lists',
       rulesets_sync_interval: 9999,
       idlists_sync_interval: 9999
     )
@@ -57,7 +59,8 @@ class TestURIHelper < BaseTest
 
   def test_custom_api_url_dcs
     options = StatsigOptions.new(
-      api_url_download_config_specs: 'https://custom_dcs_url',
+      download_config_specs_url: 'https://custom_dcs_url/download_config_specs',
+
       rulesets_sync_interval: 9999,
       idlists_sync_interval: 9999
     )
@@ -77,8 +80,9 @@ class TestURIHelper < BaseTest
   def test_custom_api_url_base_and_dcs
     options = StatsigOptions.new(
       nil,
-      'https://custom_base_url',
-      api_url_download_config_specs: 'https://custom_dcs_url',
+      download_config_specs_url: 'https://custom_dcs_url/download_config_specs',
+      log_event_url: 'https://custom_base_url/log_event',
+      get_id_lists_url: 'https://custom_base_url/get_id_lists',
       rulesets_sync_interval: 9999,
       idlists_sync_interval: 9999
     )

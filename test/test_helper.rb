@@ -85,7 +85,7 @@ end
 
 module WebMock
   module API
-    def stub_download_config_specs(base_url = 'https://api.statsigcdn.com/v1')
+    def stub_download_config_specs(base_url = 'https://api.statsigcdn.com/v2')
       stub_request(
         :get,
         Addressable::Template.new(

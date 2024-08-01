@@ -1,7 +1,7 @@
 {
-  "dynamic_configs": [],
-  "feature_gates": [
-    {
+  "dynamic_configs": {},
+  "feature_gates": {
+    "a_gate": {
       "name": "a_gate",
       "type": "feature_gate",
       "salt": "86e45749-156e-4cec-a3dc-23e38116668a",
@@ -13,17 +13,7 @@
           "groupName": "Statsig Employee",
           "passPercentage": 100,
           "conditions": [
-            {
-              "type": "user_field",
-              "targetValue": [
-                "@statsig"
-              ],
-              "operator": "str_contains_any",
-              "field": "email",
-              "additionalValues": {},
-              "isDeviceBased": true,
-              "idType": "stableID"
-            }
+            "3281748376"
           ],
           "returnValue": true,
           "id": "6Gmxd96BHfQ7bEeG6aHuGK",
@@ -36,19 +26,7 @@
           "groupName": "Plays",
           "passPercentage": 100,
           "conditions": [
-            {
-              "type": "user_field",
-              "targetValue": [
-                "yes"
-              ],
-              "operator": "any",
-              "field": "plays_league",
-              "additionalValues": {
-                "custom_field": "plays_league"
-              },
-              "isDeviceBased": true,
-              "idType": "stableID"
-            }
+            "3815916644"
           ],
           "returnValue": true,
           "id": "6GmxdcqGBQ95OtkxiqyLiO",
@@ -61,17 +39,7 @@
           "groupName": "Is Hax",
           "passPercentage": 100,
           "conditions": [
-            {
-              "type": "environment_field",
-              "targetValue": [
-                "hax"
-              ],
-              "operator": "any",
-              "field": "tier",
-              "additionalValues": {},
-              "isDeviceBased": true,
-              "idType": "stableID"
-            }
+            "2331287976"
           ],
           "returnValue": true,
           "id": "6GmxdfKLwqs4riqouGq1US",
@@ -84,17 +52,7 @@
           "groupName": "Not This User",
           "passPercentage": 0,
           "conditions": [
-            {
-              "type": "user_field",
-              "targetValue": [
-                "this_user_fails"
-              ],
-              "operator": "any",
-              "field": "userID",
-              "additionalValues": {},
-              "isDeviceBased": true,
-              "idType": "stableID"
-            }
+            "981296957"
           ],
           "returnValue": true,
           "id": "4pWt5f90wUKOS0g6riAYTK",
@@ -107,15 +65,7 @@
           "groupName": "10 Percent",
           "passPercentage": 10,
           "conditions": [
-            {
-              "type": "public",
-              "targetValue": null,
-              "operator": null,
-              "field": null,
-              "additionalValues": {},
-              "isDeviceBased": true,
-              "idType": "stableID"
-            }
+            "150916919"
           ],
           "returnValue": true,
           "id": "1Vd874zYXhzzeBCKygFmNp:50.00:2",
@@ -128,10 +78,67 @@
       "idType": "stableID",
       "entity": "feature_gate"
     }
-  ],
+  },
   "id_lists": {},
-  "layers": {},
-  "layer_configs": [],
+  "layer_configs": {},
   "has_updates": true,
-  "time": 1675097746668
+  "time": 1675097746668,
+  "condition_map": {
+    "150916919": {
+      "type": "public",
+      "targetValue": null,
+      "operator": null,
+      "field": null,
+      "additionalValues": {},
+      "isDeviceBased": true,
+      "idType": "stableID"
+    },
+    "981296957": {
+      "type": "user_field",
+      "targetValue": [
+        "this_user_fails"
+      ],
+      "operator": "any",
+      "field": "userID",
+      "additionalValues": {},
+      "isDeviceBased": true,
+      "idType": "stableID"
+    },
+    "2331287976": {
+      "type": "environment_field",
+      "targetValue": [
+        "hax"
+      ],
+      "operator": "any",
+      "field": "tier",
+      "additionalValues": {},
+      "isDeviceBased": true,
+      "idType": "stableID"
+    },
+    "3281748376": {
+      "type": "user_field",
+      "targetValue": [
+        "@statsig"
+      ],
+      "operator": "str_contains_any",
+      "field": "email",
+      "additionalValues": {},
+      "isDeviceBased": true,
+      "idType": "stableID"
+    },
+    "3815916644": {
+      "type": "user_field",
+      "targetValue": [
+        "yes"
+      ],
+      "operator": "any",
+      "field": "plays_league",
+      "additionalValues": {
+        "custom_field": "plays_league"
+      },
+      "isDeviceBased": true,
+      "idType": "stableID"
+    }
+  },
+  "experiment_to_layer": {}
 }

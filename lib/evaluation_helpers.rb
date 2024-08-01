@@ -25,15 +25,26 @@ module EvaluationHelpers
   end
 
   def self.equal_string_in_array(array, value, ignore_case)
-    return false if array.nil?
+    if array.is_a?(Hash)
+      return array.has_key?(value.to_sym)
+    end
 
     str_value = value.to_s
     str_value_downcased = nil
 
-    if ignore_case
-      return array.has_key?(value.to_s.downcase)
-    else
-      return array.has_key?(value.to_s)
+    return false if array.nil?
+
+    return array.any? do |item|
+      next false if item.nil?
+      item_str = item.to_s
+
+      next false unless item_str.length == str_value.length
+
+      return true if item_str == str_value
+      next false unless ignore_case
+
+      str_value_downcased ||= str_value.downcase
+      item_str.downcase == str_value_downcased
     end
   end
 

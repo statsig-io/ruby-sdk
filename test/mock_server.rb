@@ -4,7 +4,7 @@ require 'sinatra/base'
 MIN_DCS_REQUEST_TIME = 3
 # Lives on http://localhost:4567
 class MockApp < Sinatra::Base
-  get '/v1/download_config_specs' do
+  get '/v2/download_config_specs' do
     sleep MIN_DCS_REQUEST_TIME
   end
 end
