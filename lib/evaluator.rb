@@ -246,7 +246,7 @@ module Statsig
         evaluated_keys: evaluated_keys,
         time: @spec_store.last_config_sync_time,
         hash_used: hash_algo,
-        user: user.serialize(false),
+        user: user.serialize(true),
         sdkInfo: {sdkType: meta["sdkType"], sdkVersion: meta["sdkVersion"]},
       }
     end
