@@ -542,6 +542,24 @@ module Statsig
           a.year == b.year && a.month == b.month && a.day == b.day
         })
 
+        # array
+      when Const::OP_ARRAY_CONTAINS_ANY
+        if value.is_a?(Array) && target.is_a?(Array)
+          return EvaluationHelpers.array_contains_any(value, target)
+        end
+      when Const::OP_ARRAY_CONTAINS_NONE
+        if value.is_a?(Array) && target.is_a?(Array)
+          return !EvaluationHelpers.array_contains_any(value, target)
+        end
+      when Const::OP_ARRAY_CONTAINS_ALL
+        if value.is_a?(Array) && target.is_a?(Array)
+          return EvaluationHelpers.array_contains_all(value, target)
+        end
+      when Const::OP_NOT_ARRAY_CONTAINS_ALL
+        if value.is_a?(Array) && target.is_a?(Array)
+          return !EvaluationHelpers.array_contains_all(value, target)
+        end
+
         # segments
       when Const::OP_IN_SEGMENT_LIST, Const::OP_NOT_IN_SEGMENT_LIST
         begin

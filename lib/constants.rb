@@ -123,5 +123,11 @@ module Statsig
     # API Operators (Segments)
     OP_IN_SEGMENT_LIST = 'in_segment_list'.freeze
     OP_NOT_IN_SEGMENT_LIST = 'not_in_segment_list'.freeze
+
+    # API Operators (Array)
+    OP_ARRAY_CONTAINS_ANY = 'array_contains_any'.freeze
+    OP_ARRAY_CONTAINS_NONE = 'array_contains_none'.freeze
+    OP_ARRAY_CONTAINS_ALL = 'array_contains_all'.freeze
+    OP_NOT_ARRAY_CONTAINS_ALL = 'not_array_contains_all'.freeze
   end
 end

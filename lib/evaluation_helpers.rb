@@ -58,6 +58,18 @@ module EvaluationHelpers
     end
   end
 
+  def self.array_contains_any(value, target)
+    return false if value.nil? || target.nil?
+    value_set = value.to_set
+    return target.any? { |item| value_set.include?(item) || value_set.include?(item.to_i) }
+  end
+
+  def self.array_contains_all(value, target)
+    return false if value.nil? || target.nil?
+    value_set = value.to_set
+    return target.all? { |item| value_set.include?(item) || value_set.include?(item.to_i) }
+  end
+
   private
 
   def self.is_numeric(v)
