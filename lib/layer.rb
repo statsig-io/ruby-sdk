@@ -52,12 +52,31 @@ class Layer
     index_sym = index.to_sym
     return default_value unless @value.key?(index_sym)
 
-    return default_value if @value[index_sym].class != default_value.class and default_value.class != TrueClass and default_value.class != FalseClass
+    value = @value[index_sym]
 
-    if @exposure_log_func.is_a? Proc
-      @exposure_log_func.call(self, index)
+    case default_value
+    when Integer
+      if @exposure_log_func.is_a? Proc
+        @exposure_log_func.call(self, index)
+      end
+      return value.to_i if value.is_a?(Numeric) && default_value.is_a?(Integer)
+    when Float
+      if @exposure_log_func.is_a? Proc
+        @exposure_log_func.call(self, index)
+      end
+      return value.to_f if value.is_a?(Numeric) && default_value.is_a?(Float)
+    when TrueClass, FalseClass
+      if @exposure_log_func.is_a? Proc
+        @exposure_log_func.call(self, index)
+      end
+      return value if [true, false].include?(value)
+    else
+      if @exposure_log_func.is_a? Proc
+        @exposure_log_func.call(self, index)
+      end
+      return value if value.class == default_value.class
     end
 
-    @value[index_sym]
+    default_value
   end
 end

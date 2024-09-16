@@ -53,7 +53,19 @@ class DynamicConfig
     index_sym = index.to_sym
     return default_value unless @value.key?(index_sym)
 
-    return default_value if @value[index_sym].class != default_value.class and default_value.class != TrueClass and default_value.class != FalseClass
-    @value[index_sym]
+    value = @value[index_sym]
+
+    case default_value
+    when Integer
+      return value.to_i if value.is_a?(Numeric) && default_value.is_a?(Integer)
+    when Float
+      return value.to_f if value.is_a?(Numeric) && default_value.is_a?(Float)
+    when TrueClass, FalseClass
+      return value if [true, false].include?(value)
+    else
+      return value if value.class == default_value.class
+    end
+
+    default_value
   end
 end

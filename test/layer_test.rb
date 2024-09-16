@@ -13,6 +13,7 @@ class LayerTest < BaseTest
     @layer = Layer.new("test", {
       :bool => true,
       :number => 2,
+      :float_number => 3.14,
       :string => 'string',
       :object =>  {
         key: 'value',
@@ -64,6 +65,31 @@ class LayerTest < BaseTest
       "key2": 123,
     })
     assert(@layer.get("arr", 12) == [1, 2, 'three'])
+  end
+
+  def test_typed_getter_numeric_conversions
+    assert_equal(2.0, @layer.get_typed('number', 0.0))
+    assert_equal(3, @layer.get_typed('float_number', 0))
+    
+    assert_equal(0, @layer.get_typed('numberStr3', 0))
+    assert_equal(0.0, @layer.get_typed('numberStr3', 0.0))
+
+    assert_equal(42, @layer.get_typed('non_existent', 42))
+    assert_equal(42.5, @layer.get_typed('non_existent', 42.5))
+  end
+
+  def test_typed_getter_edge_cases
+    assert_equal(0, @layer.get_typed('bool', 0))
+    assert_equal(0.0, @layer.get_typed('bool', 0.0))
+    
+    assert_equal(false, @layer.get_typed('number', false))
+    assert_equal(false, @layer.get_typed('float_number', false))
+    
+    assert_equal(42, @layer.get_typed('arr', 42))
+    assert_equal(42.5, @layer.get_typed('arr', 42.5))
+    
+    assert_equal(42, @layer.get_typed('object', 42))
+    assert_equal(42.5, @layer.get_typed('object', 42.5))
   end
 
 end
