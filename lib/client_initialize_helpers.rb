@@ -92,10 +92,24 @@ module Statsig
       result[:rule_id] = eval_result.rule_id
 
       if include_exposures
-        result[:secondary_exposures] = eval_result.secondary_exposures
+        result[:secondary_exposures] = hash_exposures(eval_result.secondary_exposures, hash_algo)
       end
 
       [hashed_name, result]
+    end
+
+    def self.hash_exposures(exposures, hash_algo)
+      return nil if exposures.nil?
+      hashed_exposures = []
+      exposures.each do |exp|
+        hashed_exposures << {
+          gate: hash_name(exp[:gate], hash_algo),
+          gateValue: exp[:gateValue],
+          ruleID: exp[:ruleID]
+        }
+      end
+
+      hashed_exposures
     end
 
     def self.populate_experiment_fields(config_name, config_spec, eval_result, result, evaluator)
@@ -132,7 +146,7 @@ module Statsig
       end
 
       if include_exposures
-        result[:undelegated_secondary_exposures] = eval_result.undelegated_sec_exps || []
+        result[:undelegated_secondary_exposures] = hash_exposures(eval_result.undelegated_sec_exps || [], hash_algo)
       end
     end
 
