@@ -688,10 +688,14 @@ module Statsig
     end
 
     def eval_pass_percent(user, rule, config_salt)
+      pass_percentage = rule[:passPercentage]
+      return true if pass_percentage == 100.0
+      return false if pass_percentage == 0.0
+    
       unit_id = user.get_unit_id(rule[:idType]) || Const::EMPTY_STR
       rule_salt = rule[:salt] || rule[:id] || Const::EMPTY_STR
       hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")
-      return (hash % 10_000) < (rule[:passPercentage] * 100)
+      return (hash % 10_000) < (pass_percentage * 100)
     end
 
     def compute_user_hash(user_hash)
