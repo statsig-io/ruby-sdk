@@ -10,6 +10,11 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://rubygems.org/gems/statsig'
   s.license     = 'ISC'
   s.files       = Dir['lib/**/*']
+  s.metadata    = {
+    "source_code_uri" => "https://github.com/statsig-io/ruby-sdk",
+    "documentation_uri" => "https://docs.statsig.com/server/rubySDK",
+    "bug_tracker_uri" => "https://github.com/statsig-io/ruby-sdk/issues"
+  }
   s.required_ruby_version = '>= 2.5.0'
   s.rubygems_version = '>= 2.5.0'
   s.add_development_dependency 'bundler', '~> 2.0'
