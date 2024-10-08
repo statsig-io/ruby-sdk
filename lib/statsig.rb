@@ -72,7 +72,7 @@ module Statsig
   end
 
   ##
-  # @deprecated - use check_gate(user, gate, options) and disable_exposure_logging in options
+  # @deprecated - use check_gate(user, gate, options) with CheckGateOptions.new(disable_log_exposure: true) as options
   # Gets the boolean result of a gate, evaluated against the given user.
   #
   # @param user A StatsigUser object used for the evaluation
@@ -115,7 +115,7 @@ module Statsig
   end
 
   ##
-  # @deprecated - use get_config(user, config, options) and disable_exposure_logging in options
+  # @deprecated - use get_config(user, config, options) with GetConfigOptions.new(disable_log_exposure: true) as options
   # Get the values of a dynamic config, evaluated against the given user.
   #
   # @param [StatsigUser] user A StatsigUser object used for the evaluation
@@ -159,7 +159,7 @@ module Statsig
   end
 
   ##
-  # @deprecated - use get_experiment(user, experiment, options) and disable_exposure_logging in options
+  # @deprecated - use get_experiment(user, experiment, options) with GetExperimentOptions.new(disable_log_exposure: true) as options
   # Get the values of an experiment, evaluated against the given user.
   #
   # @param [StatsigUser] user A StatsigUser object used for the evaluation
@@ -206,7 +206,7 @@ module Statsig
   end
 
   ##
-  # @deprecated - use get_layer(user, gate, options) and disable_exposure_logging in options
+  # @deprecated - use get_layer(user, gate, options) with GetLayerOptions.new(disable_log_exposure: true) as options
   # Get the values of a layer, evaluated against the given user.
   #
   # @param user A StatsigUser object used for the evaluation
