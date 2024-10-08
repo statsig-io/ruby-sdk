@@ -20,6 +20,13 @@ module Statsig
     @shared_instance = StatsigDriver.new(secret_key, options, error_callback)
   end
 
+  def self.get_initialization_details
+    if not defined? @shared_instance or @shared_instance.nil?
+      return {duration: 0, isSDKReady: false, configSpecReady: false, failure_details: {exception: Statsig::UninitializedError.new, reason: 'INTERNAL_ERROR'}}
+    end
+    @shared_instance.get_initialization_details
+  end
+
   class GetGateOptions
     attr_accessor :disable_log_exposure, :skip_evaluation, :disable_evaluation_details
 

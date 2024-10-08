@@ -43,6 +43,10 @@ class StatsigDriver
     end
   end
 
+  def get_initialization_details
+    @store.get_initialization_details
+  end
+
   def get_gate_impl(
     user,
     gate_name,

@@ -44,6 +44,8 @@ module Statsig
       @secret_key = secret_key
       @unsupported_configs = Set.new
 
+      startTime = (Time.now.to_f * 1000).to_i
+
       @id_list_thread_pool = Concurrent::FixedThreadPool.new(
         options.idlist_threadpool_size,
         name: 'statsig-idlist',
@@ -57,7 +59,7 @@ module Statsig
         else
           tracker = @diagnostics.track('initialize','bootstrap', 'process')
           begin
-            if process_specs(options.bootstrap_values)
+            if process_specs(options.bootstrap_values).nil?
               @init_reason = EvaluationReason::BOOTSTRAP
             end
           rescue StandardError
@@ -68,13 +70,15 @@ module Statsig
         end
       end
 
+      failure_details = nil
+
       unless @options.data_store.nil?
         @options.data_store.init
-        load_config_specs_from_storage_adapter('initialize')
+        failure_details = load_config_specs_from_storage_adapter('initialize')
       end
 
       if @init_reason == EvaluationReason::UNINITIALIZED
-        download_config_specs('initialize')
+        failure_details = download_config_specs('initialize')
       end
 
       @initial_config_sync_time = @last_config_sync_time == 0 ? -1 : @last_config_sync_time
@@ -86,10 +90,16 @@ module Statsig
 
       @config_sync_thread = spawn_sync_config_specs_thread
       @id_lists_sync_thread = spawn_sync_id_lists_thread
+      endTime = (Time.now.to_f * 1000).to_i
+      @initialization_details = {duration: endTime - startTime, isSDKReady: true, configSpecReady: @init_reason != EvaluationReason::UNINITIALIZED, failureDetails: failure_details}
     end
 
     def is_ready_for_checks
       @last_config_sync_time != 0
+    end
+
+    def get_initialization_details
+      @initialization_details
     end
 
     def shutdown
@@ -202,13 +212,19 @@ module Statsig
       return if cached_values.nil?
 
       tracker = @diagnostics.track(context, 'data_store_config_specs', 'process')
-      process_specs(cached_values, from_adapter: true)
-      @init_reason = EvaluationReason::DATA_ADAPTER
-      tracker.end(success: true)
+      failure_details = process_specs(cached_values, from_adapter: true)
+      if failure_details.nil?
+        @init_reason = EvaluationReason::DATA_ADAPTER
+        tracker.end(success: true)
+      else
+        tracker.end(success: false)
+        return download_config_specs(context)
+      end
+      return failure_details
     rescue StandardError
       # Fallback to network
       tracker.end(success: false)
-      download_config_specs(context)
+      return download_config_specs(context)
     end
 
     def save_rulesets_to_storage_adapter(rulesets_string)
@@ -253,18 +269,21 @@ module Statsig
       tracker = @diagnostics.track(context, 'download_config_specs', 'network_request')
 
       error = nil
+      failure_details = nil
       begin
         response, e = @network.download_config_specs(@last_config_sync_time)
         code = response&.status.to_i
         if e.is_a? NetworkError
           code = e.http_code
+          failure_details = {statusCode: code, exception: e, reason: "CONFIG_SPECS_NETWORK_ERROR"}
         end
         tracker.end(statusCode: code, success: e.nil?, sdkRegion: response&.headers&.[]('X-Statsig-Region'))
 
         if e.nil?
           unless response.nil?
             tracker = @diagnostics.track(context, 'download_config_specs', 'process')
-            if process_specs(response.body.to_s)
+            failure_details = process_specs(response.body.to_s)
+            if failure_details.nil?
               @init_reason = EvaluationReason::NETWORK
             end
             tracker.end(success: @init_reason == EvaluationReason::NETWORK)
@@ -274,59 +293,63 @@ module Statsig
                                            @last_config_sync_time)
             end
           end
-
-          nil
         else
           error = e
         end
       rescue StandardError => e
+        failure_details = {exception: e, reason: "INTERNAL_ERROR"}
         error = e
       end
 
       @error_callback.call(error) unless error.nil? or @error_callback.nil?
+      return failure_details
     end
 
     def process_specs(specs_string, from_adapter: false)
       if specs_string.nil?
-        return false
+        return {reason: "EMPTY_SPEC"}
       end
 
-      specs_json = JSON.parse(specs_string, { symbolize_names: true })
-      return false unless specs_json.is_a? Hash
+      begin
+        specs_json = JSON.parse(specs_string, { symbolize_names: true })
+        return {reason: "PARSE_RESPONSE_ERROR"} unless specs_json.is_a? Hash
 
-      hashed_sdk_key_used = specs_json[:hashed_sdk_key_used]
-      unless hashed_sdk_key_used.nil? or hashed_sdk_key_used == Statsig::HashUtils.djb2(@secret_key)
-        err_boundary.log_exception(Statsig::InvalidSDKKeyResponse.new)
-        return false
+        hashed_sdk_key_used = specs_json[:hashed_sdk_key_used]
+        unless hashed_sdk_key_used.nil? or hashed_sdk_key_used == Statsig::HashUtils.djb2(@secret_key)
+          err_boundary.log_exception(Statsig::InvalidSDKKeyResponse.new)
+          return {reason: "PARSE_RESPONSE_ERROR"}
+        end
+
+        new_specs_sync_time = specs_json[:time]
+        if new_specs_sync_time.nil? \
+          || new_specs_sync_time < @last_config_sync_time \
+          || specs_json[:has_updates] != true \
+          || specs_json[:feature_gates].nil? \
+          || specs_json[:dynamic_configs].nil? \
+          || specs_json[:layer_configs].nil?
+          return {reason: "PARSE_RESPONSE_ERROR"}
+        end
+
+        @last_config_sync_time = new_specs_sync_time
+        @unsupported_configs.clear
+
+        specs_json[:diagnostics]&.each { |key, value| @diagnostics.sample_rates[key.to_s] = value }
+
+        @gates = specs_json[:feature_gates]
+        @configs = specs_json[:dynamic_configs]
+        @layers = specs_json[:layer_configs]
+        @condition_map = specs_json[:condition_map]
+        @experiment_to_layer = specs_json[:experiment_to_layer]
+        @sdk_keys_to_app_ids = specs_json[:sdk_keys_to_app_ids] || {}
+        @hashed_sdk_keys_to_app_ids = specs_json[:hashed_sdk_keys_to_app_ids] || {}
+
+        unless from_adapter
+          save_rulesets_to_storage_adapter(specs_string)
+        end
+      rescue StandardError => e
+        return {reason: "PARSE_RESPONSE_ERROR"}
       end
-
-      new_specs_sync_time = specs_json[:time]
-      if new_specs_sync_time.nil? \
-        || new_specs_sync_time < @last_config_sync_time \
-        || specs_json[:has_updates] != true \
-        || specs_json[:feature_gates].nil? \
-        || specs_json[:dynamic_configs].nil? \
-        || specs_json[:layer_configs].nil?
-        return false
-      end
-
-      @last_config_sync_time = new_specs_sync_time
-      @unsupported_configs.clear
-
-      specs_json[:diagnostics]&.each { |key, value| @diagnostics.sample_rates[key.to_s] = value }
-
-      @gates = specs_json[:feature_gates]
-      @configs = specs_json[:dynamic_configs]
-      @layers = specs_json[:layer_configs]
-      @condition_map = specs_json[:condition_map]
-      @experiment_to_layer = specs_json[:experiment_to_layer]
-      @sdk_keys_to_app_ids = specs_json[:sdk_keys_to_app_ids] || {}
-      @hashed_sdk_keys_to_app_ids = specs_json[:hashed_sdk_keys_to_app_ids] || {}
-
-      unless from_adapter
-        save_rulesets_to_storage_adapter(specs_string)
-      end
-      true
+      nil
     end
 
     def get_id_lists_from_adapter(context)
