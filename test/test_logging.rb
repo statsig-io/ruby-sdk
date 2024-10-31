@@ -122,30 +122,36 @@ class TestLogging < BaseTest
     network_eval = Statsig::EvaluationDetails.network(5, 6)
 
     logger = Statsig::StatsigLogger.new(net, StatsigOptions.new, @error_boundary)
+
     logger.log_gate_exposure(
       StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' } }),
-      'test_gate',
-      true,
-      'gate_rule_id',
-      [{
-         'gate' => 'another_gate',
-         'gateValue' => 'true',
-         'ruleID' => 'another_rule_id'
-       }],
-      unrecognized_eval,
+      Statsig::ConfigResult.new(
+        name: 'test_gate',
+        gate_value: true,
+        rule_id: 'gate_rule_id',
+        secondary_exposures: [{
+          'gate' => 'another_gate',
+          'gateValue' => 'true',
+          'ruleID' => 'another_rule_id'
+        }],
+        evaluation_details: unrecognized_eval
+      ),
       { :is_manual_exposure => true },
     )
 
     logger.log_config_exposure(
       StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' } }),
-      'test_config',
-      'config_rule_id',
-      [{
-         'gate' => 'another_gate_2',
-         'gateValue' => 'false',
-         'ruleID' => 'another_rule_id_2'
-       }],
-      override_eval,
+      Statsig::ConfigResult.new(
+        name: 'test_config',
+        gate_value: true,
+        rule_id: 'config_rule_id',
+        secondary_exposures: [{
+          'gate' => 'another_gate_2',
+          'gateValue' => 'false',
+          'ruleID' => 'another_rule_id_2'
+        }],
+        evaluation_details: override_eval
+      ),
       { :is_manual_exposure => false },
     )
 
@@ -197,6 +203,7 @@ class TestLogging < BaseTest
         'configSyncTime' => override_eval.config_sync_time,
         'initTime' => override_eval.init_time,
         'serverTime' => override_eval.server_time,
+        'rulePassed' => 'true',
       }, config_exposure['metadata'])
     assert(config_exposure['user']['userID'] == '123')
     assert(config_exposure['user']['privateAttributes'] == nil)

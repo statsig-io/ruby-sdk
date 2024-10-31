@@ -324,7 +324,11 @@ module Statsig
     def finalize_eval_result(config, end_result, did_pass:, rule:, is_nested: false)
       end_result.id_type = config[:idType]
       end_result.target_app_ids = config[:targetAppIDs]
-      end_result.gate_value = did_pass ? rule[:returnValue] == true : config[:defaultValue] == true
+      end_result.gate_value = did_pass
+      if config[:entity] == Const::TYPE_FEATURE_GATE
+        end_result.gate_value = did_pass ? rule[:returnValue] == true : config[:defaultValue] == true
+      end
+      end_result.config_version = config[:version]
 
       if rule.nil?
         end_result.json_value = config[:defaultValue]
@@ -691,7 +695,7 @@ module Statsig
       pass_percentage = rule[:passPercentage]
       return true if pass_percentage == 100.0
       return false if pass_percentage == 0.0
-    
+
       unit_id = user.get_unit_id(rule[:idType]) || Const::EMPTY_STR
       rule_salt = rule[:salt] || rule[:id] || Const::EMPTY_STR
       hash = compute_user_hash("#{config_salt}.#{rule_salt}.#{unit_id}")

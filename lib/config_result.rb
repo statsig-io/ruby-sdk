@@ -16,6 +16,7 @@ module Statsig
     attr_accessor :target_app_ids
     attr_accessor :disable_evaluation_details
     attr_accessor :disable_exposures
+    attr_accessor :config_version
 
     def initialize(
       name:,
@@ -31,7 +32,8 @@ module Statsig
       id_type: nil,
       target_app_ids: nil,
       disable_evaluation_details: false,
-      disable_exposures: false
+      disable_exposures: false,
+      config_version: nil
     )
       @name = name
       @gate_value = gate_value
@@ -48,6 +50,7 @@ module Statsig
       @target_app_ids = target_app_ids
       @disable_evaluation_details = disable_evaluation_details
       @disable_exposures = disable_exposures
+      @config_version = config_version
     end
 
     def self.from_user_persisted_values(config_name, user_persisted_values)

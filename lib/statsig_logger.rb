@@ -38,42 +38,49 @@ module Statsig
       end
     end
 
-    def log_gate_exposure(user, gate_name, value, rule_id, secondary_exposures, eval_details, context = nil)
+    def log_gate_exposure(user, result, context = nil)
       event = StatsigEvent.new($gate_exposure_event)
       event.user = user
       metadata = {
-        gate: gate_name,
-        gateValue: value.to_s,
-        ruleID: rule_id || Statsig::Const::EMPTY_STR,
+        gate: result.name,
+        gateValue: result.gate_value.to_s,
+        ruleID: result.rule_id || Statsig::Const::EMPTY_STR,
       }
+      if result.config_version != nil
+        metadata[:configVersion] = result.config_version.to_s
+      end
       if @debug_info != nil
         metadata[:debugInfo] = @debug_info
       end
       return false if not is_unique_exposure(user, $gate_exposure_event, metadata)
       event.metadata = metadata
 
-      event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
+      event.secondary_exposures = result.secondary_exposures.is_a?(Array) ? result.secondary_exposures : []
 
-      safe_add_eval_details(eval_details, event)
+      safe_add_eval_details(result.evaluation_details, event)
       safe_add_exposure_context(context, event)
       log_event(event)
     end
 
-    def log_config_exposure(user, config_name, rule_id, secondary_exposures, eval_details, context = nil)
+    def log_config_exposure(user, result, context = nil)
       event = StatsigEvent.new($config_exposure_event)
       event.user = user
       metadata = {
-        config: config_name,
-        ruleID: rule_id || Statsig::Const::EMPTY_STR,
+        config: result.name,
+        ruleID: result.rule_id || Statsig::Const::EMPTY_STR,
+        rulePassed: result.gate_value.to_s,
       }
+      if result.config_version != nil
+        metadata[:configVersion] = result.config_version.to_s
+      end
       if @debug_info != nil
         metadata[:debugInfo] = @debug_info
       end
       return false if not is_unique_exposure(user, $config_exposure_event, metadata)
       event.metadata = metadata
-      event.secondary_exposures = secondary_exposures.is_a?(Array) ? secondary_exposures : []
+      event.secondary_exposures = result.secondary_exposures.is_a?(Array) ? result.secondary_exposures : []
 
-      safe_add_eval_details(eval_details, event)
+      safe_add_eval_details(result.evaluation_details, event)
       safe_add_exposure_context(context, event)
       log_event(event)
     end
@@ -96,6 +103,9 @@ module Statsig
         parameterName: parameter_name,
         isExplicitParameter: String(is_explicit)
       }
+      if config_evaluation.config_version != nil
+        metadata[:configVersion] = config_evaluation.config_version.to_s
+      end
       if @debug_info != nil
         metadata[:debugInfo] = @debug_info
       end

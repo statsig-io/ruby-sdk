@@ -72,9 +72,7 @@ class StatsigDriver
       @evaluator.check_gate(user, gate_name, res, ignore_local_overrides: ignore_local_overrides)
 
       unless disable_log_exposure
-        @logger.log_gate_exposure(
-          user, res.name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details
-        )
+        @logger.log_gate_exposure(user, res)
       end
 
       FeatureGate.from_config_result(res)
@@ -113,7 +111,7 @@ class StatsigDriver
       res = Statsig::ConfigResult.new(name: gate_name)
       @evaluator.check_gate(user, gate_name, res)
       context = { :is_manual_exposure => true }
-      @logger.log_gate_exposure(user, gate_name, res.gate_value, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
+      @logger.log_gate_exposure(user, res, context)
     end
   end
 
@@ -154,7 +152,7 @@ class StatsigDriver
       @evaluator.get_config(user, config_name, res)
 
       context = { :is_manual_exposure => true }
-      @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details, context)
+      @logger.log_config_exposure(user, res, context)
     end
   end
 
@@ -385,7 +383,7 @@ class StatsigDriver
       @evaluator.get_config(user, config_name, res, user_persisted_values: user_persisted_values, ignore_local_overrides: ignore_local_overrides)
 
       unless disable_log_exposure
-        @logger.log_config_exposure(user, res.name, res.rule_id, res.secondary_exposures, res.evaluation_details)
+        @logger.log_config_exposure(user, res)
       end
 
       DynamicConfig.new(res.name, res.json_value, res.rule_id, res.group_name, res.id_type, res.evaluation_details)
