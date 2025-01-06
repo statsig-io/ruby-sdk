@@ -381,8 +381,15 @@ module Statsig
       until i >= rule[:conditions].length
         condition_hash = rule[:conditions][i]
         condition = @spec_store.get_condition(condition_hash)
-        result = eval_condition(user, condition, end_result)
-        pass = false if result != true
+
+        if condition.nil?
+          puts "[Statsig]: Warning - Condition with hash #{condition_hash} could not be found."
+          pass = false
+        else
+          result = eval_condition(user, condition, end_result)
+          pass = false if result != true
+        end
+
         i += 1
       end
 
