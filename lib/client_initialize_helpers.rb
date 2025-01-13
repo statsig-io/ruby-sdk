@@ -51,7 +51,8 @@ module Statsig
         eval_result = ConfigResult.new(
           name: config_name,
           disable_evaluation_details: true,
-          disable_exposures: !include_exposures
+          disable_exposures: !include_exposures,
+          include_local_overrides: include_local_overrides
         )
         evaluator.eval_spec(config_name_str, user, config_spec, eval_result)
       else

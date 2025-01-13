@@ -17,6 +17,7 @@ module Statsig
     attr_accessor :disable_evaluation_details
     attr_accessor :disable_exposures
     attr_accessor :config_version
+    attr_accessor :include_local_overrides
 
     def initialize(
       name:,
@@ -33,7 +34,8 @@ module Statsig
       target_app_ids: nil,
       disable_evaluation_details: false,
       disable_exposures: false,
-      config_version: nil
+      config_version: nil,
+      include_local_overrides: true
     )
       @name = name
       @gate_value = gate_value
@@ -51,6 +53,7 @@ module Statsig
       @disable_evaluation_details = disable_evaluation_details
       @disable_exposures = disable_exposures
       @config_version = config_version
+      @include_local_overrides = include_local_overrides
     end
 
     def self.from_user_persisted_values(config_name, user_persisted_values)

@@ -591,7 +591,8 @@ module Statsig
     end
 
     def eval_nested_gate(gate_name, user, end_result)
-      check_gate(user, gate_name, end_result, is_nested: true)
+      check_gate(user, gate_name, end_result, is_nested: true,
+                                              ignore_local_overrides: !end_result.include_local_overrides)
       gate_value = end_result.gate_value
 
       unless end_result.disable_exposures
