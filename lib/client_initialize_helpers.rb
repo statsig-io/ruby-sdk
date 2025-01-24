@@ -74,6 +74,7 @@ module Statsig
         result[:value] = eval_result.json_value
         result[:group] = eval_result.rule_id
         result[:is_device_based] = id_type.is_a?(String) && id_type.downcase == Statsig::Const::STABLEID
+        result[:passed] = eval_result.gate_value
       else
         return nil
       end
