@@ -24,8 +24,9 @@ class TestURIHelper < BaseTest
     stub_download_config_specs('https://custom_dcs_url').to_return do |req|
       @dcs_counter[:custom_dcs_url] += 1
     end
-    @diagnostics = Statsig::Diagnostics.new()
+    @diagnostics = Statsig::Diagnostics.new
     @error_boundary = Statsig::ErrorBoundary.new('secret-key', false)
+    @sdk_configs = Statsig::SDKConfigs.new
   end
 
   def teardown
@@ -46,8 +47,8 @@ class TestURIHelper < BaseTest
     )
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
-    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary, @sdk_configs)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY, @sdk_configs)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -66,8 +67,8 @@ class TestURIHelper < BaseTest
     )
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
-    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary, @sdk_configs)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY, @sdk_configs)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -88,8 +89,8 @@ class TestURIHelper < BaseTest
     )
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
-    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary, @sdk_configs)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY, @sdk_configs)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end
@@ -103,8 +104,8 @@ class TestURIHelper < BaseTest
     options = StatsigOptions.new(rulesets_sync_interval: 9999, idlists_sync_interval: 9999)
     net = Statsig::Network.new(SDK_KEY, options)
     spy = Spy.on(net, :request).and_call_through
-    logger = Statsig::StatsigLogger.new(net, options, @error_boundary)
-    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary, @sdk_configs)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, SDK_KEY, @sdk_configs)
     wait_for do
       spy.calls.size >= 2 # wait for both download_config_specs and get_id_lists
     end

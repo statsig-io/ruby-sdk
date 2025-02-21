@@ -1,6 +1,7 @@
 require 'constants'
 require 'statsig_event'
 require 'ttl_set'
+require 'sdk_configs'
 require 'concurrent-ruby'
 
 $gate_exposure_event = 'statsig::gate_exposure'
@@ -10,7 +11,7 @@ $diagnostics_event = 'statsig::diagnostics'
 $ignored_metadata_keys = [:serverTime, :configSyncTime, :initTime, :reason]
 module Statsig
   class StatsigLogger
-    def initialize(network, options, error_boundary)
+    def initialize(network, options, error_boundary, sdk_configs)
       @network = network
       @events = []
       @options = options
@@ -31,6 +32,7 @@ module Statsig
       @interval = 0
       @flush_mutex = Mutex.new
       @debug_info = nil
+      @sdk_configs = sdk_configs
     end
 
     def log_event(event)

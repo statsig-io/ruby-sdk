@@ -20,7 +20,7 @@ module Statsig
     attr_accessor :hashed_sdk_keys_to_app_ids
     attr_accessor :unsupported_configs
 
-    def initialize(network, options, error_callback, diagnostics, error_boundary, logger, secret_key)
+    def initialize(network, options, error_callback, diagnostics, error_boundary, logger, secret_key, sdk_config)
       @init_reason = EvaluationReason::UNINITIALIZED
       @network = network
       @options = options
@@ -43,6 +43,7 @@ module Statsig
       @logger = logger
       @secret_key = secret_key
       @unsupported_configs = Set.new
+      @sdk_configs = sdk_config
 
       startTime = (Time.now.to_f * 1000).to_i
 
@@ -342,6 +343,8 @@ module Statsig
         @experiment_to_layer = specs_json[:experiment_to_layer]
         @sdk_keys_to_app_ids = specs_json[:sdk_keys_to_app_ids] || {}
         @hashed_sdk_keys_to_app_ids = specs_json[:hashed_sdk_keys_to_app_ids] || {}
+        # @sdk_configs.set_flags(specs_json["sdk_flags"])
+        # @sdk_configs.set_configs(specs_json["sdk_configs"])
 
         unless from_adapter
           save_rulesets_to_storage_adapter(specs_string)

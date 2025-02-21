@@ -13,6 +13,7 @@ class TestLogging < BaseTest
     super
     WebMock.enable!
     @error_boundary = Statsig::ErrorBoundary.new(SDK_KEY, StatsigOptions.new)
+    @sdk_configs = Statsig::SDKConfigs.new
   end
 
   def teardown
@@ -49,7 +50,7 @@ class TestLogging < BaseTest
       local_mode: false
     )
     net = Statsig::Network.new(SDK_KEY, options)
-    logger = Statsig::StatsigLogger.new(net, StatsigOptions.new, @error_boundary)
+    logger = Statsig::StatsigLogger.new(net, StatsigOptions.new, @error_boundary, @sdk_configs)
     logger.log_event(StatsigEvent.new('my_event'))
 
     Spy.on(logger, :flush_async).and_return do
@@ -76,7 +77,7 @@ class TestLogging < BaseTest
       local_mode: false
     )
     net = Statsig::Network.new(SDK_KEY, options)
-    logger = Statsig::StatsigLogger.new(net, StatsigOptions.new(logging_max_buffer_size: 2), @error_boundary)
+    logger = Statsig::StatsigLogger.new(net, StatsigOptions.new(logging_max_buffer_size: 2), @error_boundary, @sdk_configs)
 
     called = false
     called_after_wait = false
@@ -121,7 +122,7 @@ class TestLogging < BaseTest
     override_eval = Statsig::EvaluationDetails.local_override(3, 4)
     network_eval = Statsig::EvaluationDetails.network(5, 6)
 
-    logger = Statsig::StatsigLogger.new(net, StatsigOptions.new, @error_boundary)
+    logger = Statsig::StatsigLogger.new(net, StatsigOptions.new, @error_boundary, @sdk_configs)
 
     logger.log_gate_exposure(
       StatsigUser.new({ 'userID' => '123', 'privateAttributes' => { 'secret' => 'shhh' } }),

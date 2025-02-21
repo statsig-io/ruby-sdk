@@ -13,6 +13,7 @@ require 'error_boundary'
 require 'layer'
 require 'memo'
 require 'diagnostics'
+require 'sdk_configs'
 
 class StatsigDriver
 
@@ -27,15 +28,16 @@ class StatsigDriver
 
     @err_boundary = Statsig::ErrorBoundary.new(secret_key, !options.nil? && options.local_mode)
     @err_boundary.capture(caller: __method__) do
-      @diagnostics = Statsig::Diagnostics.new()
+      @diagnostics = Statsig::Diagnostics.new
+      @sdk_configs = Statsig::SDKConfigs.new
       tracker = @diagnostics.track('initialize', 'overall')
       @options = options || StatsigOptions.new
       @shutdown = false
       @secret_key = secret_key
       @net = Statsig::Network.new(secret_key, @options)
-      @logger = Statsig::StatsigLogger.new(@net, @options, @err_boundary)
+      @logger = Statsig::StatsigLogger.new(@net, @options, @err_boundary, @sdk_configs)
       @persistent_storage_utils = Statsig::UserPersistentStorageUtils.new(@options)
-      @store = Statsig::SpecStore.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger, secret_key)
+      @store = Statsig::SpecStore.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger, secret_key, @sdk_configs)
       @evaluator = Statsig::Evaluator.new(@store, @options, @persistent_storage_utils)
       tracker.end(success: true)
 

@@ -102,7 +102,7 @@ class StatsigErrorBoundaryUsageTest < BaseTest
   end
 
   def test_errors_with_initialize
-    opts = MiniTest::Mock.new
+    opts = Minitest::Mock.new
     2.times do
       opts.expect(:is_a?, true, [StatsigOptions])
     end
