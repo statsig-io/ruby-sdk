@@ -1,5 +1,6 @@
 require 'constants'
 require 'statsig_event'
+require 'ttl_set'
 require 'concurrent-ruby'
 
 $gate_exposure_event = 'statsig::gate_exposure'
@@ -25,7 +26,8 @@ module Statsig
 
       @error_boundary = error_boundary
       @background_flush = periodic_flush
-      @deduper = Concurrent::Set.new()
+      @deduper = Concurrent::Set.new
+      @sampling_key_set = Statsig::TTLSet.new
       @interval = 0
       @flush_mutex = Mutex.new
       @debug_info = nil
@@ -150,6 +152,7 @@ module Statsig
 
     def shutdown
       @background_flush&.exit
+      @sampling_key_set.shutdown
       @logging_pool.shutdown
       @logging_pool.wait_for_termination(timeout = 3)
       flush
