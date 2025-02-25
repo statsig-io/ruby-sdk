@@ -18,6 +18,8 @@ module Statsig
     attr_accessor :disable_exposures
     attr_accessor :config_version
     attr_accessor :include_local_overrides
+    attr_accessor :forward_all_exposures
+    attr_accessor :sampling_rate
 
     def initialize(
       name:,
@@ -35,7 +37,9 @@ module Statsig
       disable_evaluation_details: false,
       disable_exposures: false,
       config_version: nil,
-      include_local_overrides: true
+      include_local_overrides: true,
+      forward_all_exposures: false,
+      sampling_rate: nil
     )
       @name = name
       @gate_value = gate_value
@@ -54,6 +58,8 @@ module Statsig
       @disable_exposures = disable_exposures
       @config_version = config_version
       @include_local_overrides = include_local_overrides
+      @forward_all_exposures = forward_all_exposures
+      @sampling_rate = sampling_rate
     end
 
     def self.from_user_persisted_values(config_name, user_persisted_values)

@@ -325,6 +325,7 @@ module Statsig
       end_result.id_type = config[:idType]
       end_result.target_app_ids = config[:targetAppIDs]
       end_result.gate_value = did_pass
+      end_result.forward_all_exposures = config[:forwardAllExposures]
       if config[:entity] == Const::TYPE_FEATURE_GATE
         end_result.gate_value = did_pass ? rule[:returnValue] == true : config[:defaultValue] == true
       end
@@ -340,6 +341,7 @@ module Statsig
         end_result.group_name = rule[:groupName]
         end_result.is_experiment_group = rule[:isExperimentGroup] == true
         end_result.rule_id = rule[:id]
+        end_result.sampling_rate = rule[:samplingRate]
       end
 
       unless end_result.disable_evaluation_details

@@ -343,8 +343,8 @@ module Statsig
         @experiment_to_layer = specs_json[:experiment_to_layer]
         @sdk_keys_to_app_ids = specs_json[:sdk_keys_to_app_ids] || {}
         @hashed_sdk_keys_to_app_ids = specs_json[:hashed_sdk_keys_to_app_ids] || {}
-        # @sdk_configs.set_flags(specs_json["sdk_flags"])
-        # @sdk_configs.set_configs(specs_json["sdk_configs"])
+        @sdk_configs.set_flags(specs_json[:sdk_flags])
+        @sdk_configs.set_configs(specs_json[:sdk_configs])
 
         unless from_adapter
           save_rulesets_to_storage_adapter(specs_string)
