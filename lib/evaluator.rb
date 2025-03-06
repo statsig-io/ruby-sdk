@@ -302,6 +302,7 @@ module Statsig
 
     def eval_spec(config_name, user, config, end_result, is_nested: false)
       config[:rules].each do |rule|
+        end_result.sampling_rate = rule[:samplingRate]
         eval_rule(user, rule, end_result)
 
         if end_result.gate_value
@@ -427,6 +428,9 @@ module Statsig
         return true
       when Const::CND_PASS_GATE, Const::CND_FAIL_GATE
         result = eval_nested_gate(target, user, end_result)
+        if end_result.sampling_rate == nil && !target.start_with?("segment")
+          end_result.has_seen_analytical_gates = true
+        end
         return type == Const::CND_PASS_GATE ? result : !result
       when Const::CND_MULTI_PASS_GATE, Const::CND_MULTI_FAIL_GATE
         return eval_nested_gates(target, type, user, end_result)
@@ -614,7 +618,9 @@ module Statsig
       is_multi_pass_gate_type = condition_type == Const::CND_MULTI_PASS_GATE
       gate_names.each { |gate_name|
         result = eval_nested_gate(gate_name, user, end_result)
-
+        if end_result.sampling_rate == nil && !target.start_with?("segment")
+          end_result.has_seen_analytical_gates = true
+        end
         if is_multi_pass_gate_type == result
           has_passing_gate = true
           break

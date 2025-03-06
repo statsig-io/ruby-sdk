@@ -276,6 +276,7 @@ module Statsig
 
         return true, nil, nil if result.forward_all_exposures
         return true, nil, nil if result.rule_id.end_with?(":override", ":id_override")
+        return true, nil, nil if result.has_seen_analytical_gates
 
         sampling_set_key = "#{name}_#{result.rule_id}"
         unless @sampling_key_set.contains?(sampling_set_key)

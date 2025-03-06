@@ -20,6 +20,7 @@ module Statsig
     attr_accessor :include_local_overrides
     attr_accessor :forward_all_exposures
     attr_accessor :sampling_rate
+    attr_accessor :has_seen_analytical_gates
 
     def initialize(
       name:,
@@ -39,7 +40,8 @@ module Statsig
       config_version: nil,
       include_local_overrides: true,
       forward_all_exposures: false,
-      sampling_rate: nil
+      sampling_rate: nil,
+      has_seen_analytical_gates: false
     )
       @name = name
       @gate_value = gate_value
@@ -60,6 +62,7 @@ module Statsig
       @include_local_overrides = include_local_overrides
       @forward_all_exposures = forward_all_exposures
       @sampling_rate = sampling_rate
+      @has_seen_analytical_gates = has_seen_analytical_gates
     end
 
     def self.from_user_persisted_values(config_name, user_persisted_values)
