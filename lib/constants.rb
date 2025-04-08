@@ -29,6 +29,8 @@ module Statsig
     DISABLED = 'disabled'.freeze
     DJB2 = 'djb2'.freeze
     EMAIL = 'email'.freeze
+    EXPLORE = ':explore'.freeze
+    FAILS_TARGETING = 'inlineTargetingRules'.freeze
     FALSE = 'false'.freeze
     IP = 'ip'.freeze
     LAYER = :layer
@@ -39,6 +41,7 @@ module Statsig
     OSNAME = 'osname'.freeze
     OSVERSION = 'osversion'.freeze
     OVERRIDE = 'override'.freeze
+    PRESTART = 'prestart'.freeze
     Q_RIGHT_CHEVRON = 'Q>'.freeze
     STABLEID = 'stableid'.freeze
     STATSIG_RUBY_SDK = 'statsig-ruby-sdk'.freeze

@@ -19,6 +19,7 @@ module Statsig
     attr_accessor :sdk_keys_to_app_ids
     attr_accessor :hashed_sdk_keys_to_app_ids
     attr_accessor :unsupported_configs
+    attr_accessor :cmab_configs
 
     def initialize(network, options, error_callback, diagnostics, error_boundary, logger, secret_key, sdk_config)
       @init_reason = EvaluationReason::UNINITIALIZED
@@ -33,6 +34,7 @@ module Statsig
       @gates = {}
       @configs = {}
       @layers = {}
+      @cmab_configs = {}
       @condition_map = {}
       @id_lists = {}
       @experiment_to_layer = {}
@@ -125,6 +127,13 @@ module Statsig
       @layers.key?(layer_name.to_sym)
     end
 
+    def has_cmab_config?(config_name)
+      if @cmab_configs.nil?
+        return false
+      end
+      @cmab_configs.key?(config_name.to_sym)
+    end
+
     def get_gate(gate_name)
       gate_sym = gate_name.to_sym
       return nil unless has_gate?(gate_sym)
@@ -143,6 +152,12 @@ module Statsig
       return nil unless has_layer?(layer_sym)
 
       @layers[layer_sym]
+    end
+
+    def get_cmab_config(config_name)
+      config_sym = config_name.to_sym
+      return nil unless has_cmab_config?(config_sym)
+      @cmab_configs[config_sym]
     end
 
     def get_condition(condition_hash)
@@ -339,6 +354,7 @@ module Statsig
         @gates = specs_json[:feature_gates]
         @configs = specs_json[:dynamic_configs]
         @layers = specs_json[:layer_configs]
+        @cmab_configs = specs_json[:cmab_configs]
         @condition_map = specs_json[:condition_map]
         @experiment_to_layer = specs_json[:experiment_to_layer]
         @sdk_keys_to_app_ids = specs_json[:sdk_keys_to_app_ids] || {}

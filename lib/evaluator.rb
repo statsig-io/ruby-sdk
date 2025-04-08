@@ -122,6 +122,10 @@ module Statsig
         return
       end
 
+      if eval_cmab(config_name, user, end_result)
+        return
+      end
+
       unless @spec_store.has_config?(config_name)
         unsupported_or_unrecognized(config_name, end_result)
         return
@@ -161,6 +165,149 @@ module Statsig
         @persistent_storage_utils.remove_experiment_from_storage(user, config[:idType], config_name)
         eval_spec(config_name, user, config, end_result)
       end
+    end
+
+    def eval_cmab(config_name, user, end_result)
+      return false unless @spec_store.has_cmab_config?(config_name)
+
+      cmab = @spec_store.get_cmab_config(config_name)
+
+      if !cmab[:enabled] || cmab[:groups].length.zero?
+        end_result.rule_id = Const::PRESTART
+        end_result.json_value = cmab[:defaultValue]
+        finalize_cmab_eval_result(cmab, end_result, did_pass: false)
+        return true
+      end
+
+      targeting_gate = cmab[:targetingGateName]
+      unless targeting_gate.nil?
+        check_gate(user, targeting_gate, end_result, is_nested: true)
+
+        gate_value = end_result.gate_value
+
+        unless end_result.disable_exposures
+          new_exposure = {
+            gate: targeting_gate,
+            gateValue: gate_value ? Const::TRUE : Const::FALSE,
+            ruleID: end_result.rule_id
+          }
+          end_result.secondary_exposures.append(new_exposure)
+        end
+
+        if gate_value == false
+          end_result.rule_id = Const::FAILS_TARGETING
+          end_result.json_value = cmab[:defaultValue]
+          finalize_cmab_eval_result(cmab, end_result, did_pass: false)
+          return true
+        end
+      end
+
+      cmab_config = cmab[:config]
+      unit_id = user.get_unit_id(cmab[:idType]) || Const::EMPTY_STR
+      salt = cmab[:salt] || config_name
+      hash = compute_user_hash("#{salt}.#{unit_id}")
+
+      # If there is no config assign the user to a random group
+      if cmab_config.nil?
+        group_size = 10_000.0 / cmab[:groups].length
+        group = cmab[:groups][(hash % 10_000) / group_size]
+        end_result.json_value = group[:parameterValues]
+        end_result.rule_id = group[:id]
+        end_result.group_name = group[:name]
+        end_result.is_experiment_group = true
+        finalize_cmab_eval_result(cmab, end_result, did_pass: true)
+        return true
+      end
+
+      should_sample = (hash % 10_000) < cmab[:sampleRate] * 10_000
+      if should_sample && apply_cmab_sampling(cmab, cmab_config, end_result)
+        finalize_cmab_eval_result(cmab, end_result, did_pass: true)
+        return true
+      end
+      apply_cmab_best_group(cmab, cmab_config, user, end_result)
+      finalize_cmab_eval_result(cmab, end_result, did_pass: true)
+      true
+    end
+
+    def apply_cmab_best_group(cmab, cmab_config, user, end_result)
+      higher_better = cmab[:higherIsBetter]
+      best_score = higher_better ? -1_000_000_000 : 1_000_000_000
+      has_score = false
+      best_group = nil
+      cmab[:groups].each do |group|
+        group_id = group[:id]
+        config = cmab_config[group_id.to_sym]
+        next if config.nil?
+
+        weights_numerical = config[:weightsNumerical]
+        weights_categorical = config[:weightsCategorical]
+
+        next if weights_numerical.length.zero? && weights_categorical.length.zero?
+
+        score = 0
+        score += config[:alpha] + config[:intercept]
+
+        weights_categorical.each do |key, weights|
+          value = get_value_from_user(user, key.to_s)
+          next if value.nil?
+
+          if weights.key?(value.to_sym)
+            score += weights[value.to_sym]
+          end
+        end
+
+        weights_numerical.each do |key, weight|
+          value = get_value_from_user(user, key.to_s)
+          if value.is_a?(Numeric)
+            score += weight * value
+          end
+        end
+        if !has_score || (higher_better && score > best_score) || (!higher_better && score < best_score)
+          best_score = score
+          best_group = group
+        end
+        has_score = true
+      end
+      if best_group.nil?
+        best_group = cmab[:groups][Random.rand(cmab[:groups].length)]
+      end
+      end_result.json_value = best_group[:parameterValues]
+      end_result.rule_id = best_group[:id]
+      end_result.group_name = best_group[:name]
+      end_result.is_experiment_group = true
+    end
+
+    def apply_cmab_sampling(cmab, cmab_config, end_result)
+      total_records = 0.0
+      cmab[:groups].each do |group|
+        group_id = group[:id]
+        config = cmab_config[group_id.to_sym]
+        cur_count = 1.0
+        unless config.nil?
+          cur_count += config[:records]
+        end
+        total_records += 1.0 / cur_count
+      end
+
+      sum = 0.0
+      value = Random.rand
+      cmab[:groups].each do |group|
+        group_id = group[:id]
+        config = cmab_config[group_id.to_sym]
+        cur_count = 1.0
+        unless config.nil?
+          cur_count += config[:records]
+        end
+        sum += 1.0 / (cur_count / total_records)
+        next unless value < sum
+
+        end_result.json_value = group[:parameterValues]
+        end_result.rule_id = group[:id] + Const::EXPLORE
+        end_result.group_name = group[:name]
+        end_result.is_experiment_group = true
+        return true
+      end
+      false
     end
 
     def get_layer(user, layer_name, end_result)
@@ -356,6 +503,21 @@ module Statsig
       unless is_nested
         finalize_secondary_exposures(end_result)
       end
+    end
+
+    def finalize_cmab_eval_result(config, end_result, did_pass:)
+      end_result.id_type = config[:idType]
+      end_result.target_app_ids = config[:targetAppIDs]
+      end_result.gate_value = did_pass
+
+      unless end_result.disable_evaluation_details
+        end_result.evaluation_details = EvaluationDetails.new(
+          @spec_store.last_config_sync_time,
+          @spec_store.initial_config_sync_time,
+          @spec_store.init_reason
+        )
+      end
+      end_result.config_version = config[:version]
     end
 
     def finalize_secondary_exposures(end_result)
