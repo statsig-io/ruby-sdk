@@ -234,4 +234,44 @@ class TestLogging < BaseTest
     assert(layer_exposure['user']['privateAttributes'] == nil)
     logger.shutdown
   end
+
+  def test_logger_chunks_high_qps
+    stub_request(:post, 'https://test_logger_chunks.net/v1/log_event').to_return(status: 200)
+    stub_download_config_specs('https://test_logger_chunks.net/v1').to_return(status: 200)
+    stub_request(:post, 'https://test_logger_chunks.net/v1/get_id_lists').to_return(status: 200)
+
+    options = StatsigOptions.new(
+      nil,
+      download_config_specs_url: 'https://test_non_blocking_log.net/v2/download_config_specs',
+      log_event_url: 'https://test_non_blocking_log.net/v1/log_event',
+      get_id_lists_url: 'https://test_non_blocking_log.net/v1/get_id_lists',
+      local_mode: false,
+      logging_max_buffer_size: 10
+    )
+    net = Statsig::Network.new(SDK_KEY, options)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary, @sdk_configs)
+
+
+    # Spy on post_logs so we can verify how many times it was called and with how many events
+    spy = Spy.on(net, :post_logs).and_return
+
+    # Log a large number of events
+    50.times do |i|
+      logger.log_event(StatsigEvent.new("event_#{i}"))
+    end
+
+    logger.flush
+    logger.shutdown
+
+    # Ensure post_logs was called the expected number of times for chunking
+    calls = spy.calls
+    assert_operator(calls.length, :>=, 5, "Expected at least 5 calls to post_logs for chunking 50 events in chunks of 10")
+
+    # Optionally, check chunk sizes
+    calls.each do |call|
+      events = call.args[0]
+      assert(events.is_a?(Array), "Expected each post_logs call to receive an array of events")
+      assert_operator(events.length, :<=, 10, "Expected no more than 10 events per chunk")
+    end
+  end
 end

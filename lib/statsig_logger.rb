@@ -194,8 +194,11 @@ module Statsig
 
         events_clone = @events
         @events = []
-        flush_events = events_clone.map { |e| e.serialize }
-        @network.post_logs(flush_events, @error_boundary)
+        serialized_events = events_clone.map { |e| e.serialize }
+        
+        serialized_events.each_slice(@options.logging_max_buffer_size) do |batch|
+          @network.post_logs(batch, @error_boundary)
+        end
       end
     end
 
