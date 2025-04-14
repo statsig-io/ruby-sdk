@@ -153,16 +153,18 @@ module Statsig
 
     def flush
       @flush_mutex.synchronize do
-        if @events.length.zero?
-          return
-        end
-
+        return if @events.empty?
+    
         events_clone = @events
         @events = []
-        flush_events = events_clone.map { |e| e.serialize }
-        @network.post_logs(flush_events, @error_boundary)
+        serialized_events = events_clone.map(&:serialize)
+    
+        serialized_events.each_slice(@options.logging_max_buffer_size) do |batch|
+          @network.post_logs(batch, @error_boundary)
+        end
       end
     end
+    
 
     def maybe_restart_background_threads
       if @background_flush.nil? || !@background_flush.alive?
