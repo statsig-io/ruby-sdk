@@ -9,7 +9,7 @@ module Statsig
       hash = 0
       input_str.each_char.each do |c|
         hash = (hash << 5) - hash + c.ord
-        hash &= hash
+        hash &= 0xFFFFFFFF
       end
       hash &= 0xFFFFFFFF # Convert to unsigned 32-bit integer
       return hash.to_s
