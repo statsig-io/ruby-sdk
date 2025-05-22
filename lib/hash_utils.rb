@@ -7,8 +7,8 @@ module Statsig
   class HashUtils
     def self.djb2(input_str)
       hash = 0
-      input_str.each_char.each do |c|
-        hash = (hash << 5) - hash + c.ord
+      input_str.each_codepoint.each do |c|
+        hash = (hash << 5) - hash + c
         hash &= 0xFFFFFFFF
       end
       hash &= 0xFFFFFFFF # Convert to unsigned 32-bit integer
