@@ -65,15 +65,27 @@ module Statsig
       if user_persisted_values.nil?
         user_persisted_values = {}
       end
-      user_persisted_values[config_name] = evaluation.to_hash
+      hash = evaluation.to_hash
+      if hash['json_value'].is_a?(Hash)
+        hash['json_value'] = self.class.symbolize_keys(hash['json_value'])
+      end
+      user_persisted_values[config_name] = hash
     end
 
     private
 
     def self.parse(values_string)
-      return JSON.parse(values_string)
-    rescue JSON::ParserError
-      return nil
+      return nil if values_string.nil?
+
+      parsed = JSON.parse(values_string)
+      return nil if parsed.nil?
+
+      parsed.each do |config_name, config_value|
+        if config_value.is_a?(Hash) && config_value.key?('json_value')
+          config_value['json_value'] = symbolize_keys(config_value['json_value'])
+        end
+      end
+      parsed
     end
 
     def self.stringify(values_object)
@@ -84,6 +96,16 @@ module Statsig
 
     def self.get_storage_key(user, id_type)
       "#{user.get_unit_id(id_type)}:#{id_type}"
+    end
+
+    def self.symbolize_keys(hash)
+      return hash unless hash.is_a?(Hash)
+
+      symbolized = {}
+      hash.each do |key, value|
+        symbolized[key.to_sym] = value.is_a?(Hash) ? symbolize_keys(value) : value
+      end
+      symbolized
     end
   end
 end

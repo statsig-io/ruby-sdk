@@ -204,6 +204,47 @@ class TestUserPersistedValues < BaseTest
     end
   end
 
+  def test_symbol_vs_string_keys_in_persisted_values
+    persistent_storage_adapter = DummyPersistentStorageAdapter.new
+    Statsig.initialize(
+      'secret-key',
+      StatsigOptions.new(
+        bootstrap_values: @json_file,
+        user_persistent_storage: persistent_storage_adapter,
+        local_mode: true
+      )
+    )
+    
+    exp = Statsig.get_experiment(
+      @user_in_control,
+      'the_allocated_experiment',
+      Statsig::GetExperimentOptions.new(
+        user_persisted_values: Statsig.get_user_persisted_values(@user_in_control, 'userID')
+      )
+    )
+
+    assert_equal('Control', exp.group_name)
+    assert_equal(Statsig::EvaluationReason::BOOTSTRAP, exp.evaluation_details&.reason)
+    assert(exp.value.key?(:an_int))
+    assert_equal(12, exp.value[:an_int])
+
+    exp = Statsig.get_experiment(
+      @user_in_control,
+      'the_allocated_experiment',
+      Statsig::GetExperimentOptions.new(
+        user_persisted_values: Statsig.get_user_persisted_values(@user_in_control, 'userID')
+      )
+    )
+
+    assert_equal('Control', exp.group_name)
+    assert_equal(Statsig::EvaluationReason::PERSISTED, exp.evaluation_details&.reason)
+    assert(exp.value.key?(:an_int))
+    assert_equal(12, exp.value[:an_int])
+
+    assert_equal(12, exp.get(:an_int, 0))
+    assert_equal(0, exp.get(:nonexistent_key, 0))
+  end
+
   class InvalidPersistentStorageAdapter < Statsig::Interfaces::IUserPersistentStorage
     def load(key)
       raise 'Error in persistent storage adapter load'
