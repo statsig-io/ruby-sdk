@@ -3,7 +3,11 @@ module Statsig
 
     @global_memo = {}
 
-    def self.for(hash, method, key)
+    def self.for(hash, method, key, disable_evaluation_memoization: false)
+      if disable_evaluation_memoization
+        return yield
+      end
+
       if key != nil
         method_hash = hash[method]
         unless method_hash

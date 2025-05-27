@@ -1,4 +1,3 @@
-
 class StatsigEvent
   attr_accessor :value, :metadata, :statsig_metadata, :secondary_exposures
   attr_reader :user
@@ -15,7 +14,7 @@ class StatsigEvent
 
   def user=(value)
     if value.is_a?(StatsigUser)
-      @user = Statsig::Memo.for(value.get_memo(), :serialize, 0) do
+      @user = Statsig::Memo.for(value.get_memo(), :serialize, 0, disable_evaluation_memoization: Statsig.get_options&.disable_evaluation_memoization) do
         value.serialize(true)
       end
     end

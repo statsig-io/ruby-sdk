@@ -65,7 +65,7 @@ class StatsigDriver
 
     user = verify_inputs(user, gate_name, 'gate_name')
 
-    Statsig::Memo.for(user.get_memo, :get_gate_impl, gate_name) do
+    Statsig::Memo.for(user.get_memo, :get_gate_impl, gate_name, disable_evaluation_memoization: @options.disable_evaluation_memoization) do
       res = Statsig::ConfigResult.new(
         name: gate_name,
         disable_exposures: disable_log_exposure,
@@ -171,7 +171,7 @@ class StatsigDriver
     @err_boundary.capture(caller: __method__, recover: -> { Layer.new(layer_name) }) do
       run_with_diagnostics(caller: :get_layer) do
         user = verify_inputs(user, layer_name, "layer_name")
-        Statsig::Memo.for(user.get_memo, :get_layer, layer_name) do
+        Statsig::Memo.for(user.get_memo, :get_layer, layer_name, disable_evaluation_memoization: @options.disable_evaluation_memoization) do
           exposures_disabled = options&.disable_log_exposure == true
           res = Statsig::ConfigResult.new(
             name: layer_name,
@@ -304,6 +304,12 @@ class StatsigDriver
     end
   end
 
+  def clear_experiment_overrides
+    @err_boundary.capture(caller: __method__) do
+      @evaluator.clear_experiment_overrides
+    end
+  end
+
   def set_debug_info(debug_info)
     @err_boundary.capture(caller: __method__) do
       @logger.set_debug_info(debug_info)
@@ -337,6 +343,10 @@ class StatsigDriver
     end
   end
 
+  def override_experiment_by_group_name(experiment_name, group_name)
+    @evaluator.override_experiment_by_group_name(experiment_name, group_name)
+  end
+
   private
 
   def run_with_diagnostics(caller:)
@@ -361,7 +371,7 @@ class StatsigDriver
 
   def verify_inputs(user, config_name, variable_name)
     validate_user(user)
-    user = Statsig::Memo.for(user.get_memo(), :verify_inputs, 0) do
+    user = Statsig::Memo.for(user.get_memo(), :verify_inputs, 0, disable_evaluation_memoization: @options.disable_evaluation_memoization) do
       user = normalize_user(user)
       check_shutdown
       maybe_restart_background_threads
@@ -376,7 +386,7 @@ class StatsigDriver
   end
 
   def get_config_impl(user, config_name, disable_log_exposure, user_persisted_values: nil, disable_evaluation_details: false, ignore_local_overrides: false)
-    Statsig::Memo.for(user.get_memo, :get_config_impl, config_name) do
+    Statsig::Memo.for(user.get_memo, :get_config_impl, config_name, disable_evaluation_memoization: @options.disable_evaluation_memoization) do
       res = Statsig::ConfigResult.new(
         name: config_name,
         disable_exposures: disable_log_exposure,

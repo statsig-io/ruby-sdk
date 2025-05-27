@@ -9,9 +9,15 @@ class StatsigLocalOverridesTest < BaseTest
 
   def setup
     super
-    options = StatsigOptions.new()
-    options.local_mode = true
-    Statsig.initialize("secret-local", options, method(:error_callback))
+    @json_file = File.read("#{__dir__}/data/download_config_specs.json")
+    Statsig.initialize(
+      'secret-key',
+      StatsigOptions.new(
+        bootstrap_values: @json_file,
+        local_mode: true,
+        disable_evaluation_memoization: true
+      )
+    )
   end
 
   def error_callback(e)
@@ -93,5 +99,33 @@ class StatsigLocalOverridesTest < BaseTest
     val = Statsig.get_config(StatsigUser.new({ 'userID' => '123' }), "override_me_2")
     assert(val.group_name.nil?)
     assert(val.value == {})
+  end
+
+  def test_override_experiment_by_group_name
+    user = StatsigUser.new({ 'userID' => 'test_user' })
+    exp = Statsig.get_experiment(user, 'sample_experiment')
+
+    Statsig.override_experiment_by_group_name('sample_experiment', 'Control')
+    exp = Statsig.get_experiment(user, 'sample_experiment')
+    assert_equal('Control', exp.group_name)
+    assert_equal('LocalOverride', exp.evaluation_details&.reason)
+    assert_equal('2RamGsERWbWMIMnSfOlQuX', exp.rule_id)
+
+    Statsig.override_experiment_by_group_name('sample_experiment', 'Test')
+    exp = Statsig.get_experiment(user, 'sample_experiment')
+    assert_equal('Test', exp.group_name)
+    assert_equal('LocalOverride', exp.evaluation_details&.reason)
+    assert_equal('2RamGujUou6h2bVNQWhtNZ', exp.rule_id)
+
+    exp = Statsig.get_experiment(user, 'sample_experiment', Statsig::GetExperimentOptions.new(ignore_local_overrides: true))
+    assert_equal('Test', exp.group_name)
+    assert_equal('Bootstrap', exp.evaluation_details&.reason)
+    assert_equal('2RamGujUou6h2bVNQWhtNZ', exp.rule_id)
+
+    Statsig.clear_experiment_overrides
+    exp = Statsig.get_experiment(user, 'sample_experiment')
+    assert_equal('Test', exp.group_name)
+    assert_equal('Bootstrap', exp.evaluation_details&.reason)
+    assert_equal('2RamGujUou6h2bVNQWhtNZ', exp.rule_id)
   end
 end

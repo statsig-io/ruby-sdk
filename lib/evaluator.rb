@@ -20,6 +20,8 @@ module Statsig
 
     attr_accessor :config_overrides
 
+    attr_accessor :experiment_overrides
+
     attr_accessor :options
 
     attr_accessor :persistent_storage_utils
@@ -31,6 +33,7 @@ module Statsig
       @spec_store = store
       @gate_overrides = {}
       @config_overrides = {}
+      @experiment_overrides = {}
       @options = options
       @persistent_storage_utils = persistent_storage_utils
     end
@@ -58,19 +61,32 @@ module Statsig
 
     def lookup_config_override(config_name)
       config_name_sym = config_name.to_sym
-      if @config_overrides.key?(config_name_sym)
+      if @experiment_overrides.key?(config_name_sym)
+        override = @experiment_overrides[config_name_sym]
         return ConfigResult.new(
           name: config_name,
-          json_value: @config_overrides[config_name_sym],
-          rule_id: Const::OVERRIDE,
-          id_type: @spec_store.has_config?(config_name) ? @spec_store.get_config(config_name)[:idType] : Const::EMPTY_STR,
+          json_value: override[:value],
+          group_name: override[:group_name],
+          rule_id: override[:rule_id],
           evaluation_details: EvaluationDetails.local_override(
             @spec_store.last_config_sync_time,
             @spec_store.initial_config_sync_time
           )
         )
       end
-      return nil
+      if @config_overrides.key?(config_name_sym)
+        override = @config_overrides[config_name_sym]
+        return ConfigResult.new(
+          name: config_name,
+          json_value: override,
+          rule_id: Const::OVERRIDE,
+          evaluation_details: EvaluationDetails.local_override(
+            @spec_store.last_config_sync_time,
+            @spec_store.initial_config_sync_time
+          )
+        )
+      end
+      nil
     end
 
     def check_gate(user, gate_name, end_result, ignore_local_overrides: false, is_nested: false)
@@ -108,6 +124,8 @@ module Statsig
           end_result.id_type = local_override.id_type
           end_result.rule_id = local_override.rule_id
           end_result.json_value = local_override.json_value
+          end_result.group_name = local_override.group_name
+          end_result.is_experiment_group = local_override.is_experiment_group
           unless end_result.disable_evaluation_details
             end_result.evaluation_details = local_override.evaluation_details
           end
@@ -445,6 +463,37 @@ module Statsig
 
     def clear_config_overrides
       @config_overrides.clear
+    end
+
+    def override_experiment_by_group_name(experiment_name, group_name)
+      return unless @spec_store.has_config?(experiment_name)
+
+      config = @spec_store.get_config(experiment_name)
+      return unless config[:entity] == Const::TYPE_EXPERIMENT
+
+      config[:rules].each do |rule|
+        if rule[:groupName] == group_name
+          @experiment_overrides[experiment_name.to_sym] = {
+            value: rule[:returnValue],
+            group_name: rule[:groupName],
+            rule_id: rule[:id],
+            evaluation_details: EvaluationDetails.local_override(@config_sync_time, @init_time)
+          }
+          return
+        end
+      end
+
+      # If no matching rule is found, create a default override with empty value
+      @experiment_overrides[experiment_name.to_sym] = {
+        value: {},
+        group_name: group_name,
+        rule_id: "#{experiment_name}:override",
+        evaluation_details: EvaluationDetails.local_override(@config_sync_time, @init_time)
+      }
+    end
+
+    def clear_experiment_overrides
+      @experiment_overrides.clear
     end
 
     def eval_spec(config_name, user, config, end_result, is_nested: false)

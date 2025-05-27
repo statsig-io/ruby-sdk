@@ -328,6 +328,17 @@ module Statsig
     @shared_instance&.override_config(config_name, config_value)
   end
 
+
+  ##
+  # Overrides an experiment to return the value for a specific group name.
+  #
+  # @param experiment_name The name of the experiment to be overridden
+  # @param group_name The name of the group whose value should be returned
+  def self.override_experiment_by_group_name(experiment_name, group_name)
+    ensure_initialized
+    @shared_instance&.override_experiment_by_group_name(experiment_name, group_name)
+  end
+
   def self.remove_config_override(config_name)
     ensure_initialized
     @shared_instance&.remove_config_override(config_name)
@@ -336,6 +347,11 @@ module Statsig
   def self.clear_config_overrides
     ensure_initialized
     @shared_instance&.clear_config_overrides
+  end
+
+  def self.clear_experiment_overrides
+    ensure_initialized
+    @shared_instance&.clear_experiment_overrides
   end
 
   ##
@@ -373,6 +389,10 @@ module Statsig
       'sdkVersion' => '2.4.3',
       'languageVersion' => RUBY_VERSION
     }
+  end
+
+  def self.get_options
+    @driver&.instance_variable_get(:@options)
   end
 
   private

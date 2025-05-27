@@ -30,4 +30,12 @@ class MemoTest < BaseTest
     result = Statsig::Memo.for_global(:test_method, :test_key) { flunk 'This should not be executed' }
     assert_equal 'global_cached', result
   end
+
+  def test_for_disables_memoization_when_option_set
+    hash = {}
+    result1 = Statsig::Memo.for(hash, :test_method, 0, disable_evaluation_memoization: true) { 42 }
+    result2 = Statsig::Memo.for(hash, :test_method, 0, disable_evaluation_memoization: true) { 43 }
+    assert_equal 42, result1
+    assert_equal 43, result2
+  end
 end

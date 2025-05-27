@@ -88,6 +88,10 @@ class StatsigOptions
   # Implements Statsig::Interfaces::IUserPersistentStorage.
   attr_accessor :user_persistent_storage
 
+  # Disable memoization of evaluation results. When true, each evaluation will be performed fresh.
+  # default: false
+  attr_accessor :disable_evaluation_memoization
+
   def initialize(
     environment = nil,
     download_config_specs_url: nil,
@@ -110,7 +114,8 @@ class StatsigOptions
     network_timeout: nil,
     post_logs_retry_limit: 3,
     post_logs_retry_backoff: nil,
-    user_persistent_storage: nil
+    user_persistent_storage: nil,
+    disable_evaluation_memoization: false
   )
     @environment = environment.is_a?(Hash) ? environment : nil
 
@@ -140,6 +145,6 @@ class StatsigOptions
     @post_logs_retry_limit = post_logs_retry_limit
     @post_logs_retry_backoff = post_logs_retry_backoff
     @user_persistent_storage = user_persistent_storage
-
+    @disable_evaluation_memoization = disable_evaluation_memoization
   end
 end
