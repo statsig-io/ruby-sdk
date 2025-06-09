@@ -592,20 +592,34 @@ module Statsig
       pass = true
       i = 0
       memo = user.get_memo
+
       until i >= rule[:conditions].length
         condition_hash = rule[:conditions][i]
-        condition = @spec_store.get_condition(condition_hash)
 
-        if condition.nil?
-          puts "[Statsig]: Warning - Condition with hash #{condition_hash} could not be found."
-          result = false
-        elsif condition[:type] == Const::CND_FAIL_GATE || condition[:type] == Const::CND_PASS_GATE
-          result = eval_condition(user, condition, end_result)
-        else
-          result = Memo.for(memo, :eval_rule, condition_hash) do
-            eval_condition(user, condition, end_result)
-          end
+        eval_rule_memo = memo[:eval_rule] || {}
+        result = eval_rule_memo[condition_hash]
+
+        if !result.nil?
+          pass = false if result != true
+          i += 1
+          next
         end
+
+        condition = @spec_store.get_condition(condition_hash)
+        result = if condition.nil?
+          puts "[Statsig]: Warning - Condition with hash #{condition_hash} could not be found."
+          false
+        else
+          eval_condition(user, condition, end_result)
+        end
+
+        if !@options.disable_evaluation_memoization && 
+          condition && condition[:type] != Const::CND_PASS_GATE && condition[:type] != Const::CND_FAIL_GATE
+          eval_rule_memo[condition_hash] = result
+        end
+  
+        memo[:eval_rule] = eval_rule_memo
+
         pass = false if result != true
         i += 1
       end
