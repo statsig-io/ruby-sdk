@@ -103,6 +103,7 @@ module Statsig
       end
 
       if @spec_store.init_reason == EvaluationReason::UNINITIALIZED
+        end_result.gate_value = false
         unless end_result.disable_evaluation_details
           end_result.evaluation_details = EvaluationDetails.uninitialized
         end
@@ -422,6 +423,7 @@ module Statsig
 
     def unsupported_or_unrecognized(config_name, end_result)
       end_result.rule_id = Const::EMPTY_STR
+      end_result.gate_value = false
 
       if end_result.disable_evaluation_details
         return
@@ -613,11 +615,11 @@ module Statsig
           eval_condition(user, condition, end_result)
         end
 
-        if !@options.disable_evaluation_memoization && 
+        if !@options.disable_evaluation_memoization &&
           condition && condition[:type] != Const::CND_PASS_GATE && condition[:type] != Const::CND_FAIL_GATE
           eval_rule_memo[condition_hash] = result
         end
-  
+
         memo[:eval_rule] = eval_rule_memo
 
         pass = false if result != true
