@@ -31,7 +31,6 @@ module Statsig
     end
 
     def self.to_response(config_name, config_spec, evaluator, user, client_sdk_key, hash_algo, include_exposures, include_local_overrides)
-      config_name_str = config_name.to_s
       category = config_spec[:type]
       entity_type = config_spec[:entity]
       if entity_type == Const::TYPE_SEGMENT || entity_type == Const::TYPE_HOLDOUT
@@ -47,6 +46,7 @@ module Statsig
         end
       end
 
+      config_name_str = config_name.to_s
       if local_override.nil?
         eval_result = ConfigResult.new(
           name: config_name,
@@ -131,7 +131,7 @@ module Statsig
       end
 
       layer = evaluator.spec_store.layers[layer_name]
-      result[:value] = layer[:defaultValue].merge(result[:value])
+      result[:value] = result[:value].merge!(layer[:defaultValue])
     end
 
     def self.populate_layer_fields(config_spec, eval_result, result, evaluator, hash_algo, include_exposures)
@@ -153,13 +153,15 @@ module Statsig
     end
 
     def self.hash_name(name, hash_algo)
-      case hash_algo
-      when Statsig::Const::NONE
-        return name
-      when Statsig::Const::DJB2
-        return Statsig::HashUtils.djb2(name)
-      else
-        return Statsig::HashUtils.sha256(name)
+      Statsig::Memo.for_global(:hash_name, "#{hash_algo}|#{name}") do
+        case hash_algo
+        when Statsig::Const::NONE
+          name
+        when Statsig::Const::DJB2
+          Statsig::HashUtils.djb2(name)
+        else
+          Statsig::HashUtils.sha256(name)
+        end
       end
     end
   end
