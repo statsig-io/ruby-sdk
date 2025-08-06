@@ -231,7 +231,7 @@ module Statsig
         group_size = 10_000.0 / cmab[:groups].length
         group = cmab[:groups][(hash % 10_000) / group_size]
         end_result.json_value = group[:parameterValues]
-        end_result.rule_id = group[:id]
+        end_result.rule_id = group[:id] + Const::EXPLORE
         end_result.group_name = group[:name]
         end_result.is_experiment_group = true
         finalize_cmab_eval_result(cmab, end_result, did_pass: true)
