@@ -53,7 +53,11 @@ module Statsig
 
     def download_config_specs(since_time)
       url = @options.download_config_specs_url
-      get("#{url}#{@server_secret}.json?sinceTime=#{since_time}")
+      dcs_url = "#{url}#{@server_secret}.json"
+      if since_time.positive?
+        dcs_url += "?sinceTime=#{since_time}"
+      end
+      get(dcs_url)
     end
 
     def post_logs(events, error_boundary)
