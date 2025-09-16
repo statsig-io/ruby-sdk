@@ -657,6 +657,10 @@ module Statsig
       when Const::CND_PUBLIC
         return true
       when Const::CND_PASS_GATE, Const::CND_FAIL_GATE
+        if !target.is_a?(String) || target.empty?
+          return type == Const::CND_FAIL_GATE
+        end
+
         result = eval_nested_gate(target, user, end_result)
         if end_result.sampling_rate == nil && !target.start_with?("segment")
           end_result.has_seen_analytical_gates = true
