@@ -65,6 +65,9 @@ module Statsig
       if @debug_info != nil
         metadata[:debugInfo] = @debug_info
       end
+      unless result.override_config_name.nil?
+        metadata[:overrideConfigName] = result.override_config_name
+      end
       return false if not is_unique_exposure(user, $gate_exposure_event, metadata)
       event.metadata = metadata
       event.statsig_metadata = {}
@@ -92,6 +95,9 @@ module Statsig
       end
       if @debug_info != nil
         metadata[:debugInfo] = @debug_info
+      end
+      unless result.override_config_name.nil?
+        metadata[:overrideConfigName] = result.override_config_name
       end
       return false if not is_unique_exposure(user, $config_exposure_event, metadata)
       event.metadata = metadata
@@ -195,7 +201,7 @@ module Statsig
         events_clone = @events
         @events = []
         serialized_events = events_clone.map { |e| e.serialize }
-        
+
         serialized_events.each_slice(@options.logging_max_buffer_size) do |batch|
           @network.post_logs(batch, @error_boundary)
         end

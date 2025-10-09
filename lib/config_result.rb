@@ -21,6 +21,7 @@ module Statsig
     attr_accessor :forward_all_exposures
     attr_accessor :sampling_rate
     attr_accessor :has_seen_analytical_gates
+    attr_accessor :override_config_name
 
     def initialize(
       name:,
@@ -41,7 +42,8 @@ module Statsig
       include_local_overrides: true,
       forward_all_exposures: false,
       sampling_rate: nil,
-      has_seen_analytical_gates: false
+      has_seen_analytical_gates: false,
+      override_config_name: nil
     )
       @name = name
       @gate_value = gate_value
@@ -63,6 +65,7 @@ module Statsig
       @forward_all_exposures = forward_all_exposures
       @sampling_rate = sampling_rate
       @has_seen_analytical_gates = has_seen_analytical_gates
+      @override_config_name = override_config_name
     end
 
     def self.from_user_persisted_values(config_name, user_persisted_values)
@@ -82,7 +85,8 @@ module Statsig
         init_time: @init_time,
         group_name: @group_name,
         id_type: @id_type,
-        target_app_ids: @target_app_ids
+        target_app_ids: @target_app_ids,
+        override_config_name: @override_config_name
       }
     end
   end

@@ -89,6 +89,50 @@ module Statsig
       nil
     end
 
+    def try_apply_config_mapping(gate_name, user, end_result, type, salt)
+      gate_name_sym = gate_name.to_sym
+      return false unless @spec_store.overrides.key?(gate_name_sym)
+
+      mapping_list = @spec_store.overrides[gate_name_sym]
+      mapping_list.each do |mapping|
+        rules = mapping[:rules]
+        rules.each do |rule|
+          start_time = rule[:start_time]
+          if !start_time.nil? && start_time > (Time.now.to_i * 1000)
+            next
+          end
+
+          rule_name = rule[:rule_name].to_sym
+          next unless @spec_store.override_rules.key?(rule_name)
+
+          override_rule = @spec_store.override_rules[rule_name]
+          eval_rule(user, override_rule, end_result)
+          unless end_result.gate_value
+            next
+          end
+
+          pass = eval_pass_percent(user, override_rule, salt)
+          unless pass
+            next
+          end
+
+          new_config_name = mapping[:new_config_name]
+          end_result.override_config_name = new_config_name
+          if type == Const::TYPE_FEATURE_GATE
+            check_gate(user, new_config_name, end_result)
+          end
+          if [Const::TYPE_EXPERIMENT, Const::TYPE_DYNAMIC_CONFIG, Const::TYPE_AUTOTUNE].include?(type)
+            get_config(user, new_config_name, end_result)
+          end
+          if type == Const::TYPE_LAYER
+            get_layer(user, new_config_name, end_result)
+          end
+          return true
+        end
+      end
+      false
+    end
+
     def check_gate(user, gate_name, end_result, ignore_local_overrides: false, is_nested: false)
       unless ignore_local_overrides
         local_override = lookup_gate_override(gate_name)
@@ -111,11 +155,20 @@ module Statsig
       end
 
       unless @spec_store.has_gate?(gate_name)
+        if try_apply_config_mapping(gate_name, user, end_result, Const::TYPE_FEATURE_GATE, Const::EMPTY_STR)
+          return
+        end
+
         unsupported_or_unrecognized(gate_name, end_result)
         return
       end
 
-      eval_spec(gate_name, user, @spec_store.get_gate(gate_name), end_result, is_nested: is_nested)
+      spec = @spec_store.get_gate(gate_name)
+      if try_apply_config_mapping(gate_name, user, end_result, spec[:entity], spec[:salt])
+        return
+      end
+
+      eval_spec(gate_name, user, spec, end_result, is_nested: is_nested)
     end
 
     def get_config(user, config_name, end_result, user_persisted_values: nil, ignore_local_overrides: false)
@@ -146,11 +199,19 @@ module Statsig
       end
 
       unless @spec_store.has_config?(config_name)
+        if try_apply_config_mapping(config_name, user, end_result, Const::TYPE_DYNAMIC_CONFIG, Const::EMPTY_STR)
+          return
+        end
+
         unsupported_or_unrecognized(config_name, end_result)
         return
       end
 
       config = @spec_store.get_config(config_name)
+
+      if try_apply_config_mapping(config_name, user, end_result, config[:entity], config[:salt])
+        return
+      end
 
       # If persisted values is provided and the experiment is active, return sticky values if exists.
       if !user_persisted_values.nil? && config[:isActive] == true
@@ -338,11 +399,20 @@ module Statsig
       end
 
       unless @spec_store.has_layer?(layer_name)
+        if try_apply_config_mapping(layer_name, user, end_result, Const::LAYER, Const::EMPTY_STR)
+          return
+        end
+
         unsupported_or_unrecognized(layer_name, end_result)
         return
       end
 
-      eval_spec(layer_name, user, @spec_store.get_layer(layer_name), end_result)
+      layer = @spec_store.get_layer(layer_name)
+      if try_apply_config_mapping(layer_name, user, end_result, layer[:entity], layer[:salt])
+        return
+      end
+
+      eval_spec(layer_name, user, layer, end_result)
     end
 
     def list_gates

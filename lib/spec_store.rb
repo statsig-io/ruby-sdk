@@ -20,6 +20,8 @@ module Statsig
     attr_accessor :hashed_sdk_keys_to_app_ids
     attr_accessor :unsupported_configs
     attr_accessor :cmab_configs
+    attr_accessor :overrides
+    attr_accessor :override_rules
 
     def initialize(network, options, error_callback, diagnostics, error_boundary, logger, secret_key, sdk_config)
       @init_reason = EvaluationReason::UNINITIALIZED
@@ -40,6 +42,8 @@ module Statsig
       @experiment_to_layer = {}
       @sdk_keys_to_app_ids = {}
       @hashed_sdk_keys_to_app_ids = {}
+      @overrides = {}
+      @override_rules = {}
       @diagnostics = diagnostics
       @error_boundary = error_boundary
       @logger = logger
@@ -361,6 +365,8 @@ module Statsig
         @hashed_sdk_keys_to_app_ids = specs_json[:hashed_sdk_keys_to_app_ids] || {}
         @sdk_configs.set_flags(specs_json[:sdk_flags])
         @sdk_configs.set_configs(specs_json[:sdk_configs])
+        @overrides = specs_json[:overrides] || {}
+        @override_rules = specs_json[:override_rules] || {}
 
         unless from_adapter
           save_rulesets_to_storage_adapter(specs_string)
