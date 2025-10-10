@@ -117,6 +117,15 @@ class StatsigDriver
     end
   end
 
+  def get_fields_used_for_gate(gate_name)
+    @err_boundary.capture(caller: __method__, recover: -> { [] }) do
+        gate = @store.get_gate(gate_name)
+        return [] if gate.nil?
+
+        gate[:fieldsUsed] || []
+    end
+  end
+
   def get_config(user, dynamic_config_name, options = nil)
     @err_boundary.capture(caller: __method__, recover: -> { DynamicConfig.new(dynamic_config_name) }) do
       run_with_diagnostics(caller: :get_config) do
@@ -129,6 +138,15 @@ class StatsigDriver
           ignore_local_overrides: options&.ignore_local_overrides == true
         )
       end
+    end
+  end
+
+  def get_fields_used_for_config(config_name)
+    @err_boundary.capture(caller: __method__, recover: -> { [] }) do
+        config = @store.get_config(config_name)
+        return [] if config.nil?
+
+        config[:fieldsUsed] || []
     end
   end
 
@@ -198,6 +216,15 @@ class StatsigDriver
       layer = Layer.new(layer_name, res.json_value, res.rule_id, res.group_name, res.config_delegate)
       context = { :is_manual_exposure => true }
       @logger.log_layer_exposure(user, layer, parameter_name, res, context)
+    end
+  end
+
+  def get_fields_used_for_layer(layer_name)
+    @err_boundary.capture(caller: __method__, recover: -> { [] }) do
+        layer = @store.get_layer(layer_name)
+        return [] if layer.nil?
+
+        layer[:fieldsUsed] || []
     end
   end
 

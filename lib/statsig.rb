@@ -92,6 +92,11 @@ module Statsig
     @shared_instance&.manually_log_gate_exposure(user, gate_name)
   end
 
+  def self.get_fields_used_for_gate(gate_name)
+    ensure_initialized
+    @shared_instance&.get_fields_used_for_gate(gate_name)
+  end
+
   class GetConfigOptions
     attr_accessor :disable_log_exposure, :disable_evaluation_details, :ignore_local_overrides
 
@@ -134,6 +139,11 @@ module Statsig
   def self.manually_log_config_exposure(user, dynamic_config)
     ensure_initialized
     @shared_instance&.manually_log_config_exposure(user, dynamic_config)
+  end
+
+  def self.get_fields_used_for_config(config_name)
+    ensure_initialized
+    @shared_instance&.get_fields_used_for_config(config_name)
   end
 
   class GetExperimentOptions
@@ -184,6 +194,11 @@ module Statsig
     @shared_instance&.get_user_persisted_values(user, id_type)
   end
 
+  def self.get_fields_used_for_experiment(experiment_name)
+    ensure_initialized
+    @shared_instance&.get_fields_used_for_config(experiment_name)
+  end
+
   class GetLayerOptions
     attr_accessor :disable_log_exposure, :disable_evaluation_details
 
@@ -225,6 +240,11 @@ module Statsig
   def self.manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
     ensure_initialized
     @shared_instance&.manually_log_layer_parameter_exposure(user, layer_name, parameter_name)
+  end
+
+  def self.get_fields_used_for_layer(layer_name)
+    ensure_initialized
+    @shared_instance&.get_fields_used_for_layer(layer_name)
   end
 
   ##
