@@ -1,5 +1,5 @@
-require 'json'
 require 'digest'
+require 'json'
 
 TWO_TO_THE_63 = 1 << 63
 TWO_TO_THE_64 = 1 << 64

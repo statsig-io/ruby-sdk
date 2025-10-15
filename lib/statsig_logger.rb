@@ -1,8 +1,8 @@
-require 'constants'
-require 'statsig_event'
-require 'ttl_set'
 require 'concurrent-ruby'
-require 'hash_utils'
+require_relative 'constants'
+require_relative 'hash_utils'
+require_relative 'statsig_event'
+require_relative 'ttl_set'
 
 $gate_exposure_event = 'statsig::gate_exposure'
 $config_exposure_event = 'statsig::config_exposure'

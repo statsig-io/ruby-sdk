@@ -1,15 +1,15 @@
-require 'config_result'
 require 'country_lookup'
 require 'digest'
-require 'evaluation_helpers'
-require 'client_initialize_helpers'
-require 'spec_store'
 require 'time'
-require 'ua_parser'
-require 'evaluation_details'
 require 'user_agent_parser/operating_system'
-require 'user_persistent_storage_utils'
-require 'constants'
+require_relative 'client_initialize_helpers'
+require_relative 'config_result'
+require_relative 'constants'
+require_relative 'evaluation_details'
+require_relative 'evaluation_helpers'
+require_relative 'spec_store'
+require_relative 'ua_parser'
+require_relative 'user_persistent_storage_utils'
 
 module Statsig
   class Evaluator

@@ -1,5 +1,5 @@
 require 'json'
-require 'constants'
+require_relative 'constants'
 ##
 #  The user object to be evaluated against your Statsig configurations (gates/experiments/dynamic configs).
 class StatsigUser

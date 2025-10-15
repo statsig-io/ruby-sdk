@@ -1,10 +1,10 @@
+require 'concurrent-ruby'
 require 'net/http'
 require 'uri'
-require 'evaluation_details'
-require 'id_list'
-require 'concurrent-ruby'
-require 'hash_utils'
-require 'api_config'
+require_relative 'api_config'
+require_relative 'evaluation_details'
+require_relative 'hash_utils'
+require_relative 'id_list'
 
 module Statsig
   class SpecStore

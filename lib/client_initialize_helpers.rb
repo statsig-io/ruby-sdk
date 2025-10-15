@@ -1,6 +1,5 @@
+require_relative 'constants'
 require_relative 'hash_utils'
-
-require 'constants'
 
 module Statsig
   class ResponseFormatter

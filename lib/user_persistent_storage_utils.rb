@@ -1,4 +1,4 @@
-require 'statsig_options'
+require_relative 'statsig_options'
 
 module Statsig
   class UserPersistentStorageUtils

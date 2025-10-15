@@ -1,6 +1,5 @@
-require 'statsig_driver'
-
-require 'statsig_errors'
+require_relative 'statsig_driver'
+require_relative 'statsig_errors'
 
 module Statsig
 

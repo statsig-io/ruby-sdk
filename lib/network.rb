@@ -1,9 +1,8 @@
+require 'connection_pool'
 require 'http'
 require 'json'
 require 'securerandom'
 require 'zlib'
-
-require 'connection_pool'
 
 RETRY_CODES = [408, 500, 502, 503, 504, 522, 524, 599].freeze
 

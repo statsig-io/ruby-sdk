@@ -1,4 +1,4 @@
-require 'statsig_errors'
+require_relative 'statsig_errors'
 
 $endpoint = 'https://statsigapi.net/v1/sdk_exception'
 
