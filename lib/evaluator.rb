@@ -549,7 +549,7 @@ module Statsig
             value: rule[:returnValue],
             group_name: rule[:groupName],
             rule_id: rule[:id],
-            evaluation_details: EvaluationDetails.local_override(@config_sync_time, @init_time)
+            evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time)
           }
           return
         end
@@ -560,7 +560,7 @@ module Statsig
         value: {},
         group_name: group_name,
         rule_id: "#{experiment_name}:override",
-        evaluation_details: EvaluationDetails.local_override(@config_sync_time, @init_time)
+        evaluation_details: EvaluationDetails.local_override(@spec_store.last_config_sync_time, @spec_store.initial_config_sync_time)
       }
     end
 

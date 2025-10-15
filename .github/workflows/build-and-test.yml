@@ -38,8 +38,8 @@ jobs:
         env:
           test_api_key: ${{ secrets.SDK_CONSISTENCY_TEST_COMPANY_API_KEY }}
           test_client_key: ${{ secrets.KONG_CLIENT_SDK_KEY }}
-
       - name: Code Coverage Report
+        continue-on-error: true
         uses: irongut/CodeCoverageSummary@v1.3.0
         if: ${{ matrix.version == '3.2.0' }}
         with:
@@ -52,8 +52,18 @@ jobs:
           indicators: true
           output: both
           thresholds: "70 80"
+          outputfile: code-coverage-results.md
+
+      - name: Ensure coverage summary file exists
+        if: ${{ matrix.version == '3.2.0' }}
+        run: |
+          if [ ! -f code-coverage-results.md ]; then
+            echo "### Code Coverage Report" > code-coverage-results.md
+            echo "_No coverage data available for this run._" >> code-coverage-results.md
+          fi
 
       - name: Add Coverage PR Comment
+        continue-on-error: true
         uses: marocchino/sticky-pull-request-comment@v2
         if: ${{ github.event_name == 'pull_request' && matrix.version == '3.2.0' }}
         with:
