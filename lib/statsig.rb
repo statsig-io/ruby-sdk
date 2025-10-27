@@ -373,6 +373,11 @@ module Statsig
     @shared_instance&.clear_experiment_overrides
   end
 
+  def self.remove_experiment_override(experiment_name)
+    ensure_initialized
+    @shared_instance&.remove_experiment_override(experiment_name)
+  end
+
   ##
   # @param [HashTable] debug information log with exposure events
   def self.set_debug_info(debug_info)
