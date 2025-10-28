@@ -117,6 +117,12 @@ class StatsigLocalOverridesTest < BaseTest
     assert_equal('LocalOverride', exp.evaluation_details&.reason)
     assert_equal('2RamGujUou6h2bVNQWhtNZ', exp.rule_id)
 
+    Statsig.remove_experiment_override('sample_experiment')
+    exp = Statsig.get_experiment(user, 'sample_experiment')
+    assert_equal('Test', exp.group_name)
+    assert_equal('Bootstrap', exp.evaluation_details&.reason)
+    assert_equal('2RamGujUou6h2bVNQWhtNZ', exp.rule_id)
+
     exp = Statsig.get_experiment(user, 'sample_experiment', Statsig::GetExperimentOptions.new(ignore_local_overrides: true))
     assert_equal('Test', exp.group_name)
     assert_equal('Bootstrap', exp.evaluation_details&.reason)

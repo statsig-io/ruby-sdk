@@ -338,6 +338,12 @@ class StatsigDriver
     end
   end
 
+  def remove_experiment_override(experiment_name)
+    @err_boundary.capture(caller: __method__) do
+      @evaluator.remove_experiment_override(experiment_name)
+    end
+  end
+
   def set_debug_info(debug_info)
     @err_boundary.capture(caller: __method__) do
       @logger.set_debug_info(debug_info)

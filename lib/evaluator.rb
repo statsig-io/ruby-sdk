@@ -568,6 +568,10 @@ module Statsig
       @experiment_overrides.clear
     end
 
+    def remove_experiment_override(experiment_name)
+      @experiment_overrides.delete(experiment_name.to_sym)
+    end
+
     def eval_spec(config_name, user, config, end_result, is_nested: false)
       config[:rules].each do |rule|
         end_result.sampling_rate = rule[:samplingRate]
