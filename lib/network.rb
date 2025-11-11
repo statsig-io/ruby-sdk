@@ -67,6 +67,10 @@ module Statsig
       gzip << json_body
 
       response, e = post(url, gzip.close.string, @post_logs_retry_limit, 1, true, event_count)
+
+      # Consume response body to ensure connection can be closed.
+      response&.flush
+
       unless e == nil
         message = "Failed to log #{event_count} events after #{@post_logs_retry_limit} retries"
         puts "[Statsig]: #{message}"
