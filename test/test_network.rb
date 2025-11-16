@@ -37,6 +37,27 @@ class TestNetwork < BaseTest
     WebMock.disable!
   end
 
+  def test_ssl_context
+    ssl_context = OpenSSL::SSL::SSLContext.new.tap { |ctx| ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER }
+    options = StatsigOptions.new(ssl_context: ssl_context)
+
+    @net = Statsig::Network.new('secret-abc', options, 1)
+    spy = Spy.on_instance_method(HTTP::Client, :post).and_return(
+      HTTP::Response.new(
+        { 
+          status: 200, 
+          body: 'hello', 
+          version: "1.1", 
+          headers: {}, 
+          request: nil,
+        },
+      )
+    )
+
+    res, _ = @net.post('https://statsigapi.net/v1/log_event', '{}', 5, 1)
+    assert_equal(spy.calls.first.kwargs[:ssl_context], ssl_context)
+  end
+
   def test_retries_succeed
     stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: lambda { |req| status_lambda(req) }, body: 'hello')
 
