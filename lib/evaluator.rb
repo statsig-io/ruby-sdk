@@ -378,7 +378,7 @@ module Statsig
         unless config.nil?
           cur_count += config[:records]
         end
-        sum += 1.0 / (cur_count / total_records)
+        sum += 1.0 / cur_count / total_records
         next unless value < sum
 
         end_result.json_value = group[:parameterValues]
