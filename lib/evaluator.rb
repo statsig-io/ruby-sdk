@@ -599,7 +599,7 @@ module Statsig
       end_result.target_app_ids = config[:targetAppIDs]
       end_result.gate_value = did_pass
       end_result.forward_all_exposures = config[:forwardAllExposures]
-      if config[:entity] == Const::TYPE_FEATURE_GATE
+      if config[:entity] == Const::TYPE_FEATURE_GATE || config[:entity] == Const::TYPE_HOLDOUT
         end_result.gate_value = did_pass ? rule[:returnValue] == true : config[:defaultValue] == true
       end
       end_result.config_version = config[:version]
