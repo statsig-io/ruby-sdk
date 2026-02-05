@@ -27,6 +27,7 @@ module Statsig
       @backoff_multiplier = backoff_mult
       @post_logs_retry_backoff = options.post_logs_retry_backoff
       @post_logs_retry_limit = options.post_logs_retry_limit
+      @ssl_context = options.ssl_context
       @session_id = SecureRandom.uuid
       @connection_pool = ConnectionPool.new(size: 3) do
         meta = Statsig.get_statsig_metadata
@@ -115,11 +116,17 @@ module Statsig
             'STATSIG-EVENT-COUNT' => event_count == 0 ? nil : event_count.to_s
           )
 
+          options = {}
+          if @ssl_context
+            options[:ssl_context] = @ssl_context
+          end
+
           case method
           when :GET
-            request.get(url)
+            request.get(url, **options)
           when :POST
-            request.post(url, body: body)
+            options[:body] = body
+            request.post(url, **options)
           end
         end
       rescue StandardError => e
