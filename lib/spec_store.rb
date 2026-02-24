@@ -336,7 +336,7 @@ module Statsig
 
         hashed_sdk_key_used = specs_json[:hashed_sdk_key_used]
         unless hashed_sdk_key_used.nil? or hashed_sdk_key_used == Statsig::HashUtils.djb2(@secret_key)
-          err_boundary.log_exception(Statsig::InvalidSDKKeyResponse.new)
+          @error_boundary.log_exception(Statsig::InvalidSDKKeyResponse.new)
           return {reason: "PARSE_RESPONSE_ERROR"}
         end
 
