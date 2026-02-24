@@ -158,4 +158,44 @@ class StatsigDataAdapterTest < BaseTest
     assert(result == true)
     driver.shutdown
   end
+
+  def test_datastore_preserves_data_when_network_returns_empty_specs
+    options = StatsigOptions.new(rulesets_sync_interval: 1, idlists_sync_interval: 1)
+    options.data_store = DummyDataAdapter.new
+    driver = StatsigDriver.new(SDK_KEY, options)
+
+    # Verify initial state - gate_from_adapter should exist
+    result = driver.check_gate(@user, 'gate_from_adapter')
+    assert(result == true)
+
+    # Mock network to return empty specs
+    empty_specs = {
+      'feature_gates' => [],
+      'dynamic_configs' => [],
+      'layer_configs' => [],
+      'has_updates' => true,
+      'time' => 2 # Must be > last_config_sync_time
+    }.to_json
+
+    stub_download_config_specs.to_return(status: 200, body: empty_specs)
+
+    # Trigger sync
+    evaluator = driver.instance_variable_get('@evaluator')
+    store = evaluator.instance_variable_get('@spec_store')
+    spy_sync_rulesets = Spy.on(store, :download_config_specs).and_call_through_void
+    wait_for(timeout: 1.9) do
+      spy_sync_rulesets.finished?
+    end
+
+    # Verify data store still has original data
+    adapter_specs = options.data_store&.get(Statsig::Interfaces::IDataStore::CONFIG_SPECS_V2_KEY)
+    specs_json = JSON.parse(adapter_specs)
+    assert(specs_json['feature_gates'].key?('gate_from_adapter'))
+
+    # Verify SpecStore still has the gate
+    result = driver.check_gate(@user, 'gate_from_adapter')
+    assert(result == true)
+
+    driver.shutdown
+  end
 end

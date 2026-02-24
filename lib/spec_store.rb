@@ -225,6 +225,14 @@ module Statsig
 
     private
 
+    def is_empty_specs?(specs_json)
+      return true if specs_json.nil?
+
+      (specs_json[:feature_gates].nil? || specs_json[:feature_gates].empty?) &&
+        (specs_json[:dynamic_configs].nil? || specs_json[:dynamic_configs].empty?) &&
+        (specs_json[:layer_configs].nil? || specs_json[:layer_configs].empty?)
+    end
+
     def load_config_specs_from_storage_adapter(context)
       tracker = @diagnostics.track(context, 'data_store_config_specs', 'fetch')
       cached_values = @options.data_store.get(Interfaces::IDataStore::CONFIG_SPECS_V2_KEY)
@@ -352,6 +360,10 @@ module Statsig
 
         @last_config_sync_time = new_specs_sync_time
         @unsupported_configs.clear
+
+        if !from_adapter && !@options.data_store.nil? && is_empty_specs?(specs_json)
+          return nil
+        end
 
         specs_json[:diagnostics]&.each { |key, value| @diagnostics.sample_rates[key.to_s] = value }
 
