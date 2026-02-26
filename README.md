@@ -10,6 +10,35 @@ Statsig helps you move faster with Feature Gates (Feature Flags) and Dynamic Con
 
 Check out our [SDK docs](https://docs.statsig.com/server/rubySDK) to get started.
 
+## StatsigOptions
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `environment` | Hash for environment variables (e.g. `{ "tier" => "development" }`) | `nil` |
+| `download_config_specs_url` | URL for download_config_specs | `https://api.statsigcdn.com/v2/download_config_specs/` |
+| `log_event_url` | URL for log_event | `https://statsigapi.net/v1/log_event` |
+| `get_id_lists_url` | URL for get_id_lists | `https://statsigapi.net/v1/get_id_lists` |
+| `rulesets_sync_interval` | Interval (in seconds) to poll for configuration changes | `10` |
+| `idlists_sync_interval` | Interval (in seconds) to poll for id list changes | `60` |
+| `disable_rulesets_sync` | Disable background syncing for rulesets | `false` |
+| `disable_idlists_sync` | Disable background syncing for id lists | `false` |
+| `logging_interval_seconds` | How often to flush logs to Statsig | `60` |
+| `logging_max_buffer_size` | Maximum number of events to batch before flushing | `1000` |
+| `local_mode` | Restricts the SDK to not issue any network requests | `false` |
+| `bootstrap_values` | String representing all rules for initialization | `nil` |
+| `rules_updated_callback` | Callback function called when rulesets are updated | `nil` |
+| `data_store` | Class extending IDataStore for common data store (e.g. Redis) | `nil` |
+| `idlist_threadpool_size` | Number of threads for syncing IDLists | `3` |
+| `logger_threadpool_size` | Number of threads for posting event logs | `3` |
+| `disable_diagnostics_logging` | Should diagnostics be logged | `false` |
+| `disable_sorbet_logging_handlers` | Disable Sorbet type safety logging | `false` |
+| `network_timeout` | Number of seconds before a network call is timed out | `30` |
+| `post_logs_retry_limit` | Number of times to retry failed log events | `3` |
+| `post_logs_retry_backoff` | Backoff time/function between retries | `nil` |
+| `user_persistent_storage` | Storage adapter for persisted values | `nil` |
+| `disable_evaluation_memoization` | Disable memoization of evaluation results | `false` |
+| `ruleset_id_list_retry_limit` | Number of times to retry fetching rulesets and id lists | `3` |
+
 ## Testing
 
 Each server SDK is tested at multiple levels - from unit to integration and e2e tests. Our internal e2e test harness runs daily against each server SDK, while unit and integration tests can be seen in the respective github repos of each SDK. The `server_sdk_consistency_test` runs a validation test on local rule/condition evaluation for this SDK against the results in the statsig backend.
