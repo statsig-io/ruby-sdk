@@ -75,6 +75,7 @@ class StatsigOptions
   attr_accessor :disable_sorbet_logging_handlers
 
   # Number of seconds before a network call is timed out
+  # default: 30s
   attr_accessor :network_timeout
 
   # Number of times to retry sending a batch of failed log events
@@ -115,7 +116,7 @@ class StatsigOptions
     logger_threadpool_size: 3,
     disable_diagnostics_logging: false,
     disable_sorbet_logging_handlers: false,
-    network_timeout: nil,
+    network_timeout: 30,
     post_logs_retry_limit: 3,
     post_logs_retry_backoff: nil,
     user_persistent_storage: nil,
