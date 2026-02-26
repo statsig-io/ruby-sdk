@@ -76,4 +76,27 @@ class TestNetwork < BaseTest
     assert(spy.calls.size == 6)
     assert(!e.nil?)
   end
+
+  def test_ruleset_id_list_retries
+    @calls = 0
+    stub_download_config_specs.to_return(status: lambda { |req| status_lambda(req) }, body: '{}')
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: lambda { |req| status_lambda(req) }, body: '{}')
+
+    options = StatsigOptions.new(local_mode: false, ruleset_id_list_retry_limit: 2)
+    net = Statsig::Network.new('secret-abc', options, 0.1)
+    spy = Spy.on(net, :request).and_call_through
+
+    # Test ruleset retries
+    @calls = 0
+    res, _ = net.download_config_specs(0)
+    assert(spy.calls.size == 3) # 500, 500, 200
+    assert(res.status.success?)
+
+    # Test id list retries
+    @calls = 0
+    spy.clear
+    res, _ = net.get_id_lists
+    assert(spy.calls.size == 3) # 500, 500, 200
+    assert(res.status.success?)
+  end
 end

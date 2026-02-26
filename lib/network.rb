@@ -56,7 +56,7 @@ module Statsig
       if since_time.positive?
         dcs_url += "?sinceTime=#{since_time}"
       end
-      get(dcs_url)
+      get(dcs_url, @options.ruleset_id_list_retry_limit)
     end
 
     def post_logs(events, error_boundary)
@@ -83,7 +83,7 @@ module Statsig
 
     def get_id_lists
       url = @options.get_id_lists_url
-      post(url, JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
+      post(url, JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }), @options.ruleset_id_list_retry_limit)
     end
 
     def get(url, retries = 0, backoff = 1)

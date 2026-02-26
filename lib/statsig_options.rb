@@ -92,6 +92,10 @@ class StatsigOptions
   # default: false
   attr_accessor :disable_evaluation_memoization
 
+  # Number of times to retry fetching rulesets and id lists
+  # default: 3
+  attr_accessor :ruleset_id_list_retry_limit
+
   def initialize(
     environment = nil,
     download_config_specs_url: nil,
@@ -115,7 +119,8 @@ class StatsigOptions
     post_logs_retry_limit: 3,
     post_logs_retry_backoff: nil,
     user_persistent_storage: nil,
-    disable_evaluation_memoization: false
+    disable_evaluation_memoization: false,
+    ruleset_id_list_retry_limit: 3
   )
     @environment = environment.is_a?(Hash) ? environment : nil
 
@@ -146,5 +151,6 @@ class StatsigOptions
     @post_logs_retry_backoff = post_logs_retry_backoff
     @user_persistent_storage = user_persistent_storage
     @disable_evaluation_memoization = disable_evaluation_memoization
+    @ruleset_id_list_retry_limit = ruleset_id_list_retry_limit
   end
 end
