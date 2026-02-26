@@ -42,6 +42,7 @@ class TestNetworkTimeout < BaseTest
 
   def test_no_network_timeout
     options = StatsigOptions.new(nil, local_mode: false)
+    assert_equal(30, options.network_timeout)
     net = Statsig::Network.new('secret-abc', options, 0)
     start = Time.now
     net.get('http://localhost:4567/v2/download_config_specs', 0, 0)
