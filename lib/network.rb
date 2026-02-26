@@ -50,11 +50,14 @@ module Statsig
       end
     end
 
-    def download_config_specs(since_time)
+    def download_config_specs(since_time, context)
       url = @options.download_config_specs_url
       dcs_url = "#{url}#{@server_secret}.json"
       if since_time.positive?
         dcs_url += "?sinceTime=#{since_time}"
+      end
+      if context == 'initialize'
+        return get(dcs_url, @options.initialize_retry_limit)
       end
       get(dcs_url)
     end
@@ -81,8 +84,11 @@ module Statsig
 
     end
 
-    def get_id_lists
+    def get_id_lists(context)
       url = @options.get_id_lists_url
+      if context == 'initialize'
+        return post(url, JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }), @options.initialize_retry_limit)
+      end
       post(url, JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
     end
 

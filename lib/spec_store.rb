@@ -291,7 +291,7 @@ module Statsig
       error = nil
       failure_details = nil
       begin
-        response, e = @network.download_config_specs(@last_config_sync_time)
+        response, e = @network.download_config_specs(@last_config_sync_time, context)
         code = response&.status.to_i
         if e.is_a? NetworkError
           code = e.http_code
@@ -401,7 +401,7 @@ module Statsig
 
     def get_id_lists_from_network(context)
       tracker = @diagnostics.track(context, 'get_id_list_sources', 'network_request')
-      response, e = @network.get_id_lists
+      response, e = @network.get_id_lists(context)
       code = response&.status.to_i
       if e.is_a? NetworkError
         code = e.http_code
