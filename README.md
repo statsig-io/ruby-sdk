@@ -14,30 +14,30 @@ Check out our [SDK docs](https://docs.statsig.com/server/rubySDK) to get started
 
 | Option | Description | Default |
 | --- | --- | --- |
-| `environment` | Hash for environment variables (e.g. `{ "tier" => "development" }`) | `nil` |
-| `download_config_specs_url` | URL for download_config_specs | `https://api.statsigcdn.com/v2/download_config_specs/` |
-| `log_event_url` | URL for log_event | `https://statsigapi.net/v1/log_event` |
-| `get_id_lists_url` | URL for get_id_lists | `https://statsigapi.net/v1/get_id_lists` |
-| `rulesets_sync_interval` | Interval (in seconds) to poll for configuration changes | `10` |
-| `idlists_sync_interval` | Interval (in seconds) to poll for id list changes | `60` |
-| `disable_rulesets_sync` | Disable background syncing for rulesets | `false` |
+| `bootstrap_values` | String representing all rules for initialization | `nil` |
+| `data_store` | Class extending IDataStore for common data store (e.g. Redis) | `nil` |
+| `disable_diagnostics_logging` | Should diagnostics be logged | `false` |
+| `disable_evaluation_memoization` | Disable memoization of evaluation results | `false` |
 | `disable_idlists_sync` | Disable background syncing for id lists | `false` |
+| `disable_rulesets_sync` | Disable background syncing for rulesets | `false` |
+| `disable_sorbet_logging_handlers` | Disable Sorbet type safety logging | `false` |
+| `download_config_specs_url` | URL for download_config_specs | `https://api.statsigcdn.com/v2/download_config_specs/` |
+| `environment` | Hash for environment variables (e.g. `{ "tier" => "development" }`) | `nil` |
+| `get_id_lists_url` | URL for get_id_lists | `https://statsigapi.net/v1/get_id_lists` |
+| `idlist_threadpool_size` | Number of threads for syncing IDLists | `3` |
+| `idlists_sync_interval` | Interval (in seconds) to poll for id list changes | `60` |
+| `local_mode` | Restricts the SDK to not issue any network requests | `false` |
+| `log_event_url` | URL for log_event | `https://statsigapi.net/v1/log_event` |
+| `logger_threadpool_size` | Number of threads for posting event logs | `3` |
 | `logging_interval_seconds` | How often to flush logs to Statsig | `60` |
 | `logging_max_buffer_size` | Maximum number of events to batch before flushing | `1000` |
-| `local_mode` | Restricts the SDK to not issue any network requests | `false` |
-| `bootstrap_values` | String representing all rules for initialization | `nil` |
-| `rules_updated_callback` | Callback function called when rulesets are updated | `nil` |
-| `data_store` | Class extending IDataStore for common data store (e.g. Redis) | `nil` |
-| `idlist_threadpool_size` | Number of threads for syncing IDLists | `3` |
-| `logger_threadpool_size` | Number of threads for posting event logs | `3` |
-| `disable_diagnostics_logging` | Should diagnostics be logged | `false` |
-| `disable_sorbet_logging_handlers` | Disable Sorbet type safety logging | `false` |
 | `network_timeout` | Number of seconds before a network call is timed out | `30` |
-| `post_logs_retry_limit` | Number of times to retry failed log events | `3` |
 | `post_logs_retry_backoff` | Backoff time/function between retries | `nil` |
-| `user_persistent_storage` | Storage adapter for persisted values | `nil` |
-| `disable_evaluation_memoization` | Disable memoization of evaluation results | `false` |
+| `post_logs_retry_limit` | Number of times to retry failed log events | `3` |
+| `rules_updated_callback` | Callback function called when rulesets are updated | `nil` |
 | `ruleset_id_list_retry_limit` | Number of times to retry fetching rulesets and id lists | `3` |
+| `rulesets_sync_interval` | Interval (in seconds) to poll for configuration changes | `10` |
+| `user_persistent_storage` | Storage adapter for persisted values | `nil` |
 
 ## Testing
 
