@@ -66,6 +66,46 @@ class TestStore < BaseTest
     @rulesets_syncing_enabled = true
   end
 
+  def test_1a_id_list_downloads_use_network_client
+    stub_download_config_specs.to_return(
+      status: 200,
+      body: JSON.generate({
+        'dynamic_configs' => {},
+        'feature_gates' => {},
+        'layer_configs' => {},
+        'has_updates' => true,
+        'time' => 1
+      })
+    )
+
+    id_list = {
+      'name' => 'list_1',
+      'size' => 3,
+      'url' => 'https://statsigapi.net/ruby-test-idlist/list_1',
+      'creationTime' => 1,
+      'fileID' => 'file_id_1',
+    }
+
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
+      .to_return(status: 200, body: JSON.generate({ 'list_1' => id_list }))
+    stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_1')
+      .to_return(status: 200, body: "+1\n", headers: { 'Content-Length' => '3' })
+
+    options = StatsigOptions.new(local_mode: false, disable_rulesets_sync: true, disable_idlists_sync: true)
+    net = Statsig::Network.new('secret-abc', options, 1)
+    spy = Spy.on(net, :download_id_list).and_call_through
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary, @sdk_configs)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, 'secret-abc', @sdk_configs)
+
+    assert_equal(1, spy.calls.size)
+    assert_equal(['https://statsigapi.net/ruby-test-idlist/list_1', 0], spy.calls.first.args)
+    assert_equal(Statsig::IDList.new(id_list, Set.new(['1'])), store.get_id_list('list_1'))
+
+    store.shutdown
+    logger.shutdown
+    net.shutdown
+  end
+
   def test_1_store_sync
     dcs_calls = 0
     get_id_lists_calls = 0
