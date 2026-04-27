@@ -1,6 +1,4 @@
 require 'concurrent-ruby'
-require 'net/http'
-require 'uri'
 require_relative 'api_config'
 require_relative 'evaluation_details'
 require_relative 'hash_utils'
@@ -270,14 +268,15 @@ module Statsig
         if e.nil?
           unless response.nil?
             tracker = @diagnostics.track(context, diagnostic_key, 'process')
-            failure_details = process_specs(response.body.to_s)
+            body = response.body.to_s
+            failure_details = process_specs(body)
             if failure_details.nil?
               @init_reason = EvaluationReason::NETWORK
             end
             tracker.end(success: @init_reason == EvaluationReason::NETWORK)
 
             unless response.body.nil? or @rules_updated_callback.nil?
-              @rules_updated_callback.call(response.body.to_s, @last_config_sync_time)
+              @rules_updated_callback.call(body, @last_config_sync_time)
             end
           end
         else
@@ -445,9 +444,10 @@ module Statsig
       end
 
       begin
-        server_id_lists = JSON.parse(response)
+        body = response.body.to_s
+        server_id_lists = JSON.parse(body)
         process_id_lists(server_id_lists, context)
-        save_id_lists_to_adapter(response.body.to_s)
+        save_id_lists_to_adapter(body)
       rescue StandardError
         # Ignored, will try again
       end
@@ -541,14 +541,18 @@ module Statsig
 
     def download_single_id_list(list, context)
       nil unless list.is_a? IDList
-      http = HTTP.headers({ 'Range' => "bytes=#{list&.size || 0}-" }).accept(:json)
       tracker = @diagnostics.track(context, 'get_id_list', 'network_request', { url: list.url })
       begin
-        res = http.get(list.url)
-        tracker.end(statusCode: res.status.code, success: res.status.success?)
-        nil unless res.status.success?
+        res, e = @network.download_id_list(list.url, list&.size || 0)
+        code = res&.status&.to_i
+        if e.is_a? NetworkError
+          code = e.http_code
+        end
+        success = e.nil? && !res.nil?
+        tracker.end(statusCode: code, success: success)
+        return nil unless success
         content_length = Integer(res['content-length'])
-        nil if content_length.nil? || content_length <= 0
+        return nil if content_length.nil? || content_length <= 0
         content = res.body.to_s
         success = process_single_id_list(list, context, content, content_length)
         save_single_id_list_to_adapter(list.name, content) unless success.nil? || !success

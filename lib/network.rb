@@ -29,26 +29,8 @@ module Statsig
       @post_logs_retry_backoff = options.post_logs_retry_backoff
       @post_logs_retry_limit = options.post_logs_retry_limit
       @session_id = SecureRandom.uuid
-      @connection_pool = ConnectionPool.new(size: 3) do
-        meta = Statsig.get_statsig_metadata
-        client = HTTP.use(:auto_inflate).headers(
-          {
-            'STATSIG-API-KEY' => @server_secret,
-            'STATSIG-SERVER-SESSION-ID' => @session_id,
-            'Content-Type' => 'application/json; charset=UTF-8',
-            'STATSIG-SDK-TYPE' => meta['sdkType'],
-            'STATSIG-SDK-VERSION' => meta['sdkVersion'],
-            'STATSIG-SDK-LANGUAGE-VERSION' => meta['languageVersion'],
-            'Accept-Encoding' => 'gzip'
-          }
-        ).accept(:json)
-
-        if @timeout
-          client = client.timeout(@timeout)
-        end
-
-        client
-      end
+      @connection_pools = {}
+      @connection_pools_mutex = Mutex.new
     end
 
     def download_config_specs(since_time, context)
@@ -78,10 +60,7 @@ module Statsig
       gzip = Zlib::GzipWriter.new(StringIO.new)
       gzip << json_body
 
-      response, e = post(url, gzip.close.string, @post_logs_retry_limit, 1, true, event_count)
-
-      # Consume response body to ensure connection can be closed.
-      response&.flush
+      _response, e = post(url, gzip.close.string, @post_logs_retry_limit, 1, true, event_count)
 
       unless e == nil
         message = "Failed to log #{event_count} events after #{@post_logs_retry_limit} retries"
@@ -101,6 +80,10 @@ module Statsig
       post(url, JSON.generate({ 'statsigMetadata' => Statsig.get_statsig_metadata }))
     end
 
+    def download_id_list(url, start_byte = 0)
+      request(:GET, url, nil, 0, 1, false, 0, { 'Range' => "bytes=#{start_byte}-" }, false)
+    end
+
     def get(url, retries = 0, backoff = 1)
       request(:GET, url, nil, retries, backoff)
     end
@@ -109,7 +92,21 @@ module Statsig
       request(:POST, url, body, retries, backoff, zipped, event_count)
     end
 
-    def request(method, url, body, retries = 0, backoff = 1, zipped = false, event_count = 0)
+    def shutdown
+      pools = @connection_pools_mutex.synchronize do
+        pools = @connection_pools.values
+        @connection_pools = {}
+        pools
+      end
+
+      pools.each do |pool|
+        pool.shutdown do |conn|
+          conn.close if conn.respond_to?(:close)
+        end
+      end
+    end
+
+    def request(method, url, body, retries = 0, backoff = 1, zipped = false, event_count = 0, extra_headers = {}, use_statsig_headers = true)
       if @local_mode
         return nil, nil
       end
@@ -123,18 +120,25 @@ module Statsig
       end
 
       begin
-        res = @connection_pool.with do |conn|
-          request = conn.headers(
-            'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s,
-            'CONTENT-ENCODING' => zipped ? 'gzip' : nil,
-            'STATSIG-EVENT-COUNT' => event_count == 0 ? nil : event_count.to_s
-          )
+        pool = connection_pool_for(url)
+        res = pool.with do |conn|
+          begin
+            request_headers = build_request_headers(zipped, event_count, extra_headers, use_statsig_headers)
+            request = conn.headers(request_headers)
 
-          case method
-          when :GET
-            request.get(url)
-          when :POST
-            request.post(url, body: body)
+            response = case method
+                       when :GET
+                         request.get(url)
+                       when :POST
+                         request.post(url, body: body)
+                       end
+
+            # Fully drain the response before the client returns to the pool.
+            response.body.to_s
+            response
+          rescue StandardError
+            pool.discard_current_connection(&:close)
+            raise
           end
         end
       rescue StandardError => e
@@ -142,7 +146,7 @@ module Statsig
         return nil, e unless retries.positive?
 
         sleep backoff_adjusted
-        return request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count)
+        return request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count, extra_headers, use_statsig_headers)
       end
       return res, nil if res.status.success?
 
@@ -153,7 +157,50 @@ module Statsig
 
       ## status code retry
       sleep backoff_adjusted
-      request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count)
+      request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count, extra_headers, use_statsig_headers)
+    end
+
+    private
+
+    def connection_pool_for(url)
+      origin = HTTP::URI.parse(url).origin
+      @connection_pools_mutex.synchronize do
+        @connection_pools[origin] ||= ConnectionPool.new(size: 3) do
+          build_persistent_client(origin)
+        end
+      end
+    end
+
+    def build_persistent_client(origin)
+      client = HTTP.use(:auto_inflate)
+      client = client.timeout(@timeout) if @timeout
+      client.persistent(origin)
+    end
+
+    def build_request_headers(zipped, event_count, extra_headers, use_statsig_headers)
+      headers = {}
+
+      if use_statsig_headers
+        meta = Statsig.get_statsig_metadata
+        headers.merge!(
+          'STATSIG-API-KEY' => @server_secret,
+          'STATSIG-SERVER-SESSION-ID' => @session_id,
+          'Content-Type' => 'application/json; charset=UTF-8',
+          'STATSIG-SDK-TYPE' => meta['sdkType'],
+          'STATSIG-SDK-VERSION' => meta['sdkVersion'],
+          'STATSIG-SDK-LANGUAGE-VERSION' => meta['languageVersion'],
+          'Accept' => 'application/json',
+          'Accept-Encoding' => 'gzip',
+          'STATSIG-CLIENT-TIME' => (Time.now.to_f * 1000).to_i.to_s
+        )
+      end
+
+      headers['CONTENT-ENCODING'] = 'gzip' if zipped
+      headers['STATSIG-EVENT-COUNT'] = event_count.to_s unless event_count == 0
+
+      headers.merge!(extra_headers)
+      headers.delete_if { |_key, value| value.nil? }
+      headers
     end
   end
 end

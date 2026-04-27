@@ -1,11 +1,116 @@
-
-
 require_relative 'test_helper'
 require 'minitest'
 require 'minitest/autorun'
 require 'spy'
 require 'statsig'
 require 'webmock/minitest'
+
+class FakeHTTPBody
+  attr_reader :read_count
+
+  def initialize(body)
+    @body = body
+    @read_count = 0
+  end
+
+  def to_s
+    @read_count += 1
+    @body
+  end
+end
+
+class FakeHTTPStatus
+  attr_reader :code
+
+  def initialize(code)
+    @code = code
+  end
+
+  def success?
+    @code >= 200 && @code < 300
+  end
+
+  def to_i
+    @code
+  end
+end
+
+class FakeHTTPResponse
+  attr_reader :status, :headers, :body
+
+  def initialize(code: 200, body: '{}', headers: {})
+    @status = FakeHTTPStatus.new(code)
+    @headers = headers
+    @body = FakeHTTPBody.new(body)
+  end
+
+  def [](key)
+    @headers[key]
+  end
+
+  def code
+    @status.code
+  end
+
+  def to_s
+    @body.to_s
+  end
+end
+
+class FakeHTTPRequest
+  def initialize(response_factory)
+    @response_factory = response_factory
+  end
+
+  def get(_url)
+    @response_factory.call
+  end
+
+  def post(_url, body: nil)
+    @response_factory.call
+  end
+end
+
+class FakeHTTPClient
+  attr_reader :requests
+  attr_accessor :closed
+
+  def initialize(response_factory)
+    @response_factory = response_factory
+    @requests = []
+    @closed = false
+  end
+
+  def headers(headers)
+    @requests << headers.dup
+    FakeHTTPRequest.new(@response_factory)
+  end
+
+  def close
+    @closed = true
+  end
+end
+
+class FakeHTTPBuilder
+  attr_reader :timeout_values, :persistent_origins, :clients
+
+  def initialize(&response_factory)
+    @response_factory = response_factory
+    @timeout_values = []
+    @persistent_origins = []
+    @clients = {}
+  end
+
+  def timeout(value)
+    @timeout_values << value
+    self
+  end
+
+  def persistent(origin)
+    @persistent_origins << origin
+    @clients[origin] ||= FakeHTTPClient.new(@response_factory)
+  end
+end
 
 class TestNetwork < BaseTest
   suite :TestNetwork
@@ -77,7 +182,49 @@ class TestNetwork < BaseTest
     assert(!e.nil?)
   end
 
-   def test_ruleset_id_list_retries
+  def test_reuses_persistent_clients_per_origin_and_drains_response_bodies
+    builder = FakeHTTPBuilder.new { FakeHTTPResponse.new }
+    options = StatsigOptions.new(local_mode: false, network_timeout: 2)
+
+    HTTP.stub(:use, builder) do
+      net = Statsig::Network.new('secret-abc', options)
+
+      log_response_1, = net.post('https://statsigapi.net/v1/log_event', '{}')
+      log_response_2, = net.post('https://statsigapi.net/v1/log_event', '{}')
+      dcs_response, = net.get('https://api.statsigcdn.com/v2/download_config_specs/secret-abc.json')
+
+      assert_equal(1, builder.persistent_origins.count('https://statsigapi.net'))
+      assert_equal(1, builder.persistent_origins.count('https://api.statsigcdn.com'))
+      assert_equal(2, builder.clients['https://statsigapi.net'].requests.length)
+      assert_equal(1, log_response_1.body.read_count)
+      assert_equal(1, log_response_2.body.read_count)
+      assert_equal(1, dcs_response.body.read_count)
+
+      net.shutdown
+
+      assert(builder.clients.values.all?(&:closed))
+    end
+  end
+
+  def test_download_id_list_omits_statsig_auth_headers
+    builder = FakeHTTPBuilder.new { FakeHTTPResponse.new(body: "+1\n", headers: { 'content-length' => '3' }) }
+    options = StatsigOptions.new(local_mode: false)
+
+    HTTP.stub(:use, builder) do
+      net = Statsig::Network.new('secret-abc', options)
+      response, error = net.download_id_list('https://statsigapi.net/ruby-test-idlist/list_1', 10)
+
+      assert_nil(error)
+      headers = builder.clients['https://statsigapi.net'].requests.last
+
+      assert_equal('bytes=10-', headers['Range'])
+      assert_nil(headers['STATSIG-API-KEY'])
+      assert_nil(headers['Content-Type'])
+      assert_equal(1, response.body.read_count)
+    end
+  end
+
+  def test_ruleset_id_list_retries
     @calls = 0
     stub_download_config_specs.to_return(status: lambda { |req| status_lambda(req) }, body: '{}')
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: lambda { |req| status_lambda(req) }, body: '{}')

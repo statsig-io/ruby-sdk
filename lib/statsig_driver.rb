@@ -291,8 +291,12 @@ class StatsigDriver
   def shutdown
     @err_boundary.capture(caller: __method__) do
       @shutdown = true
-      @logger.shutdown
-      @evaluator.shutdown
+      begin
+        @logger.shutdown
+        @evaluator.shutdown
+      ensure
+        @net.shutdown
+      end
     end
   end
 
