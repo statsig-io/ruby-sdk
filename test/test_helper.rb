@@ -87,6 +87,7 @@ Minitest::Suite.order = %i[
   StatsigErrorBoundaryUsageTest
   TestStore
   TestSymbolHashes
+  TestSyncConfigFallback
   TestURIHelper
   UserFieldsTest
   UserTest
