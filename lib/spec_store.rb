@@ -8,6 +8,8 @@ require_relative 'id_list'
 
 module Statsig
   class SpecStore
+    STATSIG_NETWORK_FALLBACK_THRESHOLD = 5
+
     attr_accessor :last_config_sync_time
     attr_accessor :initial_config_sync_time
     attr_accessor :init_reason
@@ -50,6 +52,7 @@ module Statsig
       @secret_key = secret_key
       @unsupported_configs = Set.new
       @sdk_configs = sdk_config
+      @sync_failure_count = 0
 
       startTime = (Time.now.to_f * 1000).to_i
 
@@ -86,6 +89,9 @@ module Statsig
 
       if @init_reason == EvaluationReason::UNINITIALIZED
         failure_details = download_config_specs('initialize')
+        if !failure_details.nil? && @options.fallback_to_statsig_api && using_proxy_for_dcs?
+          failure_details = download_config_specs_fallback('initialize')
+        end
       end
 
       @initial_config_sync_time = @last_config_sync_time == 0 ? -1 : @last_config_sync_time
@@ -207,10 +213,20 @@ module Statsig
 
     def sync_config_specs
       if @options.data_store&.should_be_used_for_querying_updates(Interfaces::IDataStore::CONFIG_SPECS_V2_KEY)
-        load_config_specs_from_storage_adapter('config_sync')
+        failure_details = load_config_specs_from_storage_adapter('config_sync')
       else
-        download_config_specs('config_sync')
+        failure_details = download_config_specs('config_sync')
       end
+
+      if failure_details.nil?
+        @sync_failure_count = 0
+      else
+        @sync_failure_count += 1
+        if @options.fallback_to_statsig_api && using_proxy_for_dcs? && (@sync_failure_count % STATSIG_NETWORK_FALLBACK_THRESHOLD == 0)
+          download_config_specs_fallback('config_sync')
+        end
+      end
+
       @logger.log_diagnostics_event(@diagnostics, 'config_sync')
     end
 
@@ -224,6 +240,57 @@ module Statsig
     end
 
     private
+
+    def using_proxy_for_dcs?
+      !@options.download_config_specs_url.start_with?(STATSIG_CDN_DCS_BASE)
+    end
+
+    def download_config_specs_fallback(context)
+      response, e = @network.download_config_specs_fallback(@last_config_sync_time, context)
+      handle_config_specs_response(context, 'download_config_specs_fallback', 'CONFIG_SPECS_FALLBACK', response, e)
+    end
+
+    def handle_config_specs_response(context, diagnostic_key, error_prefix, response, e)
+      tracker = @diagnostics.track(context, diagnostic_key, 'network_request')
+
+      error = nil
+      failure_details = nil
+      begin
+        code = response&.status.to_i
+        if e.is_a? NetworkError
+          code = e.http_code
+          failure_details = {statusCode: code, exception: e, reason: "#{error_prefix}_NETWORK_ERROR"}
+        elsif !e.nil?
+          # Transport-level errors (ECONNREFUSED, timeout, DNS, SSL) are caught and returned as values
+          # by network.rb. Without this, failure_details stays nil and the caller treats it as success.
+          failure_details = {exception: e, reason: "#{error_prefix}_CONNECTION_ERROR"}
+        end
+        tracker.end(statusCode: code, success: e.nil?, sdkRegion: response&.headers&.[]('X-Statsig-Region'))
+
+        if e.nil?
+          unless response.nil?
+            tracker = @diagnostics.track(context, diagnostic_key, 'process')
+            failure_details = process_specs(response.body.to_s)
+            if failure_details.nil?
+              @init_reason = EvaluationReason::NETWORK
+            end
+            tracker.end(success: @init_reason == EvaluationReason::NETWORK)
+
+            unless response.body.nil? or @rules_updated_callback.nil?
+              @rules_updated_callback.call(response.body.to_s, @last_config_sync_time)
+            end
+          end
+        else
+          error = e
+        end
+      rescue StandardError => e
+        failure_details = {exception: e, reason: "INTERNAL_ERROR"}
+        error = e
+      end
+
+      @error_callback.call(error) unless error.nil? or @error_callback.nil?
+      return failure_details
+    end
 
     def load_config_specs_from_storage_adapter(context)
       tracker = @diagnostics.track(context, 'data_store_config_specs', 'fetch')
@@ -286,43 +353,8 @@ module Statsig
     end
 
     def download_config_specs(context)
-      tracker = @diagnostics.track(context, 'download_config_specs', 'network_request')
-
-      error = nil
-      failure_details = nil
-      begin
-        response, e = @network.download_config_specs(@last_config_sync_time, context)
-        code = response&.status.to_i
-        if e.is_a? NetworkError
-          code = e.http_code
-          failure_details = {statusCode: code, exception: e, reason: "CONFIG_SPECS_NETWORK_ERROR"}
-        end
-        tracker.end(statusCode: code, success: e.nil?, sdkRegion: response&.headers&.[]('X-Statsig-Region'))
-
-        if e.nil?
-          unless response.nil?
-            tracker = @diagnostics.track(context, 'download_config_specs', 'process')
-            failure_details = process_specs(response.body.to_s)
-            if failure_details.nil?
-              @init_reason = EvaluationReason::NETWORK
-            end
-            tracker.end(success: @init_reason == EvaluationReason::NETWORK)
-
-            unless response.body.nil? or @rules_updated_callback.nil?
-              @rules_updated_callback.call(response.body.to_s,
-                                           @last_config_sync_time)
-            end
-          end
-        else
-          error = e
-        end
-      rescue StandardError => e
-        failure_details = {exception: e, reason: "INTERNAL_ERROR"}
-        error = e
-      end
-
-      @error_callback.call(error) unless error.nil? or @error_callback.nil?
-      return failure_details
+      response, e = @network.download_config_specs(@last_config_sync_time, context)
+      handle_config_specs_response(context, 'download_config_specs', 'CONFIG_SPECS', response, e)
     end
 
     def process_specs(specs_string, from_adapter: false)
