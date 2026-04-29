@@ -5,9 +5,9 @@ require 'securerandom'
 require 'zlib'
 
 RETRY_CODES = [408, 500, 502, 503, 504, 522, 524, 599].freeze
-STATSIG_CDN_DCS_BASE = 'https://api.statsigcdn.com/v2'.freeze
 
 module Statsig
+  STATSIG_CDN_DCS_BASE = 'https://api.statsigcdn.com/v2'.freeze
   class NetworkError < StandardError
     attr_reader :http_code
 
