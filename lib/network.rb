@@ -7,6 +7,7 @@ require 'zlib'
 RETRY_CODES = [408, 500, 502, 503, 504, 522, 524, 599].freeze
 
 module Statsig
+  STATSIG_CDN_DCS_BASE = 'https://api.statsigcdn.com/v2'.freeze
   class NetworkError < StandardError
     attr_reader :http_code
 
@@ -40,6 +41,14 @@ module Statsig
       end
       if context == 'initialize'
         return get(dcs_url, @options.initialize_retry_limit)
+      end
+      get(dcs_url)
+    end
+
+    def download_config_specs_fallback(since_time, context)
+      dcs_url = "#{STATSIG_CDN_DCS_BASE}/download_config_specs/#{@server_secret}.json"
+      if since_time.positive?
+        dcs_url += "?sinceTime=#{since_time}"
       end
       get(dcs_url)
     end

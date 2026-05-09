@@ -96,6 +96,12 @@ class StatsigOptions
   # default: 0
   attr_accessor :initialize_retry_limit
 
+  # When true, if the configured download_config_specs_url fails, the SDK will
+  # automatically fall back to the Statsig CDN to fetch config specs.
+  # Only effective when a custom download_config_specs_url is configured.
+  # default: false
+  attr_accessor :fallback_to_statsig_api
+
   def initialize(
     environment = nil,
     download_config_specs_url: nil,
@@ -120,7 +126,8 @@ class StatsigOptions
     post_logs_retry_backoff: nil,
     user_persistent_storage: nil,
     disable_evaluation_memoization: false,
-    initialize_retry_limit: 0
+    initialize_retry_limit: 0,
+    fallback_to_statsig_api: false
   )
     @environment = environment.is_a?(Hash) ? environment : nil
 
@@ -152,5 +159,6 @@ class StatsigOptions
     @user_persistent_storage = user_persistent_storage
     @disable_evaluation_memoization = disable_evaluation_memoization
     @initialize_retry_limit = initialize_retry_limit
+    @fallback_to_statsig_api = fallback_to_statsig_api
   end
 end
