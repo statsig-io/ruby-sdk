@@ -34,6 +34,7 @@ class StatsigDriver
       tracker = @diagnostics.track('initialize', 'overall')
       @options = options || StatsigOptions.new
       @shutdown = false
+      @shutdown_message_logged = false
       @secret_key = secret_key
       @net = Statsig::Network.new(secret_key, @options)
       @logger = Statsig::StatsigLogger.new(@net, @options, @err_boundary, @sdk_configs)
@@ -460,8 +461,10 @@ class StatsigDriver
   end
 
   def check_shutdown
-    if @shutdown
-      puts 'SDK has been shutdown.  Updates in the Statsig Console will no longer reflect.'
-    end
+    return unless @shutdown
+    return if @shutdown_message_logged
+
+    @shutdown_message_logged = true
+    puts '[Statsig]: SDK has been shutdown.  Updates in the Statsig Console will no longer reflect.'
   end
 end
