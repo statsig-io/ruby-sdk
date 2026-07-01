@@ -89,6 +89,12 @@ class TestSyncConfigFallback < BaseTest
     Statsig::SpecStore.send(:remove_const, :STATSIG_NETWORK_FALLBACK_THRESHOLD)
     Statsig::SpecStore.const_set(:STATSIG_NETWORK_FALLBACK_THRESHOLD, 1)
 
+    # Neutralize the bounded background-sync retry so a failed sync registers immediately;
+    # this test isolates the fallback-after-threshold path, which is independent of retries.
+    original_retry_limit = Statsig::Network::CONFIG_SYNC_RETRY_LIMIT
+    Statsig::Network.send(:remove_const, :CONFIG_SYNC_RETRY_LIMIT)
+    Statsig::Network.const_set(:CONFIG_SYNC_RETRY_LIMIT, 0)
+
     begin
       stub_custom(status: 200)
       options = StatsigOptions.new(
@@ -121,6 +127,8 @@ class TestSyncConfigFallback < BaseTest
     ensure
       Statsig::SpecStore.send(:remove_const, :STATSIG_NETWORK_FALLBACK_THRESHOLD)
       Statsig::SpecStore.const_set(:STATSIG_NETWORK_FALLBACK_THRESHOLD, original_threshold)
+      Statsig::Network.send(:remove_const, :CONFIG_SYNC_RETRY_LIMIT)
+      Statsig::Network.const_set(:CONFIG_SYNC_RETRY_LIMIT, original_retry_limit)
     end
   end
 end

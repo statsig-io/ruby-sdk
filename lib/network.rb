@@ -19,6 +19,14 @@ module Statsig
 
   class Network
 
+    # Background config-spec sync retries transient failures with a short, bounded
+    # exponential backoff, matching statsig-server-core's background sync strategy
+    # (3 retries; 2^n * 100ms => 200ms, 400ms, 800ms). These are fixed rather than
+    # user-configurable, mirroring server-core where the values are hardcoded.
+    CONFIG_SYNC_RETRY_LIMIT = 3
+    CONFIG_SYNC_RETRY_BACKOFF_SECONDS = 0.2
+    CONFIG_SYNC_RETRY_BACKOFF_MULTIPLIER = 2
+
     def initialize(server_secret, options, backoff_mult = 10)
       super()
       @options = options
@@ -42,7 +50,7 @@ module Statsig
       if context == 'initialize'
         return get(dcs_url, @options.initialize_retry_limit)
       end
-      get(dcs_url)
+      get(dcs_url, CONFIG_SYNC_RETRY_LIMIT, CONFIG_SYNC_RETRY_BACKOFF_SECONDS, CONFIG_SYNC_RETRY_BACKOFF_MULTIPLIER)
     end
 
     def download_config_specs_fallback(since_time, context)
@@ -84,8 +92,8 @@ module Statsig
       request(:GET, url, nil, 0, 1, false, 0, { 'Range' => "bytes=#{start_byte}-" }, false)
     end
 
-    def get(url, retries = 0, backoff = 1)
-      request(:GET, url, nil, retries, backoff)
+    def get(url, retries = 0, backoff = 1, backoff_multiplier = @backoff_multiplier)
+      request(:GET, url, nil, retries, backoff, false, 0, {}, true, backoff_multiplier)
     end
 
     def post(url, body, retries = 0, backoff = 1, zipped = false, event_count = 0)
@@ -106,7 +114,7 @@ module Statsig
       end
     end
 
-    def request(method, url, body, retries = 0, backoff = 1, zipped = false, event_count = 0, extra_headers = {}, use_statsig_headers = true)
+    def request(method, url, body, retries = 0, backoff = 1, zipped = false, event_count = 0, extra_headers = {}, use_statsig_headers = true, backoff_multiplier = @backoff_multiplier)
       if @local_mode
         return nil, nil
       end
@@ -146,7 +154,7 @@ module Statsig
         return nil, e unless retries.positive?
 
         sleep backoff_adjusted
-        return request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count, extra_headers, use_statsig_headers)
+        return request(method, url, body, retries - 1, backoff * backoff_multiplier, zipped, event_count, extra_headers, use_statsig_headers, backoff_multiplier)
       end
       return res, nil if res.status.success?
 
@@ -157,7 +165,7 @@ module Statsig
 
       ## status code retry
       sleep backoff_adjusted
-      request(method, url, body, retries - 1, backoff * @backoff_multiplier, zipped, event_count, extra_headers, use_statsig_headers)
+      request(method, url, body, retries - 1, backoff * backoff_multiplier, zipped, event_count, extra_headers, use_statsig_headers, backoff_multiplier)
     end
 
     private

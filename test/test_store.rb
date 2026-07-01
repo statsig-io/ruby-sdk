@@ -17,12 +17,21 @@ class TestStore < BaseTest
     @error_boundary = Statsig::ErrorBoundary.new('secret-key', false)
     @id_list_syncing_enabled = false
     @rulesets_syncing_enabled = false
+    # These tests gate the sync loop with stubs that intentionally fail polls (returning
+    # no response) until an update should take effect. Disable the background config-sync
+    # retry so those failing polls return immediately instead of incurring retry backoff,
+    # which would otherwise stall the loop and skew the tightly-timed assertions.
+    @original_config_sync_retry_limit = Statsig::Network::CONFIG_SYNC_RETRY_LIMIT
+    Statsig::Network.send(:remove_const, :CONFIG_SYNC_RETRY_LIMIT)
+    Statsig::Network.const_set(:CONFIG_SYNC_RETRY_LIMIT, 0)
   end
 
   def teardown
     super
     WebMock.reset!
     WebMock.disable!
+    Statsig::Network.send(:remove_const, :CONFIG_SYNC_RETRY_LIMIT)
+    Statsig::Network.const_set(:CONFIG_SYNC_RETRY_LIMIT, @original_config_sync_retry_limit)
   end
 
   def await_next_sync(check)

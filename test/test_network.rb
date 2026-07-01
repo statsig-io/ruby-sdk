@@ -245,4 +245,37 @@ class TestNetwork < BaseTest
     assert(spy.calls.size == 6) # 500, 500, 200
     assert(res.status.success?)
   end
+
+  def test_config_sync_retries_succeed
+    # Use a dedicated DCS url so a background sync thread lingering from another test
+    # (the Statsig singleton) can't hit this stub and skew the attempt count.
+    base = 'http://config-sync-retry.example/v2'
+    attempts = 0
+    stub_download_config_specs(base).to_return do |_req|
+      attempts += 1
+      { status: attempts < 3 ? 500 : 200, body: '{}' }
+    end
+
+    options = StatsigOptions.new(local_mode: false, download_config_specs_url: "#{base}/download_config_specs/")
+    net = Statsig::Network.new('secret-abc', options)
+    spy = Spy.on(net, :request).and_call_through
+
+    res, _ = net.download_config_specs(0, 'config_sync')
+    assert(res.status.success?) # recovers once the transient failures clear
+    assert(spy.calls.size > 1, "expected config_sync to retry the transient failure, got #{spy.calls.size} attempt(s)")
+  end
+
+  def test_config_sync_retries_exhausted
+    stub_download_config_specs.to_return(status: 500, body: '{}')
+
+    options = StatsigOptions.new(local_mode: false)
+    net = Statsig::Network.new('secret-abc', options)
+    spy = Spy.on(net, :request).and_call_through
+
+    res, e = net.download_config_specs(0, 'config_sync')
+    # Fixed background retry budget: 1 initial attempt + CONFIG_SYNC_RETRY_LIMIT retries.
+    assert(spy.calls.size == Statsig::Network::CONFIG_SYNC_RETRY_LIMIT + 1)
+    assert(!res.status.success?)
+    assert(!e.nil?)
+  end
 end
