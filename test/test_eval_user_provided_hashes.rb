@@ -12,12 +12,17 @@ class EvaluateUserProvidedHashesTest < BaseTest
     super
     WebMock.enable!
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
+    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_download_config_specs.to_return(status: 200, body: $user_provided_hashes_res)
 
     @driver = StatsigDriver.new('secret-key')
   end
 
   def teardown
+    # Shut down before super (which resets WebMock stubs via webmock/minitest) so
+    # the shutdown flush still hits the log_event stub, and so background sync
+    # threads don't outlive the test and consume later suites' stubs.
+    @driver&.shutdown
     super
     WebMock.reset!
     WebMock.disable!

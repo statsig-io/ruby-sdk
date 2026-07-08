@@ -113,11 +113,14 @@ end
 
 module WebMock
   module API
-    def stub_download_config_specs(base_url = 'https://api.statsigcdn.com/v2')
+    # Pass key: to scope the stub to a single SDK key. The default any-key template
+    # also matches requests from other tests' spec stores (e.g. leaked background
+    # sync threads), which can silently consume stateful stubs.
+    def stub_download_config_specs(base_url = 'https://api.statsigcdn.com/v2', key: nil)
       stub_request(
         :get,
         Addressable::Template.new(
-          "#{base_url}/download_config_specs/{key}.json{?sinceTime}"
+          "#{base_url}/download_config_specs/#{key || '{key}'}.json{?sinceTime}"
         )
       )
     end

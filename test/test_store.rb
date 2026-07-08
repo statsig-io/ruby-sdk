@@ -17,6 +17,7 @@ class TestStore < BaseTest
     @error_boundary = Statsig::ErrorBoundary.new('secret-key', false)
     @id_list_syncing_enabled = false
     @rulesets_syncing_enabled = false
+    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     # These tests gate the sync loop with stubs that intentionally fail polls (returning
     # no response) until an update should take effect. Disable the background config-sync
     # retry so those failing polls return immediately instead of incurring retry backoff,
@@ -76,7 +77,7 @@ class TestStore < BaseTest
   end
 
   def test_1a_id_list_downloads_use_network_client
-    stub_download_config_specs.to_return(
+    stub_download_config_specs(key: 'secret-abc').to_return(
       status: 200,
       body: JSON.generate({
         'dynamic_configs' => {},
@@ -96,6 +97,7 @@ class TestStore < BaseTest
     }
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
+      .with(headers: { 'STATSIG-API-KEY' => 'secret-abc' })
       .to_return(status: 200, body: JSON.generate({ 'list_1' => id_list }))
     stub_request(:get, 'https://statsigapi.net/ruby-test-idlist/list_1')
       .to_return(status: 200, body: "+1\n", headers: { 'Content-Length' => '3' })
@@ -109,10 +111,10 @@ class TestStore < BaseTest
     assert_equal(1, spy.calls.size)
     assert_equal(['https://statsigapi.net/ruby-test-idlist/list_1', 0], spy.calls.first.args)
     assert_equal(Statsig::IDList.new(id_list, Set.new(['1'])), store.get_id_list('list_1'))
-
-    store.shutdown
-    logger.shutdown
-    net.shutdown
+  ensure
+    store&.shutdown
+    logger&.shutdown
+    net&.shutdown
   end
 
   def test_1_store_sync
@@ -126,7 +128,7 @@ class TestStore < BaseTest
     id_list_3_calls = 0
     id_list_3_calls_mutex = Mutex.new
 
-    stub_download_config_specs.to_return { |req|
+    stub_download_config_specs(key: 'secret-abc').to_return { |req|
       if can_sync_rulesets
         dcs_calls += 1
         body = {
@@ -236,7 +238,7 @@ class TestStore < BaseTest
       }
     ]
 
-    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return { |req|
+    stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').with(headers: { 'STATSIG-API-KEY' => 'secret-abc' }).to_return { |req|
       if can_sync_id_lists
         get_id_lists_calls_mutex.synchronize do
           index = [get_id_lists_calls, 4].min
@@ -401,6 +403,12 @@ class TestStore < BaseTest
     assert(store.get_config('config_2').nil?)
     assert(!store.get_gate('gate_1').nil?)
     assert(store.get_gate('gate_2').nil?)
+  ensure
+    # Must run even when an assertion fails; a leaked store keeps polling every
+    # 0.2s and poisons stateful stubs in later suites.
+    store&.shutdown
+    logger&.shutdown
+    net&.shutdown
   end
 
   def test_2_no_id_lists_sync
@@ -417,10 +425,11 @@ class TestStore < BaseTest
       'has_updates' => true,
       'id_lists' => {}
     }
-    stub_download_config_specs
+    stub_download_config_specs(key: 'secret-abc')
       .to_return(status: 200, body: JSON.generate(config_spec_mock_response))
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists')
+      .with(headers: { 'STATSIG-API-KEY' => 'secret-abc' })
       .to_return(status: 200, body: JSON.generate({}))
 
     options = StatsigOptions.new(local_mode: false, rulesets_sync_interval: 1)
@@ -439,5 +448,9 @@ class TestStore < BaseTest
       spy.calls.size == 6
     end
     assert_equal(6, spy.calls.size) # after shutdown no more call should be made
+  ensure
+    store&.shutdown
+    logger&.shutdown
+    net&.shutdown
   end
 end

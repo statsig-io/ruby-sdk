@@ -19,14 +19,19 @@ class EvaluationDetailsTest < BaseTest
     @user = StatsigUser.new({ 'user_id' => 'a-user' })
 
     stub_request(:post, 'https://statsigapi.net/v1/get_id_lists').to_return(status: 200)
+    stub_request(:post, 'https://statsigapi.net/v1/log_event').to_return(status: 200)
     stub_download_config_specs.to_return(status: 200, body: @mock_response)
-    driver = StatsigDriver.new(SDK_KEY)
+    @driver = StatsigDriver.new(SDK_KEY)
 
-    @evaluator = driver.instance_variable_get('@evaluator')
+    @evaluator = @driver.instance_variable_get('@evaluator')
     @store = @evaluator.instance_variable_get('@spec_store')
   end
 
   def teardown
+    # Shut down before super (which resets WebMock stubs via webmock/minitest) so
+    # the shutdown flush still hits the log_event stub, and so background sync
+    # threads don't outlive the test and consume later suites' stubs.
+    @driver&.shutdown
     super
     WebMock.reset!
     WebMock.disable!
@@ -108,5 +113,7 @@ class EvaluationDetailsTest < BaseTest
     assert_equal("Bootstrap", result.evaluation_details.reason)
     assert_equal($expected_sync_time, result.evaluation_details.config_sync_time)
     assert_equal(true, result.gate_value)
+  ensure
+    bootstrap_driver&.shutdown
   end
 end
