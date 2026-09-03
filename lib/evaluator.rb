@@ -14,6 +14,12 @@ require_relative 'user_persistent_storage_utils'
 module Statsig
   class Evaluator
 
+    EXPOSURE_LOGGING_CONDITION_TYPES = [
+      Const::CND_PASS_GATE,
+      Const::CND_FAIL_GATE,
+      Const::CND_EXPERIMENT_GROUP
+    ].freeze
+
     attr_accessor :spec_store
 
     attr_accessor :gate_overrides
@@ -26,7 +32,7 @@ module Statsig
 
     attr_accessor :persistent_storage_utils
 
-    def initialize(store, options, persistent_storage_utils)
+    def initialize(store, options, persistent_storage_utils, logger = nil)
       UAParser.initialize_async
       CountryLookup.initialize_async
 
@@ -36,6 +42,7 @@ module Statsig
       @experiment_overrides = {}
       @options = options
       @persistent_storage_utils = persistent_storage_utils
+      @logger = logger
     end
 
     def maybe_restart_background_threads
@@ -689,8 +696,10 @@ module Statsig
           eval_condition(user, condition, end_result)
         end
 
+        # Conditions that log an exposure as a side effect are never memoized, or the
+        # repeat evaluations would silently drop their exposures.
         if !@options.disable_evaluation_memoization &&
-          condition && condition[:type] != Const::CND_PASS_GATE && condition[:type] != Const::CND_FAIL_GATE
+          condition && !EXPOSURE_LOGGING_CONDITION_TYPES.include?(condition[:type])
           eval_rule_memo[condition_hash] = result
         end
 
@@ -742,6 +751,8 @@ module Statsig
         return type == Const::CND_PASS_GATE ? result : !result
       when Const::CND_MULTI_PASS_GATE, Const::CND_MULTI_FAIL_GATE
         return eval_nested_gates(target, type, user, end_result)
+      when Const::CND_EXPERIMENT_GROUP
+        value = eval_experiment_group(field, user, end_result)
       when Const::CND_IP_BASED
         value = get_value_from_user(user, field) || get_value_from_ip(user, field)
       when Const::CND_UA_BASED
@@ -919,6 +930,29 @@ module Statsig
       end
 
       gate_value
+    end
+
+    # The condition's field carries the name of a parent experiment. The user's group
+    # in that experiment becomes the value the operator compares against. Mirrors
+    # statsig-rust's evaluate_experiment_group, which evaluates the parent through the
+    # public get_experiment API: a full evaluation that logs its own experiment
+    # exposure and contributes nothing to the outer result's secondary exposures.
+    def eval_experiment_group(experiment_name, user, end_result)
+      return nil if end_result.disable_nested_experiment_evaluation
+      return nil unless experiment_name.is_a?(String) && !experiment_name.empty?
+
+      nested_result = ConfigResult.new(
+        name: experiment_name,
+        disable_exposures: end_result.disable_exposures,
+        disable_evaluation_details: end_result.disable_evaluation_details
+      )
+      get_config(user, experiment_name, nested_result)
+
+      unless end_result.disable_exposures
+        @logger&.log_config_exposure(user, nested_result)
+      end
+
+      nested_result.group_name
     end
 
     def eval_nested_gates(gate_names, condition_type, user, end_result)

@@ -7,6 +7,7 @@ module Statsig
     SUPPORTED_CONDITION_TYPES = Set.new(%i[
                                           public fail_gate pass_gate ip_based ua_based user_field
                                           environment_field current_time user_bucket unit_id
+                                          experiment_group
                                         ]).freeze
 
     SUPPORTED_OPERATORS = Set.new(%i[
@@ -87,6 +88,7 @@ module Statsig
     CND_MULTI_PASS_GATE = 'multi_pass_gate'.freeze
     CND_MULTI_FAIL_GATE = 'multi_fail_gate'.freeze
     CND_CURRENT_TIME = 'current_time'.freeze
+    CND_EXPERIMENT_GROUP = 'experiment_group'.freeze
     CND_ENVIRONMENT_FIELD = 'environment_field'.freeze
     CND_USER_BUCKET = 'user_bucket'.freeze
     CND_UNIT_ID = 'unit_id'.freeze

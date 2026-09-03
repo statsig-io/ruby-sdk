@@ -22,6 +22,7 @@ module Statsig
     attr_accessor :sampling_rate
     attr_accessor :has_seen_analytical_gates
     attr_accessor :override_config_name
+    attr_accessor :disable_nested_experiment_evaluation
 
     def initialize(
       name:,
@@ -43,7 +44,8 @@ module Statsig
       forward_all_exposures: false,
       sampling_rate: nil,
       has_seen_analytical_gates: false,
-      override_config_name: nil
+      override_config_name: nil,
+      disable_nested_experiment_evaluation: false
     )
       @name = name
       @gate_value = gate_value
@@ -66,6 +68,7 @@ module Statsig
       @sampling_rate = sampling_rate
       @has_seen_analytical_gates = has_seen_analytical_gates
       @override_config_name = override_config_name
+      @disable_nested_experiment_evaluation = disable_nested_experiment_evaluation
     end
 
     def self.from_user_persisted_values(config_name, user_persisted_values)

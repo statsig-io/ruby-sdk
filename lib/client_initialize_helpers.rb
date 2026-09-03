@@ -51,7 +51,8 @@ module Statsig
           name: config_name,
           disable_evaluation_details: true,
           disable_exposures: !include_exposures,
-          include_local_overrides: include_local_overrides
+          include_local_overrides: include_local_overrides,
+          disable_nested_experiment_evaluation: true
         )
         evaluator.eval_spec(config_name_str, user, config_spec, eval_result)
       else

@@ -1,0 +1,323 @@
+{
+  "dynamic_configs": {
+    "parent_experiment": {
+      "name": "parent_experiment",
+      "type": "dynamic_config",
+      "salt": "parent_experiment_salt",
+      "enabled": true,
+      "defaultValue": {
+        "variant": "default"
+      },
+      "rules": [
+        {
+          "name": "parent_experiment:userID:id_override",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_forced_test_user"
+          ],
+          "returnValue": {
+            "variant": "test"
+          },
+          "id": "parent_experiment:userID:id_override",
+          "salt": "parent_experiment:userID:id_override",
+          "idType": "userID",
+          "groupName": "Test",
+          "isExperimentGroup": true
+        },
+        {
+          "name": "controlRule",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_control_user"
+          ],
+          "returnValue": {
+            "variant": "control"
+          },
+          "id": "controlRuleID",
+          "salt": "controlRuleID",
+          "idType": "userID",
+          "groupName": "Control",
+          "isExperimentGroup": true
+        },
+        {
+          "name": "testRule",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_test_user"
+          ],
+          "returnValue": {
+            "variant": "test"
+          },
+          "id": "testRuleID",
+          "salt": "testRuleID",
+          "idType": "userID",
+          "groupName": "Test",
+          "isExperimentGroup": true
+        }
+      ],
+      "idType": "userID",
+      "entity": "experiment",
+      "isActive": true
+    },
+    "automations_hidden_templates": {
+      "name": "automations_hidden_templates",
+      "type": "dynamic_config",
+      "salt": "automations_hidden_templates_salt",
+      "enabled": true,
+      "defaultValue": {
+        "hidden_templates": []
+      },
+      "rules": [
+        {
+          "name": "matchesTestGroup",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_exp_group_is_test"
+          ],
+          "returnValue": {
+            "hidden_templates": [
+              "welcome",
+              "rsvp"
+            ]
+          },
+          "id": "expGroupRuleID",
+          "salt": "expGroupRuleID",
+          "idType": "userID",
+          "groupName": "ExperimentGroupMatch"
+        }
+      ],
+      "idType": "userID",
+      "entity": "dynamic_config"
+    },
+    "config_unknown_experiment": {
+      "name": "config_unknown_experiment",
+      "type": "dynamic_config",
+      "salt": "config_unknown_experiment_salt",
+      "enabled": true,
+      "defaultValue": {
+        "hidden_templates": []
+      },
+      "rules": [
+        {
+          "name": "matchesTestGroup",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_exp_group_unknown_experiment"
+          ],
+          "returnValue": {
+            "hidden_templates": [
+              "welcome",
+              "rsvp"
+            ]
+          },
+          "id": "expGroupRuleID",
+          "salt": "expGroupRuleID",
+          "idType": "userID",
+          "groupName": "ExperimentGroupMatch"
+        }
+      ],
+      "idType": "userID",
+      "entity": "dynamic_config"
+    },
+    "config_empty_experiment_name": {
+      "name": "config_empty_experiment_name",
+      "type": "dynamic_config",
+      "salt": "config_empty_experiment_name_salt",
+      "enabled": true,
+      "defaultValue": {
+        "hidden_templates": []
+      },
+      "rules": [
+        {
+          "name": "matchesTestGroup",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_exp_group_empty_name"
+          ],
+          "returnValue": {
+            "hidden_templates": [
+              "welcome",
+              "rsvp"
+            ]
+          },
+          "id": "expGroupRuleID",
+          "salt": "expGroupRuleID",
+          "idType": "userID",
+          "groupName": "ExperimentGroupMatch"
+        }
+      ],
+      "idType": "userID",
+      "entity": "dynamic_config"
+    },
+    "config_missing_experiment_name": {
+      "name": "config_missing_experiment_name",
+      "type": "dynamic_config",
+      "salt": "config_missing_experiment_name_salt",
+      "enabled": true,
+      "defaultValue": {
+        "hidden_templates": []
+      },
+      "rules": [
+        {
+          "name": "matchesTestGroup",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_exp_group_missing_name"
+          ],
+          "returnValue": {
+            "hidden_templates": [
+              "welcome",
+              "rsvp"
+            ]
+          },
+          "id": "expGroupRuleID",
+          "salt": "expGroupRuleID",
+          "idType": "userID",
+          "groupName": "ExperimentGroupMatch"
+        }
+      ],
+      "idType": "userID",
+      "entity": "dynamic_config"
+    },
+    "self_referencing_experiment": {
+      "name": "self_referencing_experiment",
+      "type": "dynamic_config",
+      "salt": "self_referencing_experiment_salt",
+      "enabled": true,
+      "defaultValue": {
+        "variant": "default"
+      },
+      "rules": [
+        {
+          "name": "matchesTestGroup",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_exp_group_self_reference"
+          ],
+          "returnValue": {
+            "variant": "test"
+          },
+          "id": "selfReferenceRuleID",
+          "salt": "selfReferenceRuleID",
+          "idType": "userID",
+          "groupName": "Test",
+          "isExperimentGroup": true
+        }
+      ],
+      "idType": "userID",
+      "entity": "experiment",
+      "isActive": true
+    }
+  },
+  "feature_gates": {
+    "gate_on_experiment_group": {
+      "name": "gate_on_experiment_group",
+      "type": "feature_gate",
+      "salt": "gate_on_experiment_group_salt",
+      "enabled": true,
+      "defaultValue": false,
+      "rules": [
+        {
+          "name": "matchesTestGroup",
+          "passPercentage": 100,
+          "conditions": [
+            "cond_exp_group_is_test"
+          ],
+          "returnValue": true,
+          "id": "gateRuleID",
+          "salt": "gateRuleID",
+          "idType": "userID"
+        }
+      ],
+      "idType": "userID",
+      "entity": "feature_gate"
+    }
+  },
+  "layer_configs": {},
+  "condition_map": {
+    "cond_forced_test_user": {
+      "type": "unit_id",
+      "targetValue": [
+        "forced_user"
+      ],
+      "operator": "any",
+      "field": null,
+      "additionalValues": {},
+      "idType": "userID"
+    },
+    "cond_control_user": {
+      "type": "user_field",
+      "targetValue": [
+        "control_user"
+      ],
+      "operator": "any",
+      "field": "userID",
+      "additionalValues": {},
+      "idType": "userID"
+    },
+    "cond_test_user": {
+      "type": "user_field",
+      "targetValue": [
+        "test_user"
+      ],
+      "operator": "any",
+      "field": "userID",
+      "additionalValues": {},
+      "idType": "userID"
+    },
+    "cond_exp_group_is_test": {
+      "type": "experiment_group",
+      "targetValue": [
+        "Test"
+      ],
+      "operator": "any",
+      "field": "parent_experiment",
+      "additionalValues": {},
+      "idType": "userID"
+    },
+    "cond_exp_group_unknown_experiment": {
+      "type": "experiment_group",
+      "targetValue": [
+        "Test"
+      ],
+      "operator": "any",
+      "field": "no_such_experiment",
+      "additionalValues": {},
+      "idType": "userID"
+    },
+    "cond_exp_group_empty_name": {
+      "type": "experiment_group",
+      "targetValue": [
+        "Test"
+      ],
+      "operator": "any",
+      "field": "",
+      "additionalValues": {},
+      "idType": "userID"
+    },
+    "cond_exp_group_missing_name": {
+      "type": "experiment_group",
+      "targetValue": [
+        "Test"
+      ],
+      "operator": "any",
+      "field": null,
+      "additionalValues": {},
+      "idType": "userID"
+    },
+    "cond_exp_group_self_reference": {
+      "type": "experiment_group",
+      "targetValue": [
+        "Test"
+      ],
+      "operator": "any",
+      "field": "self_referencing_experiment",
+      "additionalValues": {},
+      "idType": "userID"
+    }
+  },
+  "experiment_to_layer": {},
+  "id_lists": {},
+  "has_updates": true,
+  "time": 1735689600000
+}

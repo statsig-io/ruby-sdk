@@ -40,7 +40,7 @@ class StatsigDriver
       @logger = Statsig::StatsigLogger.new(@net, @options, @err_boundary, @sdk_configs)
       @persistent_storage_utils = Statsig::UserPersistentStorageUtils.new(@options)
       @store = Statsig::SpecStore.new(@net, @options, error_callback, @diagnostics, @err_boundary, @logger, secret_key, @sdk_configs)
-      @evaluator = Statsig::Evaluator.new(@store, @options, @persistent_storage_utils)
+      @evaluator = Statsig::Evaluator.new(@store, @options, @persistent_storage_utils, @logger)
       tracker.end(success: true)
 
       @logger.log_diagnostics_event(@diagnostics, 'initialize')
