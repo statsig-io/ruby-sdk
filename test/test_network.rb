@@ -182,6 +182,28 @@ class TestNetwork < BaseTest
     assert(!e.nil?)
   end
 
+  def test_discards_failed_connection_without_masking_error
+    connection_error = IOError.new('broken connection')
+    failed_builder = FakeHTTPBuilder.new { raise connection_error }
+    builders = [failed_builder, FakeHTTPBuilder.new { FakeHTTPResponse.new }]
+
+    HTTP.stub(:use, ->(_) { builders.shift }) do
+      net = Statsig::Network.new('secret-abc', StatsigOptions.new(local_mode: false))
+      failed_response, error = net.get('https://statsigapi.net/health')
+
+      assert_nil(failed_response)
+      assert_same(connection_error, error)
+      assert(failed_builder.clients['https://statsigapi.net'].closed)
+
+      response, error = net.get('https://statsigapi.net/health')
+
+      assert_nil(error)
+      assert(response.status.success?)
+    ensure
+      net&.shutdown
+    end
+  end
+
   def test_reuses_persistent_clients_per_origin_and_drains_response_bodies
     builder = FakeHTTPBuilder.new { FakeHTTPResponse.new }
     options = StatsigOptions.new(local_mode: false, network_timeout: 2)
