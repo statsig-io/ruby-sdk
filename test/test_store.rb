@@ -453,4 +453,25 @@ class TestStore < BaseTest
     logger&.shutdown
     net&.shutdown
   end
+
+  def test_process_specs_parses_specs_on_json_3
+    options = StatsigOptions.new(local_mode: true, disable_rulesets_sync: true, disable_idlists_sync: true)
+    net = Statsig::Network.new('secret-abc', options, 1)
+    logger = Statsig::StatsigLogger.new(net, options, @error_boundary, @sdk_configs)
+    store = Statsig::SpecStore.new(net, options, nil, @diagnostics, @error_boundary, logger, 'secret-abc', @sdk_configs)
+
+    result = store.send(:process_specs, JSON.generate({
+      'dynamic_configs' => {},
+      'feature_gates' => {},
+      'layer_configs' => {},
+      'has_updates' => true,
+      'time' => 1
+    }))
+
+    assert_nil result
+  ensure
+    store&.shutdown
+    logger&.shutdown
+    net&.shutdown
+  end
 end
