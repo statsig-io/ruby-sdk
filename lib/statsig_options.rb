@@ -13,6 +13,11 @@ class StatsigOptions
   # The url used specifically to call download_config_specs.
   attr_accessor :download_config_specs_url
 
+  # Ordered full download_config_specs endpoint bases to try after the primary fails.
+  # nil preserves fallback_to_statsig_api behavior; [] disables fallback. An explicit
+  # list takes precedence over fallback_to_statsig_api, including when it is false.
+  attr_accessor :download_config_specs_fallback_urls
+
   # The url used specifically to call log_event.
   attr_accessor :log_event_url
 
@@ -127,7 +132,8 @@ class StatsigOptions
     user_persistent_storage: nil,
     disable_evaluation_memoization: false,
     initialize_retry_limit: 0,
-    fallback_to_statsig_api: false
+    fallback_to_statsig_api: false,
+    download_config_specs_fallback_urls: nil
   )
     @environment = environment.is_a?(Hash) ? environment : nil
 
@@ -136,6 +142,9 @@ class StatsigOptions
       dcs_url += '/'
     end
     @download_config_specs_url = dcs_url
+    @download_config_specs_fallback_urls = download_config_specs_fallback_urls&.map do |url|
+      url.end_with?('/') ? url : "#{url}/"
+    end
 
     @log_event_url = log_event_url || 'https://statsigapi.net/v1/log_event'
     @get_id_lists_url = get_id_lists_url || 'https://statsigapi.net/v1/get_id_lists'

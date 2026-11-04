@@ -53,8 +53,8 @@ module Statsig
       get(dcs_url, CONFIG_SYNC_RETRY_LIMIT, CONFIG_SYNC_RETRY_BACKOFF_SECONDS, CONFIG_SYNC_RETRY_BACKOFF_MULTIPLIER)
     end
 
-    def download_config_specs_fallback(since_time, context)
-      dcs_url = "#{STATSIG_CDN_DCS_BASE}/download_config_specs/#{@server_secret}.json"
+    def download_config_specs_fallback(base_url, since_time, context)
+      dcs_url = "#{base_url}#{@server_secret}.json"
       if since_time.positive?
         dcs_url += "?sinceTime=#{since_time}"
       end

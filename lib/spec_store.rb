@@ -87,8 +87,8 @@ module Statsig
 
       if @init_reason == EvaluationReason::UNINITIALIZED
         failure_details = download_config_specs('initialize')
-        if !failure_details.nil? && @options.fallback_to_statsig_api && using_proxy_for_dcs?
-          failure_details = download_config_specs_fallback('initialize')
+        if !failure_details.nil?
+          failure_details = download_config_specs_fallbacks('initialize', failure_details)
         end
       end
 
@@ -220,8 +220,8 @@ module Statsig
         @sync_failure_count = 0
       else
         @sync_failure_count += 1
-        if @options.fallback_to_statsig_api && using_proxy_for_dcs? && (@sync_failure_count % STATSIG_NETWORK_FALLBACK_THRESHOLD == 0)
-          download_config_specs_fallback('config_sync')
+        if @sync_failure_count % STATSIG_NETWORK_FALLBACK_THRESHOLD == 0
+          download_config_specs_fallbacks('config_sync', failure_details)
         end
       end
 
@@ -243,9 +243,27 @@ module Statsig
       !@options.download_config_specs_url.start_with?(STATSIG_CDN_DCS_BASE)
     end
 
-    def download_config_specs_fallback(context)
-      response, e = @network.download_config_specs_fallback(@last_config_sync_time, context)
-      handle_config_specs_response(context, 'download_config_specs_fallback', 'CONFIG_SPECS_FALLBACK', response, e)
+    def fallback_urls
+      configured = @options.download_config_specs_fallback_urls
+      if configured.nil?
+        return [] unless @options.fallback_to_statsig_api && using_proxy_for_dcs?
+        configured = ["#{STATSIG_CDN_DCS_BASE}/download_config_specs/"]
+      end
+
+      primary = @options.download_config_specs_url
+      primary = "#{primary}/" unless primary.end_with?('/')
+      configured.map { |url| url.end_with?('/') ? url : "#{url}/" }
+                .reject { |url| url == primary }
+                .uniq
+    end
+
+    def download_config_specs_fallbacks(context, failure_details)
+      fallback_urls.each do |base_url|
+        response, e = @network.download_config_specs_fallback(base_url, @last_config_sync_time, context)
+        failure_details = handle_config_specs_response(context, 'download_config_specs_fallback', 'CONFIG_SPECS_FALLBACK', response, e)
+        break if failure_details.nil?
+      end
+      failure_details
     end
 
     def handle_config_specs_response(context, diagnostic_key, error_prefix, response, e)
