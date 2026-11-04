@@ -1,4 +1,5 @@
 require_relative 'statsig_errors'
+require_relative 'secret_redactor'
 
 $endpoint = 'https://statsigapi.net/v1/sdk_exception'
 
@@ -7,6 +8,7 @@ module Statsig
 
     def initialize(sdk_key, local_mode = false)
       @sdk_key = sdk_key
+      @redactor = SecretRedactor.new(sdk_key)
       @seen = Set.new
       @local_mode = local_mode
     end
@@ -16,11 +18,11 @@ module Statsig
         res = yield
       rescue StandardError, SystemStackError => e
         if e.is_a?(Statsig::UninitializedError) || e.is_a?(Statsig::ValueError)
-          raise e
+          raise @redactor.exception(e), cause: nil
         end
 
         puts '[Statsig]: An unexpected exception occurred.'
-        puts e.message
+        puts @redactor.text(e.message)
         log_exception(e, tag: caller&.to_s)
         res = recover.call
       end
@@ -56,7 +58,7 @@ module Statsig
         'tag' => tag,
         'extra' => extra
       }
-      http.post($endpoint, body: JSON.generate(body))
+      http.post($endpoint, body: @redactor.text(JSON.generate(body)))
     rescue StandardError
       return
     end

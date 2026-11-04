@@ -3,6 +3,7 @@ require 'http'
 require 'json'
 require 'securerandom'
 require 'zlib'
+require_relative 'secret_redactor'
 
 RETRY_CODES = [408, 500, 502, 503, 504, 522, 524, 599].freeze
 
@@ -31,6 +32,7 @@ module Statsig
       super()
       @options = options
       @server_secret = server_secret
+      @redactor = SecretRedactor.new(server_secret)
       @local_mode = options.local_mode
       @timeout = options.network_timeout
       @backoff_multiplier = backoff_mult
@@ -151,7 +153,7 @@ module Statsig
         end
       rescue StandardError => e
         ## network error retry
-        return nil, e unless retries.positive?
+        return nil, @redactor.exception(e) unless retries.positive?
 
         sleep backoff_adjusted
         return request(method, url, body, retries - 1, backoff * backoff_multiplier, zipped, event_count, extra_headers, use_statsig_headers, backoff_multiplier)
@@ -159,7 +161,7 @@ module Statsig
       return res, nil if res.status.success?
 
       unless retries.positive? && RETRY_CODES.include?(res.code)
-        return res, NetworkError.new("Got an exception when making request to #{url}: #{res.to_s}",
+        return res, NetworkError.new(@redactor.text("Got an exception when making request to #{url}: #{res.to_s}"),
                                      res.status.to_i)
       end
 

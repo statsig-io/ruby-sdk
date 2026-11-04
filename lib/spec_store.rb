@@ -3,6 +3,7 @@ require_relative 'api_config'
 require_relative 'evaluation_details'
 require_relative 'hash_utils'
 require_relative 'id_list'
+require_relative 'secret_redactor'
 
 module Statsig
   class SpecStore
@@ -48,6 +49,7 @@ module Statsig
       @error_boundary = error_boundary
       @logger = logger
       @secret_key = secret_key
+      @redactor = Statsig::SecretRedactor.new(secret_key)
       @unsupported_configs = Set.new
       @sdk_configs = sdk_config
       @sync_failure_count = 0
@@ -283,8 +285,8 @@ module Statsig
           error = e
         end
       rescue StandardError => e
-        failure_details = {exception: e, reason: "INTERNAL_ERROR"}
-        error = e
+        error = @redactor.exception(e)
+        failure_details = {exception: error, reason: "INTERNAL_ERROR"}
       end
 
       @error_callback.call(error) unless error.nil? or @error_callback.nil?
