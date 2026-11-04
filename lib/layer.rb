@@ -13,6 +13,8 @@ class Layer
 
   attr_accessor :group_name
 
+  attr_accessor :allocated_experiment
+
   def initialize(name, value = {}, rule_id = '', group_name = nil, allocated_experiment = nil, exposure_log_func = nil)
     @name = name
     @value = value || {}
