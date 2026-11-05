@@ -21,7 +21,7 @@ module Statsig
       @config_sync_time = config_sync_time
       @init_time = init_time
       @reason = reason
-      @server_time = (Time.now.to_i * 1000).to_s
+      @server_time = (Time.now.to_f * 1000).to_i.to_s
     end
 
     def self.unsupported(config_sync_time, init_time)
