@@ -380,7 +380,7 @@ module Statsig
       end
 
       begin
-        specs_json = JSON.parse(specs_string, { symbolize_names: true })
+        specs_json = JSON.parse(specs_string, symbolize_names: true)
         return {reason: "PARSE_RESPONSE_ERROR"} unless specs_json.is_a? Hash
 
         hashed_sdk_key_used = specs_json[:hashed_sdk_key_used]
